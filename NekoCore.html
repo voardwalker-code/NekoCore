@@ -362,9 +362,10 @@ html, body { width:100%; background:var(--bg0); color:var(--text); font-family:'
 
 /* SLIDE 6 — Brain Loop */
 .brain-ring {
-  position:relative; width:320px; height:320px; flex-shrink:0;
-  transform:scale(0.62); transform-origin:top center;
-  margin-bottom:0;
+  position:relative;
+  width: min(520px, calc(100vw - 32px));
+  height: min(520px, calc(100vw - 32px));
+  flex-shrink:0;
 }
 .brain-center {
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -564,7 +565,7 @@ html, body { width:100%; background:var(--bg0); color:var(--text); font-family:'
   .api-grid { grid-template-columns: repeat(3,1fr); gap:14px; }
   .disk-grid { grid-template-columns: repeat(2,1fr); }
   .viz-layout { flex-direction: row; gap:20px; }
-  .brain-ring { width:420px; height:420px; transform:scale(0.8); margin-bottom:0; }
+  .brain-ring { width:520px; height:520px; }
   .pipeline-wrap { height:420px; }
   .orch-grid { grid-template-columns:1fr 40px 1fr 40px 1fr; gap:0; }
   .orch-grid > .arrow { display:flex; }
@@ -974,7 +975,7 @@ html, body { width:100%; background:var(--bg0); color:var(--text); font-family:'
   <div class="slide-label">Autonomous Cognitive Pulse</div>
   <div class="slide-title">Brain Loop — 15 Phases</div>
   <div class="slide-sub">Every 30 seconds the entity autonomously processes its mental state, regardless of chat activity.</div>
-  <div style="display:flex;align-items:center;gap:40px;max-width:940px">
+  <div style="display:flex;align-items:flex-start;flex-wrap:wrap;justify-content:center;gap:28px;max-width:960px;width:100%">
     <!-- Ring diagram -->
     <div class="brain-ring" id="brainRing">
       <div class="rotating-ring"></div>
@@ -1640,7 +1641,11 @@ function buildBrainRing() {
   [...ring.querySelectorAll('.phase-node, .phase-orbit-line')].forEach(e => e.remove());
   list.innerHTML = '';
 
-  const cx = 260, cy = 260, R = 210;
+  const CW = ring.offsetWidth  || 520;
+  const CH = ring.offsetHeight || 520;
+  const cx = CW / 2;
+  const cy = CH / 2;
+  const R  = Math.min(CW, CH) / 2 - 55; // 55px margin so nodes don't clip edge
 
   PHASES.forEach((ph, i) => {
     const angle = (i / PHASES.length) * Math.PI * 2 - Math.PI / 2;
@@ -1661,6 +1666,7 @@ function buildBrainRing() {
     spoke.className = 'phase-orbit-line';
     const angleDeg = (i / PHASES.length) * 360 - 90;
     spoke.style.transform = `rotate(${angleDeg}deg)`;
+    spoke.style.height = R + 'px';
     spoke.style.background = `linear-gradient(180deg, ${ph.color}33, transparent)`;
     ring.appendChild(spoke);
 
