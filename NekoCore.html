@@ -42,7 +42,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 .slide {
   position:absolute; inset:0;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:40px 60px;
+  padding:14px 12px 88px;
   opacity:0; pointer-events:none;
   transition:opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1);
   transform:translateX(60px);
@@ -52,20 +52,20 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 
 /* ─── NAV ─── */
 #nav {
-  position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
-  display:flex; align-items:center; gap:10px; z-index:100;
+  position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:7px; z-index:100;
   background:rgba(8,13,24,0.78); backdrop-filter:blur(16px);
   border:1px solid var(--border); border-radius:40px;
-  padding:7px 16px;
+  padding:8px 12px;
 }
 #nav-ticker {
   display:flex; align-items:center; gap:7px;
   width:96px; justify-content:center;
 }
 .tick-slot {
-  width:28px; height:28px; border-radius:50%;
+  width:34px; height:34px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
-  font-size:11px; font-weight:700; color:var(--text3);
+  font-size:13px; font-weight:700; color:var(--text3);
   font-family:'JetBrains Mono',monospace;
   cursor:pointer; transition:color 0.3s;
   user-select:none; flex-shrink:0;
@@ -80,18 +80,18 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 .tick-now {
   background:var(--accent); color:var(--bg0) !important;
   box-shadow:0 0 16px rgba(52,211,153,0.5);
-  width:34px; height:34px; font-size:13px;
+  width:40px; height:40px; font-size:15px;
   animation:tickPop 0.38s cubic-bezier(0.34,1.56,0.64,1);
 }
 #nav-prev, #nav-next {
   background:none; border:1px solid var(--border); color:var(--text2);
-  border-radius:20px; padding:4px 12px; cursor:pointer; font-size:13px;
+  border-radius:22px; padding:8px 18px; cursor:pointer; font-size:17px;
   font-family:'Outfit',sans-serif; transition:all 0.2s;
 }
 #nav-prev:hover, #nav-next:hover { border-color:var(--accent); color:var(--accent); }
 #slide-counter { font-size:10px; color:var(--text3); min-width:36px; text-align:center; font-family:'JetBrains Mono',monospace; }
 
-#kbd-hint { position:fixed; bottom:28px; right:32px; font-size:11px; color:var(--text3); z-index:100; font-family:'JetBrains Mono',monospace; }
+#kbd-hint { display:none; }
 
 /* ─── STAR FIELD ─── */
 #stars { position:fixed; inset:0; pointer-events:none; z-index:0; }
@@ -108,7 +108,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
   margin-bottom:8px; text-align:center;
 }
 .slide-sub {
-  font-size:16px; color:var(--text2); text-align:center; max-width:680px;
+  font-size:13px; color:var(--text2); text-align:center; max-width:100%;
   line-height:1.6; margin-bottom:28px;
 }
 
@@ -131,18 +131,18 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 /* ─── FLOW NODES (generic) ─── */
 .flow-node {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:4px; padding:14px 18px; border-radius:12px;
+  gap:4px; padding:10px 10px; border-radius:12px;
   border:1px solid var(--border);
   font-size:13px; font-weight:600;
   background:var(--bg2);
-  text-align:center; min-width:110px;
+  text-align:center; min-width:76px;
   position:relative;
   transition:transform 0.3s, box-shadow 0.3s;
   cursor:default;
 }
 .flow-node:hover { transform:translateY(-2px); }
-.flow-node .icon { font-size:22px; margin-bottom:2px; }
-.flow-node .label { font-size:11.5px; font-weight:600; color:var(--text); }
+.flow-node .icon { font-size:18px; margin-bottom:2px; }
+.flow-node .label { font-size:10.5px; font-weight:600; color:var(--text); }
 .flow-node .sublabel { font-size:9.5px; color:var(--text2); margin-top:2px; font-weight:400; }
 
 /* Color variants */
@@ -163,7 +163,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
   position:relative; flex-shrink:0;
 }
 .arrow-line {
-  height:2px; width:28px; min-width:20px;
+  height:2px; width:16px; min-width:12px;
   background:linear-gradient(90deg, var(--text3), var(--accent));
   border-radius:1px; position:relative; overflow:visible;
 }
@@ -192,17 +192,17 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 }
 
 /* ─── GRID LAYOUTS ─── */
-.row { display:flex; align-items:center; gap:10px; }
+.row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center; }
 .col { display:flex; flex-direction:column; align-items:center; gap:10px; }
 
 /* ════════════ SLIDE-SPECIFIC STYLES ════════════ */
 
 /* SLIDE 1 — Cover */
 .cover-logo {
-  width:90px; height:90px; border-radius:24px;
+  width:68px; height:68px; border-radius:24px;
   background:linear-gradient(135deg,#052520,#0a3530);
   display:flex; align-items:center; justify-content:center;
-  font-size:48px; margin-bottom:20px;
+  font-size:34px; margin-bottom:12px;
   border:1px solid rgba(52,211,153,0.3);
   box-shadow:0 0 40px rgba(52,211,153,0.15), inset 0 0 20px rgba(52,211,153,0.05);
   animation:breathe 3s ease-in-out infinite;
@@ -211,10 +211,10 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
   0%,100% { box-shadow:0 0 40px rgba(52,211,153,0.15), inset 0 0 20px rgba(52,211,153,0.05); }
   50%      { box-shadow:0 0 60px rgba(52,211,153,0.3), inset 0 0 30px rgba(52,211,153,0.1); }
 }
-.cover-tags { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+.cover-tags { display:flex; gap:7px; margin-top:10px; flex-wrap:wrap; justify-content:center; }
 
 /* SLIDE 2 — System Overview */
-.sys-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; width:100%; max-width:900px; }
+.sys-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; width:100%; max-width:900px; }
 .sys-card {
   background:var(--bg2); border:1px solid var(--border); border-radius:12px;
   padding:16px 14px; text-align:center;
@@ -252,7 +252,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 /* SLIDE 4 — Chat Pipeline / Rolodex */
 .pipeline-wrap {
   width:100%; max-width:760px;
-  position:relative; height:480px;
+  position:relative; height:340px;
   overflow:hidden;
 }
 .pipe-step {
@@ -340,8 +340,8 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 
 /* SLIDE 5 — Orchestrator */
 .orch-grid {
-  display:grid; grid-template-columns:1fr 40px 1fr 40px 1fr;
-  align-items:center; gap:0; width:100%; max-width:900px;
+  display:grid; grid-template-columns:1fr;
+  align-items:center; gap:8px; width:100%; max-width:900px;
 }
 .orch-card {
   background:var(--bg2); border:1px solid var(--border); border-radius:14px;
@@ -364,7 +364,9 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 
 /* SLIDE 6 — Brain Loop */
 .brain-ring {
-  position:relative; width:520px; height:520px; flex-shrink:0;
+  position:relative; width:320px; height:320px; flex-shrink:0;
+  transform:scale(0.62); transform-origin:top center;
+  margin-bottom:-120px;
 }
 .brain-center {
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -442,7 +444,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 .dream-stage .ds { font-size:10px; color:var(--text2); margin-top:3px; line-height:1.4; }
 
 /* SLIDE 10 — Streams & APIs */
-.api-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; max-width:820px; }
+.api-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; max-width:820px; }
 .api-card {
   background:var(--bg2); border:1px solid var(--border); border-radius:12px;
   padding:14px; text-align:left;
@@ -452,7 +454,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 .api-card .ar  { font-size:10px; color:var(--text3); font-family:'JetBrains Mono',monospace; }
 
 /* SLIDE 11 — Visualizer */
-.viz-layout { display:flex; gap:20px; align-items:flex-start; max-width:920px; }
+.viz-layout { display:flex; flex-direction:column; gap:10px; align-items:flex-start; max-width:920px; }
 .viz-panel {
   background:var(--bg2); border:1px solid var(--border); border-radius:14px;
   padding:16px; flex:1;
@@ -462,7 +464,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 .viz-item .vi { font-size:16px; }
 
 /* SLIDE 12 — Data / Disk ─── */
-.disk-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; max-width:800px; }
+.disk-grid { display:grid; grid-template-columns:1fr; gap:14px; max-width:800px; }
 .disk-card {
   background:var(--bg2); border:1px solid var(--border); border-radius:12px;
   padding:14px; font-size:12px;
@@ -490,6 +492,9 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 }
 .end-link:hover { border-color:var(--accent); color:var(--accent); }
 
+/* orch arrows hidden in single-col layout */
+.orch-grid > .arrow { display:none; }
+
 /* ─── ANIMATED CHAT FLOW (slide 4) ─── */
 #chatflowCanvas {
   position:absolute; inset:0; pointer-events:none; z-index:1;
@@ -514,7 +519,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 .tip.show { opacity:1; }
 
 /* ─── SCROLLABLE INSIDE SLIDE ─── */
-.slide-scroll { overflow-y:auto; max-height:calc(100vh - 160px); width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; scrollbar-width:thin; }
+.slide-scroll { overflow-y:auto; max-height:calc(100vh - 110px); width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; scrollbar-width:thin; }
 
 /* ─── ANIMATED FLOW LINE (SVG) ─── */
 .flow-svg { overflow:visible; }
@@ -553,6 +558,25 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 .ps-pink   { border-left:3px solid var(--pink);   }
 .ps-teal   { border-left:3px solid var(--teal);   }
 .ps-red    { border-left:3px solid var(--red);    }
+
+/* ════════════ RESPONSIVE: wider screens get extra breathing room ════════════ */
+@media (min-width: 700px) {
+  .slide { padding: 24px 32px 88px; }
+  .sys-grid { grid-template-columns: repeat(4,1fr); gap:14px; }
+  .api-grid { grid-template-columns: repeat(3,1fr); gap:14px; }
+  .disk-grid { grid-template-columns: repeat(2,1fr); }
+  .viz-layout { flex-direction: row; gap:20px; }
+  .brain-ring { width:420px; height:420px; transform:scale(0.8); margin-bottom:-84px; }
+  .pipeline-wrap { height:420px; }
+  .orch-grid { grid-template-columns:1fr 40px 1fr 40px 1fr; gap:0; }
+  .orch-grid > .arrow { display:flex; }
+  .cover-logo { width:90px; height:90px; font-size:48px; margin-bottom:20px; }
+  .flow-node { min-width:110px; padding:14px 18px; }
+  .flow-node .icon { font-size:22px; }
+  .flow-node .label { font-size:11.5px; }
+  .arrow-line { width:28px; min-width:20px; }
+  .row { flex-wrap:nowrap; justify-content:initial; }
+}
 </style>
 </head>
 <body>
@@ -1420,6 +1444,26 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Home') goTo(1);
   if (e.key === 'End')  goTo(TOTAL);
 });
+
+// ─── TOUCH SWIPE ───
+(function() {
+  let tx = 0, ty = 0, dragging = false;
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    tx = e.touches[0].clientX;
+    ty = e.touches[0].clientY;
+    dragging = true;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!dragging) return;
+    dragging = false;
+    const dx = e.changedTouches[0].clientX - tx;
+    const dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    if (dx < 0) goTo(current + 1);
+    else        goTo(current - 1);
+  }, { passive: true });
+})();
 
 // ─── STAR FIELD v2 — drift · constellations · comet ───
 (function() {
