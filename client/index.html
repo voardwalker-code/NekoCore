@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REM-System — Chat with Persistent Identity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/ui-v2.css">
+</head>
+<body>
+
+<!-- ===== ANIMATED STAR FIELD ===== -->
+<canvas id="stars"></canvas>
+
+<!-- ===== LOGIN OVERLAY ===== -->
+<div id="loginOverlay" style="display:flex;position:fixed;inset:0;z-index:10000;background:var(--bg,#0d0d12);align-items:center;justify-content:center;flex-direction:column;">
+  <div style="background:var(--bg2,#13131a);border:1px solid var(--br,#2a2a3a);border-radius:1rem;padding:2rem;width:min(420px,92vw);box-shadow:0 24px 64px #0009;">
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div style="font-size:2rem;font-weight:800;letter-spacing:-.04em;color:var(--ac,#7c6aff);">REM</div>
+      <div style="font-size:.8rem;color:var(--tc,#888);margin-top:.25rem;">Recursive Echo Memory System</div>
+    </div>
+
+    <!-- Tab buttons -->
+    <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;">
+      <button class="btn bp flex-1" id="authTabLoginBtn" onclick="switchLoginTab('login')">Sign In</button>
+      <button class="btn bd flex-1"  id="authTabRegBtn"   onclick="switchLoginTab('register')">Create Account</button>
+    </div>
+
+    <!-- Sign-in form -->
+    <div id="authLoginTab">
+      <div style="margin-bottom:.75rem;">
+        <label style="display:block;font-size:.72rem;color:var(--tc,#888);margin-bottom:.3rem;">Username</label>
+        <input id="authLoginUsername" class="inp" type="text" placeholder="your username" autocomplete="username" style="width:100%;">
+      </div>
+      <div style="margin-bottom:1.25rem;">
+        <label style="display:block;font-size:.72rem;color:var(--tc,#888);margin-bottom:.3rem;">Password</label>
+        <input id="authLoginPassword" class="inp" type="password" placeholder="password" autocomplete="current-password" style="width:100%;">
+      </div>
+      <button class="btn bp" style="width:100%;" onclick="handleLogin()">Sign In</button>
+      <div id="authLoginError" style="display:none;color:var(--dn,#ff5f5f);font-size:.73rem;margin-top:.75rem;text-align:center;"></div>
+    </div>
+
+    <!-- Register form -->
+    <div id="authRegisterTab" style="display:none;">
+      <div style="margin-bottom:.75rem;">
+        <label style="display:block;font-size:.72rem;color:var(--tc,#888);margin-bottom:.3rem;">What should we call you? <span style="color:var(--dn,#ff5f5f)">*</span></label>
+        <input id="authRegDisplayName" class="inp" type="text" placeholder="Your name or nickname" autocomplete="nickname" style="width:100%;">
+      </div>
+      <div style="margin-bottom:.75rem;">
+        <label style="display:block;font-size:.72rem;color:var(--tc,#888);margin-bottom:.3rem;">A little about you <span style="font-style:italic;opacity:.6">(optional)</span></label>
+        <input id="authRegInfo" class="inp" type="text" placeholder="e.g. hobbies, interests, anything..." autocomplete="off" style="width:100%;">
+      </div>
+      <div style="margin-bottom:.75rem;">
+        <label style="display:block;font-size:.72rem;color:var(--tc,#888);margin-bottom:.3rem;">Choose a username</label>
+        <input id="authRegUsername" class="inp" type="text" placeholder="username (letters, numbers, _ - .)" autocomplete="username" style="width:100%;">
+      </div>
+      <div style="margin-bottom:1.25rem;">
+        <label style="display:block;font-size:.72rem;color:var(--tc,#888);margin-bottom:.3rem;">Choose a password</label>
+        <input id="authRegPassword" class="inp" type="password" placeholder="password (min 3 chars)" autocomplete="new-password" style="width:100%;">
+      </div>
+      <button class="btn bp" style="width:100%;" onclick="handleRegister()">Create Account</button>
+      <div id="authRegisterError" style="display:none;color:var(--dn,#ff5f5f);font-size:.73rem;margin-top:.75rem;text-align:center;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SETUP REQUIRED MODAL ===== -->
+<div class="modal" id="setupRequiredModal" style="display:none;z-index:9999">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>⚙️ Setup Required</h3>
+    </div>
+    <div class="modal-body text-center">
+      <div class="mb-4" style="font-size:2.5rem;opacity:.6">🔑</div>
+      <h4 class="mb-3">Configure an LLM Provider</h4>
+      <p class="text-tertiary-c mb-5">
+        Before you can create or load entities, you need to set up an API connection. 
+        Choose OpenRouter (cloud-based) or Ollama (local AI).
+      </p>
+      <div class="flex gap-4 justify-center flex-wrap">
+        <button class="btn bp flex-1" onclick="goToSetupTab('openrouter')" style="min-width:150px">
+          🌐 Set Up OpenRouter
+        </button>
+        <button class="btn bg flex-1" onclick="goToSetupTab('ollama')" style="min-width:150px">
+          🐳 Set Up Ollama
+        </button>
+      </div>
+      <p class="text-tertiary-c text-sm-c mt-5">
+        <strong>OpenRouter:</strong> Cloud-based, supports GPT-4, Claude, Llama, and more. Requires API key.<br>
+        <strong>Ollama:</strong> Local AI models, free and private. Requires Ollama running on your machine.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HEADER ===== -->
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="logo">REM</div>
+    <div>
+      <div class="hdr-t">REM System <span id="entityName" class="text-info font-semibold"></span><span class="text-tertiary-c" style="font-weight:400"> v0.6.0</span></div>
+      <div class="hdr-s" id="entityTraits">No entity loaded</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <div class="brain-status" id="brainStatus" title="Brain loop status">
+      <span class="brain-icon" id="brainIcon">&#129504;</span>
+      <span class="brain-label" id="brainLabel">Idle</span>
+      <span class="deepsleep-badge" id="deepSleepBadge" title="Cycles until next DeepSleep"></span>
+    </div>
+    <div class="active-provider" id="activeProvider">
+      <div class="provider-dot" id="providerDot" style="background:var(--td)"></div>
+      <span id="providerName">No provider</span>
+    </div>
+    <button class="btn bd" onclick="resetAll()">Reset</button>
+    <button class="btn bp" onclick="openVisualizer()" title="Open Neural Visualizer">◇ Visualizer</button>
+    <button class="btn br" onclick="shutdownServer()" title="Stop the server">&#x23FB; Stop Server</button>
+    <span id="accountBadge" style="display:none;align-items:center;gap:.4rem;font-size:.7rem;color:var(--tc);margin-left:.25rem;padding:.2rem .6rem;background:var(--bg2);border:1px solid var(--br);border-radius:.5rem;">
+      <span style="color:var(--ac);">👤</span>
+      <span id="accountUsername" style="font-weight:600;"></span>
+      <button class="btn bd" style="padding:.1rem .45rem;font-size:.62rem;margin-left:.1rem;" onclick="handleLogout()">Logout</button>
+    </span>
+  </div>
+</div>
+
+<!-- ===== NAV SIDEBAR ===== -->
+<nav class="nav-sidebar" id="navSidebar">
+  <div class="nav-sidebar-header">
+    <span class="nav-brand">REM System</span>
+    <button class="nav-toggle" onclick="toggleNavSidebar()" title="Collapse sidebar">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+
+  <!-- Entity zone (compact) -->
+  <div class="nav-entity-zone">
+    <div class="nav-section-title" id="navEntityTitle">Entities</div>
+    <div id="navEntityList"></div>
+    <div class="nav-entity-actions" id="navEntityActions">
+      <button class="btn bp text-xs-c" id="navNewEntityBtn" onclick="showNewEntityDialog()">+ New</button>
+      <button class="btn bp text-xs-c" id="navReleaseEntityBtn" onclick="releaseActiveEntity()" style="display:none;background:var(--accent-orange)">Release</button>
+    </div>
+  </div>
+
+  <!-- Physical Status (compact, under entities) -->
+  <div class="nav-physical" id="navPhysicalWidget" onclick="switchMainTab('physical')" title="Open Physical Body tab">
+    <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px var(--space-3)">
+      <span style="font-size:14px">❤️</span>
+      <span class="nav-label" style="flex:1;font-size:var(--text-xs);font-weight:600;color:var(--text-secondary)">Physical</span>
+      <span class="nav-label text-xs-c" id="chatPhysicalZone" style="padding:1px 6px;border-radius:3px;background:var(--accent-green);color:var(--bg-primary);font-size:10px;font-weight:600">HEALTHY</span>
+    </div>
+    <div class="nav-label" style="padding:0 var(--space-3) 6px">
+      <div style="height:3px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden">
+        <div id="chatPhysicalBar" style="height:100%;width:0%;background:var(--accent-green);border-radius:2px;transition:width .5s,background .5s"></div>
+      </div>
+      <div class="text-xs-c" id="chatPhysicalNarrative" style="color:var(--text-tertiary);font-style:italic;font-size:9px;line-height:1.3;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Loading somatic state...</div>
+    </div>
+    <div id="chatPhysicalMetrics" style="display:none"></div>
+    <div id="chatPhysicalOverallCard" style="display:none"></div>
+  </div>
+
+  <div class="nav-divider"></div>
+
+  <!-- Main navigation -->
+  <button class="nav-item on" data-tab="chat" onclick="switchMainTab('chat', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    <span class="nav-label">Chat</span>
+  </button>
+  <button class="nav-item" data-tab="skills" onclick="switchMainTab('skills', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+    <span class="nav-label">Skills</span>
+  </button>
+  <button class="nav-item" data-tab="settings" onclick="switchMainTab('settings', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6m-17.78 7.78l4.24-4.24m5.08-5.08l4.24-4.24"/></svg>
+    <span class="nav-label">Settings</span>
+  </button>
+
+  <div class="nav-divider"></div>
+
+  <button class="nav-item" data-tab="visualizer" onclick="switchMainTab('visualizer', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/><line x1="12" y1="12" x2="6" y2="6"/><line x1="12" y1="12" x2="18" y2="6"/><line x1="12" y1="12" x2="6" y2="18"/><line x1="12" y1="12" x2="18" y2="18"/></svg>
+    <span class="nav-label">Visualizer</span>
+  </button>
+  <button class="nav-item" data-tab="dreamgallery" onclick="switchMainTab('dreamgallery', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+    <span class="nav-label">Dreams</span>
+  </button>
+
+  <div class="nav-divider"></div>
+
+  <button class="nav-item" data-tab="lifediary" onclick="switchMainTab('lifediary', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    <span class="nav-label">Life Diary</span>
+  </button>
+  <button class="nav-item" data-tab="dreamdiary" onclick="switchMainTab('dreamdiary', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    <span class="nav-label">Dream Diary</span>
+  </button>
+  <button class="nav-item" data-tab="documents" onclick="switchMainTab('documents', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+    <span class="nav-label">Documents</span>
+  </button>
+
+  <div class="nav-divider"></div>
+
+  <button class="nav-item" data-tab="workspace" onclick="switchMainTab('workspace', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+    <span class="nav-label">Workspace</span>
+  </button>
+  <button class="nav-item" data-tab="activity" onclick="switchMainTab('activity', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span class="nav-label">Entity Activity</span>
+  </button>
+
+  <div class="nav-divider"></div>
+
+  <button class="nav-item" data-tab="advanced" onclick="switchMainTab('advanced', this)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2-.01l-.13-.07a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.13.07a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.13.07a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.13-.07a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 .01l.13.07a2 2 0 002.73-.73l.22-.38a2 2 0 00-.73-2.73l-.13-.07a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.13-.07a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.13.07a2 2 0 01-2-.01l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    <span class="nav-label">Sleep &amp; Tokens</span>
+  </button>
+</nav>
+
+<!-- ===== MAIN APP ===== -->
+<div class="app">
+
+  <!-- ===== MODEL/PROFILE SIDEBAR (hidden — replaced by nav-sidebar) ===== -->
+  <div class="model-sidebar" id="modelSidebar">
+
+    <!-- LLM Profiles Section -->
+    <div class="sidebar-sec">
+      <div class="sidebar-sec-title">LLM Profiles</div>
+      <div id="profileChips" class="sidebar-chips"></div>
+      <button class="btn bp text-sm-c" style="margin:var(--space-2) var(--space-3) 0" onclick="showSetupWizard()">+ Add Profile</button>
+    </div>
+
+    <!-- Divider -->
+    <div class="sidebar-divider"></div>
+
+    <!-- Entities Section -->
+    <div class="sidebar-sec flex-1 flex flex-col" style="min-height:0">
+      <div class="sidebar-sec-title">Entities</div>
+      <div id="sidebarEntityList" class="sidebar-entity-list">
+        <div class="placeholder-sm text-xs-c">Loading...</div>
+      </div>
+      <div class="sidebar-actions">
+        <button class="btn bp flex-1 text-xs-c" onclick="showNewEntityDialog()">+ New</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== TAB NAVIGATION ===== -->
+  <div class="tab-navigation">
+    <button class="tab-btn on" onclick="switchMainTab('chat', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      Chat
+    </button>
+    <button class="tab-btn" onclick="switchMainTab('skills', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+      Skills
+    </button>
+    <button class="tab-btn" onclick="switchMainTab('settings', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6m-17.78 7.78l4.24-4.24m5.08-5.08l4.24-4.24"/></svg>
+      Settings
+    </button>
+    <button class="tab-btn" onclick="switchMainTab('neural', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/><line x1="12" y1="12" x2="6" y2="6"/><line x1="12" y1="12" x2="18" y2="6"/><line x1="12" y1="12" x2="6" y2="18"/><line x1="12" y1="12" x2="18" y2="18"/></svg>
+      Neural
+    </button>
+    <button class="tab-btn" onclick="switchMainTab('physical', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+      Physical
+    </button>
+    <button class="tab-btn" onclick="switchMainTab('dreamgallery', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      Dreams
+    </button>
+    <button class="tab-btn" onclick="switchMainTab('lifediary', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      Life Diary
+    </button>
+    <button class="tab-btn" onclick="switchMainTab('dreamdiary', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      Dream Diary
+    </button>
+    <button class="tab-btn" onclick="switchMainTab('documents', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+      Documents
+    </button>
+    <button class="tab-btn" onclick="toggleAdvancedMenu(this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Advanced
+      <span class="tab-dropdown-arrow">▼</span>
+    </button>
+  </div>
+
+  <!-- ===== CHAT TAB ===== -->
+  <div class="tab-content on" id="tab-chat">
+    <div class="chat-layout">
+
+    <!-- LEFT: Chat area -->
+    <div class="chat-main">
+    <div class="chat-view">
+      <div class="chat-bar">
+        <div class="chat-bar-l">
+          <svg width="16" height="16" fill="none" stroke="var(--em)" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <span class="chat-bar-title">Context Chat</span>
+          <span class="chat-bar-model" id="chatModelLabel"></span>
+        </div>
+        <div class="chat-bar-r">
+          <div class="sub-indicator" id="subIndicator" title="Subconscious memory compression">
+            <span class="sub-brain">&#129504;</span>
+            <div class="sub-bar"><div class="sub-fill" id="subFill" style="width:0%"></div></div>
+            <span id="subPct" class="font-mono text-xs-c">0%</span>
+          </div>
+          <!-- User Switcher -->
+          <div style="position:relative">
+            <button class="btn bg text-xs-c" id="userSwitcherBtn" onclick="toggleUserPanel()" title="Switch chat user" style="display:none;gap:3px;align-items:center">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span id="activeUserLabel">User</span>
+            </button>
+            <div id="userPanel" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:1200;background:var(--surface-2);border:1px solid var(--border-default);border-radius:8px;padding:12px;min-width:260px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <span style="font-weight:600;font-size:.8rem;color:var(--text-primary)">Chat Users</span>
+                <button onclick="closeUserPanel()" style="background:none;border:none;color:var(--text-tertiary);font-size:1.2rem;cursor:pointer;line-height:1;padding:0 2px">&times;</button>
+              </div>
+              <div id="userPanelList" style="margin-bottom:10px;max-height:200px;overflow-y:auto"></div>
+              <div style="border-top:1px solid var(--border-default);padding-top:10px">
+                <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-tertiary);margin-bottom:6px">Add New User</div>
+                <input type="text" id="newUserName" placeholder="Name..." autocomplete="off" style="width:100%;box-sizing:border-box;background:var(--surface-3);border:1px solid var(--border-default);color:var(--text-primary);padding:5px 8px;border-radius:4px;font-size:.8rem;margin-bottom:5px">
+                <input type="text" id="newUserInfo" placeholder="About them (optional)..." autocomplete="off" style="width:100%;box-sizing:border-box;background:var(--surface-3);border:1px solid var(--border-default);color:var(--text-primary);padding:5px 8px;border-radius:4px;font-size:.8rem;margin-bottom:8px">
+                <button class="btn bp text-xs-c" style="width:100%;justify-content:center" onclick="addAndSwitchUser()">+ Add &amp; Switch</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn bg text-xs-c" onclick="startSleep()" id="sleepBtn" title="Sleep: replay memories and update personality">&#127769; Sleep</button>
+          <button class="btn bg text-xs-c" onclick="compressChat()" id="compressChatBtn" title="Save compressed chat">&#128230; Save</button>
+          <button class="btn bg text-xs-c" onclick="clearChat()">&#128465; Clear</button>
+        </div>
+      </div>
+
+      <!-- Subconscious auto-archive settings -->
+      <div class="sub-settings">
+        <div class="sub-toggle on" id="subToggle" onclick="toggleSubconscious()" title="Enable/disable auto-archiving"></div>
+        <label>Auto-archive</label>
+        <span class="text-tertiary-c">|</span>
+        <div class="sub-toggle" id="thoughtsToggle" onclick="toggleThoughtsInChat()" title="Show/hide thought process in chat"></div>
+        <label>Thoughts</label>
+        <span class="text-tertiary-c">|</span>
+        <label>Threshold:</label>
+        <input type="range" id="subThreshold" min="4" max="50" value="35" step="1" oninput="updateThresholdDisplay()">
+        <span class="sub-val" id="subThresholdVal">35K</span>
+        <span class="text-tertiary-c text-xs-c">chars</span>
+      </div>
+
+      <!-- Chat messages -->
+      <div class="chat-messages" id="chatMessages" ondragover="chatDragOver(event)" ondragleave="chatDragLeave(event)" ondrop="chatDrop(event)">
+        <div class="chat-drop-overlay" id="chatDropOverlay"><span>&#128230; Drop archive files here</span></div>
+        <div class="chat-empty">
+          <div class="chat-empty-icon">&#128172;</div>
+          <div class="chat-empty-text">Load an entity or drag & drop memory archives to get started.</div>
+        </div>
+      </div>
+
+      <!-- Chat input -->
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chatInput" placeholder="Chat with the entity..." rows="1" onkeydown="chatKeyDown(event)"></textarea>
+        <button class="chat-send" id="chatSendBtn" onclick="sendChatMessage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    </div><!-- end chat-main -->
+
+    <!-- RIGHT: Side panel (Log + Thought Process) -->
+    <div class="chat-sidebar" id="chatSidebar">
+      <!-- Pipeline Log -->
+      <div class="sidebar-section">
+        <div class="sidebar-header" style="cursor:default">
+          <span>📋 Pipeline Log</span>
+        </div>
+        <div class="sidebar-body" id="sidebarLogBody">
+          <div id="sidebarLogContent" style="max-height:40vh;overflow-y:auto;font-family:var(--font-mono);font-size:var(--text-xs)"></div>
+        </div>
+      </div>
+
+      <!-- Thought Process -->
+      <div class="sidebar-section">
+        <div class="sidebar-header" onclick="toggleThoughtProcess()">
+          <span>💭 Thought Process</span>
+          <span class="sidebar-arrow" id="thoughtProcessArrow">▼</span>
+        </div>
+        <div class="sidebar-body" id="thoughtProcessBody">
+          <div id="thoughtProcessContent" class="thought-process-panel">
+            <div class="thought-empty">Waiting for next message...</div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end chat-sidebar -->
+
+    </div><!-- end chat-layout -->
+
+  </div><!-- end tab-chat -->
+
+  <!-- ===== WORKSPACE TAB ===== -->
+  <div class="tab-content" id="tab-workspace">
+    <div style="padding:var(--space-4);max-width:900px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+        <h2 style="font-size:var(--text-lg);margin:0">📁 Workspace Browser</h2>
+        <button class="btn bg text-xs-c" onclick="refreshSidebarWorkspace()">Refresh</button>
+      </div>
+      <div class="flex justify-between items-center mb-2 px-3">
+        <span class="text-sm-c text-info font-mono" id="sidebarWsPath">/</span>
+      </div>
+      <div id="sidebarWsBrowser" class="file-browser" style="max-height:60vh;overflow-y:auto">
+        <div class="placeholder-sm">No workspace configured</div>
+      </div>
+      <!-- Inline file viewer -->
+      <div id="sidebarWsViewer" class="hidden mt-2">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm-c text-info font-mono" id="sidebarWsViewerName">file.txt</span>
+          <button class="btn bg text-xs-c" onclick="closeSidebarWsViewer()">✕</button>
+        </div>
+        <pre id="sidebarWsViewerContent" class="file-viewer-pre" style="max-height:50vh;overflow-y:auto"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ENTITY ACTIVITY TAB ===== -->
+  <div class="tab-content" id="tab-activity">
+    <div style="padding:var(--space-4);max-width:900px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+        <h2 style="font-size:var(--text-lg);margin:0">⚡ Entity Activity</h2>
+      </div>
+      <div id="activityFeed" style="max-height:70vh;overflow-y:auto">
+        <div class="placeholder-content">
+          <div class="text-sm-c mt-2">No activity yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SKILLS TAB ===== -->
+  <div class="tab-content" id="tab-skills">
+    <div class="settings-container">
+
+      <!-- ── Web Search & Browse ── -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <h2>🌐 Web Search &amp; Browse</h2>
+          <p>Search the web and fetch pages — results can be saved to any skill workspace</p>
+        </div>
+
+        <!-- Search -->
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="webSearchQuery" placeholder="Search the web..." class="flex-1" style="padding:var(--space-3);background:var(--surface-2);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:var(--text-base);outline:none;font-family:inherit" onkeydown="if(event.key==='Enter')executeWebSearch()">
+          <button class="btn bp" onclick="executeWebSearch()">Search</button>
+          <button class="btn bg" onclick="document.getElementById('webSearchResults').classList.add('hidden');document.getElementById('webSearchResults').innerHTML='<div class=\'placeholder-content\'>No results yet</div>';document.getElementById('webSearchQuery').value=''">Clear</button>
+        </div>
+        <div id="webSearchResults" class="hidden file-browser mb-4" style="max-height:350px;overflow-y:auto">
+          <div class="placeholder-content">No results yet</div>
+        </div>
+
+        <!-- Fetch URL -->
+        <div class="flex gap-2 mb-2">
+          <input type="text" id="webFetchUrl" placeholder="Enter a URL to fetch &amp; read..." class="flex-1" style="padding:var(--space-3);background:var(--surface-2);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:var(--text-base);outline:none;font-family:inherit" onkeydown="if(event.key==='Enter')executeWebFetch()">
+          <button class="btn bg" onclick="executeWebFetch()">Fetch</button>
+          <button class="btn bg" onclick="document.getElementById('webFetchResult').classList.add('hidden');document.getElementById('webFetchResult').textContent='';document.getElementById('webFetchUrl').value=''">Clear</button>
+        </div>
+        <div id="webFetchResult" class="hidden file-browser p-4" style="max-height:400px;overflow-y:auto;font-size:var(--text-sm);white-space:pre-wrap;color:var(--text-secondary);line-height:var(--leading-relaxed)"></div>
+      </div>
+
+      <!-- ── Entity Workspace ── -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <h2>📁 Entity Workspace</h2>
+          <p>A shared file workspace the entity can read, write, and edit</p>
+        </div>
+        <div class="flex gap-3 mb-4 items-center flex-wrap">
+          <div class="fl flex-1" style="min-width:200px;margin:0">
+            <label>Workspace Directory</label>
+            <div class="flex gap-2">
+              <input type="text" id="entityWorkspacePath" placeholder="e.g., C:\Users\you\projects\my-workspace" style="flex:1">
+              <button class="btn bp text-xs-c" onclick="saveEntityWorkspacePath()">Save</button>
+            </div>
+          </div>
+        </div>
+        <div id="entityWorkspaceStatus" class="hidden mb-3 text-sm-c" style="padding:var(--space-2) var(--space-3);border-radius:var(--radius-md)"></div>
+        <div class="flex justify-between items-center mb-3">
+          <span class="text-sm-c text-info font-mono" id="entityWsPathDisplay">/</span>
+          <div class="flex gap-2">
+            <button class="btn bg text-xs-c" onclick="refreshEntityWorkspace()">Refresh</button>
+            <button class="btn bg text-xs-c" onclick="showEntityWsNewFile()">+ New File</button>
+          </div>
+        </div>
+        <div id="entityWorkspaceBrowser" class="file-browser">
+          <div class="placeholder-content">Set a workspace path above to browse files</div>
+        </div>
+
+        <!-- Entity Workspace File Editor -->
+        <div id="entityWsFileEditor" class="file-editor">
+          <div class="flex justify-between items-center mb-2">
+            <div class="text-sm-c text-info font-mono" id="entityWsEditorFileName">file.txt</div>
+            <div class="flex gap-2">
+              <button class="btn bp text-xs-c" onclick="saveEntityWsFile()">Save</button>
+              <button class="btn bg text-xs-c" onclick="document.getElementById('entityWsFileEditor').style.display='none'">Close</button>
+            </div>
+          </div>
+          <textarea id="entityWsFileContent" class="file-editor textarea" style="width:100%;min-height:250px;background:var(--surface-0);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-family:var(--font-mono);font-size:var(--text-sm);padding:var(--space-3);resize:vertical;outline:none" spellcheck="false"></textarea>
+        </div>
+      </div>
+
+      <!-- ── Skills Overview ── -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <h2>🛠 Skills</h2>
+          <p>Per-entity capabilities — each entity has its own skills, workspace, and tools. Compatible with <a href="https://clawhub.ai/" target="_blank" style="color:var(--accent)">ClawHub</a>.</p>
+        </div>
+        <div id="skillsEntityHeader" style="font-size:.75rem;margin-bottom:.75rem;font-weight:600"></div>
+        <div id="pendingSkillsContainer" style="margin-bottom:1rem"></div>
+        <div id="quarantineContainer" style="margin-bottom:1rem"></div>
+        <div class="flex gap-3 mb-5 flex-wrap">
+          <button class="btn bp" onclick="loadSkillsList()">Refresh</button>
+          <button class="btn bg" onclick="showCreateSkillDialog()">+ New Skill</button>
+        </div>
+        <div id="skillsList" class="grid" style="gap:var(--space-3)">
+          <div class="placeholder-content">Loading skills...</div>
+        </div>
+      </div>
+
+      <!-- Skill Detail Panel (hidden until a skill is selected) -->
+      <div class="settings-section" id="skillDetailPanel" class="hidden">
+        <div class="settings-section-header flex justify-between items-start">
+          <div>
+            <h2 id="skillDetailName">Skill Name</h2>
+            <p id="skillDetailDesc">Description</p>
+          </div>
+          <button class="btn bg flex-shrink-0" onclick="closeSkillDetail()">Close</button>
+        </div>
+
+        <!-- Skill metadata -->
+        <div class="flex gap-4 mb-5 flex-wrap">
+          <div class="status-badge">
+            <span>Status: </span>
+            <span id="skillDetailStatus">Enabled</span>
+          </div>
+          <div class="status-badge">
+            <span>Version: </span>
+            <span id="skillDetailVersion" class="text-primary-c">1.0.0</span>
+          </div>
+          <div class="status-badge">
+            <span>Invoke: </span>
+            <code id="skillDetailTrigger" style="font-family:var(--font-mono);background:var(--surface-3);padding:.1rem .4rem;border-radius:4px;font-size:.75rem;color:var(--em)"></code>
+          </div>
+        </div>
+
+        <!-- Tools provided by this skill -->
+        <div id="skillDetailTools" style="display:none;margin-bottom:1rem"></div>
+
+        <!-- Requirements -->
+        <div id="skillDetailRequires" style="display:none;margin-bottom:1rem"></div>
+
+        <!-- Security Scan Results -->
+        <div id="skillDetailSecurity" style="display:none;margin-bottom:1rem"></div>
+
+        <!-- Skill Workspace File Browser -->
+        <div class="mt-4">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-md-c text-info">Skill Workspace</h3>
+            <div class="flex gap-2">
+              <button class="btn bg text-xs-c" onclick="refreshWorkspaceFiles()">Refresh</button>
+              <button class="btn bg text-xs-c" onclick="showWorkspaceNewFile()">+ New File</button>
+            </div>
+          </div>
+          <div id="workspaceFileBrowser" class="file-browser">
+            <div class="placeholder-content">No workspace files</div>
+          </div>
+        </div>
+
+        <!-- File Editor (hidden until a file is opened) -->
+        <div id="workspaceFileEditor" class="file-editor">
+          <div class="flex justify-between items-center mb-2">
+            <div class="text-sm-c text-info font-mono" id="editorFileName">file.txt</div>
+            <div class="flex gap-2">
+              <button class="btn bp text-xs-c" onclick="saveWorkspaceFile()">Save</button>
+              <button class="btn bg text-xs-c" onclick="closeFileEditor()">Close</button>
+            </div>
+          </div>
+          <textarea id="workspaceFileContent" class="file-editor textarea" style="width:100%;min-height:250px;background:var(--surface-0);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-family:var(--font-mono);font-size:var(--text-sm);padding:var(--space-3);resize:vertical;outline:none" spellcheck="false"></textarea>
+        </div>
+      </div>
+
+      <!-- Create Skill Modal -->
+      <div class="modal" id="createSkillModal" style="display:none">
+        <div class="modal-content" style="width:90%;max-width:600px">
+          <div class="modal-header">
+            <h3>Create New Skill</h3>
+            <button class="modal-close" onclick="closeCreateSkillDialog()">&times;</button>
+          </div>
+          <div class="modal-body">
+
+            <!-- How-to guide -->
+            <div style="background:var(--surface-2);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-4);font-size:var(--text-sm);line-height:1.6">
+              <div style="font-weight:600;margin-bottom:var(--space-2);color:var(--accent)">📖 How Skills Work</div>
+              <p style="margin:0 0 var(--space-2);color:var(--text-secondary)">
+                A skill teaches the entity <strong>what it can do</strong> and <strong>how to do it</strong>. Skills are only loaded into the prompt <strong>when explicitly invoked</strong> — they are never injected by default.
+              </p>
+              <p style="margin:0 0 var(--space-2);color:var(--text-secondary)">
+                <strong>Invoking a skill in chat:</strong> type <code style="background:var(--surface-3);padding:.1rem .35rem;border-radius:3px">/skill &lt;trigger&gt; your request here</code>. The trigger is the exact text set in the <strong>Trigger</strong> field below — it is <strong>case-sensitive and exact</strong>. Only a perfect match activates the skill. For example: <code style="background:var(--surface-3);padding:.1rem .35rem;border-radius:3px">/skill web-search find me articles on memory consolidation</code>
+              </p>
+              <p style="margin:0 0 var(--space-2);color:var(--text-secondary)">
+                <strong>Workspace tools</strong> (<code>ws_read</code>, <code>ws_write</code>, etc.) are loaded separately with <code style="background:var(--surface-3);padding:.1rem .35rem;border-radius:3px">/tool</code> anywhere in your message.
+              </p>
+              <p style="margin:0 0 var(--space-2);color:var(--text-secondary)">
+                <strong>Tools</strong> inside a skill are defined as <code>### tool_name</code> headings under a <code>## Tools</code> section. The entity calls them using <code>[TOOL:tool_name param="value"]</code> syntax.
+              </p>
+              <p style="margin:0;color:var(--text-secondary)">
+                Browse community skills at <a href="https://clawhub.ai/" target="_blank" style="color:var(--accent);font-weight:600">ClawHub.ai</a> — download SKILL.md files and install them via the quarantine system.
+              </p>
+            </div>
+
+            <div class="form-group">
+              <label>Skill Name <span style="color:var(--text-tertiary);font-weight:400">(slug — lowercase, hyphens)</span></label>
+              <input type="text" id="newSkillName" placeholder="e.g., research-assistant">
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <input type="text" id="newSkillDesc" placeholder="One-line summary of what the skill enables">
+            </div>
+            <div class="form-group">
+              <label>Trigger <span style="color:var(--text-tertiary);font-weight:400">(exact, case-sensitive — what the user types after <code>/skill</code> to invoke this skill)</span></label>
+              <input type="text" id="newSkillTrigger" placeholder="e.g., web-search" style="font-family:var(--font-mono)">
+              <div style="font-size:var(--text-xs);color:var(--text-tertiary);margin-top:4px">If left blank, the skill name is used as the trigger. Avoid spaces — use hyphens. <strong>The match is exact and case-sensitive.</strong></div>
+            </div>
+            <div class="form-group">
+              <label>Version</label>
+              <input type="text" id="newSkillVersion" placeholder="1.0.0" value="1.0.0">
+            </div>
+            <div class="form-group">
+              <label>Instructions (SKILL.md body) <button class="btn bg text-xs-c" style="margin-left:var(--space-2);padding:2px 8px" onclick="fillSkillTemplate()">Load Template</button></label>
+              <textarea id="newSkillInstructions" placeholder="Write the Markdown instructions that will be injected into the entity's prompt when this skill is active.&#10;&#10;Click 'Load Template' above for a starter template." rows="12" style="font-family:var(--font-mono);font-size:var(--text-sm)"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn bg" onclick="closeCreateSkillDialog()">Cancel</button>
+            <button class="btn bp" onclick="executeCreateSkill()">Create Skill</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- END SKILLS TAB -->
+
+  <!-- ===== SETTINGS TAB ===== -->
+  <div class="tab-content" id="tab-settings">
+    <div class="settings-container">
+
+      <!-- Entity management UI removed: now in nav sidebar. JS refs kept hidden. -->
+      <div style="display:none">
+        <div class="entity-display" id="entityDisplay"></div>
+        <button id="deleteEntityBtn"></button>
+      </div>
+
+        <!-- New Entity Creation Modal (invoked from nav sidebar + New button) -->
+        <div class="modal" id="newEntityModal" style="display:none">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Creator — Entity Setup</h3>
+              <button class="modal-close" onclick="closeNewEntityDialog()">&times;</button>
+            </div>
+            <div class="modal-body">
+
+              <!-- Creator Step 0: Greeting + user name -->
+              <div id="creatorWelcomeStep" style="display:block">
+                <p class="text-secondary-c mb-4"><strong>Creator:</strong> Hey, let's vibe this setup. First, what should I call you?</p>
+                <div class="form-group">
+                  <label>Your Name <span class="text-secondary-c text-xs-c">(optional)</span></label>
+                  <input type="text" id="creatorUserName" placeholder="e.g., Alex, Sam, Voard">
+                </div>
+                <div class="callout callout-info mt-4">
+                  <strong class="block mb-2">Creator:</strong>
+                  <p class="text-sm-c text-secondary-c" style="margin:0">I'll show all 4 creation options next. You can fill onboarding fields now or let the entity ask the questions later in chat.</p>
+                </div>
+                <div class="mt-4">
+                  <button class="btn bp" onclick="creatorContinueToModeSelection()">Continue</button>
+                </div>
+              </div>
+              
+              <!-- Step 1: Choose Creation Mode -->
+              <div id="entityCreationModeStep" style="display:none">
+                <p class="text-secondary-c mb-5"><strong>Creator:</strong> Pick a creation mode:</p>
+                
+                <div class="entity-mode-grid">
+                  <div class="entity-mode-card" onclick="selectEntityMode('random')">
+                    <div class="entity-mode-icon">🎲</div>
+                    <h4>Random Generation</h4>
+                    <p>Automatically generate a complete entity with name, personality, life story, and core memories</p>
+                  </div>
+                  
+                  <div class="entity-mode-card" onclick="selectEntityMode('empty')">
+                    <div class="entity-mode-icon">✏️</div>
+                    <h4>Empty Entity</h4>
+                    <p>Create a blank entity with your custom name and traits. No history - build memories through conversation</p>
+                  </div>
+                  
+                  <div class="entity-mode-card" onclick="selectEntityMode('guided')">
+                    <div class="entity-mode-icon">🎨</div>
+                    <h4>Guided Creation</h4>
+                    <p>Walk through a step-by-step process to design your entity's personality and life story</p>
+                  </div>
+                  
+                  <div class="entity-mode-card" onclick="selectEntityMode('character')">
+                    <div class="entity-mode-icon">📚</div>
+                    <h4>Character Ingestion</h4>
+                    <p>Create an entity inspired by a fictional or real character. The LLM extracts personality, speech style, and memories from your description</p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Step 2: Empty Entity Form -->
+              <div id="entityEmptyFormStep" style="display:none">
+                <div class="mb-4">
+                  <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
+                </div>
+                <h4 class="mb-4">Empty Entity Details</h4>
+                <div class="form-group">
+                  <label>Entity Name <span class="text-accent">*</span></label>
+                  <input type="text" id="emptyEntityName" placeholder="e.g., Luna, Alex, etc.">
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Gender</label>
+                    <select id="emptyEntityGender">
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="neutral">Neutral</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Age/Experience <span class="text-secondary-c text-xs-c">(optional)</span></label>
+                    <input type="text" id="emptyEntityAge" placeholder="e.g., young, mature, ancient">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Personality Traits <span class="text-accent">*</span></label>
+                  <input type="text" id="emptyEntityTraits" placeholder="e.g., curious, adventurous, creative (comma-separated)">
+                  <p class="text-xs-c text-secondary-c mt-1">Enter at least 3-5 traits that define this entity's character</p>
+                </div>
+                <div class="form-group">
+                  <label>Brief Introduction <span class="text-secondary-c text-xs-c">(optional)</span></label>
+                  <textarea id="emptyEntityIntro" placeholder="How should this entity introduce itself?" rows="3"></textarea>
+                </div>
+              </div>
+              
+              <!-- Step 3: Random Entity Options -->
+              <div id="entityRandomFormStep" style="display:none">
+                <div class="mb-4">
+                  <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
+                </div>
+                <h4 class="mb-4">Random Generation Options</h4>
+                <div class="form-group">
+                  <label>Gender Preference</label>
+                  <select id="randomEntityGender">
+                    <option value="random">Random</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="neutral">Neutral</option>
+                  </select>
+                  <p class="text-xs-c text-secondary-c mt-1">All other attributes (name, traits, life story) will be automatically generated</p>
+                </div>
+                <div class="callout callout-info mt-4">
+                  <strong class="block mb-2">What gets generated:</strong>
+                  <ul class="text-sm-c text-secondary-c" style="margin:.5rem 0;padding-left:1.5rem">
+                    <li>Random name from name database</li>
+                    <li>5 personality traits</li>
+                    <li>Short life story (2-4 paragraphs)</li>
+                    <li>5-10 core memories extracted from the story</li>
+                    <li>Initial goals and exploration themes</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <!-- Step 4: Character Ingestion -->
+              <div id="entityCharacterFormStep" style="display:none">
+                <div class="mb-4">
+                  <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
+                </div>
+                <h4 class="mb-4">Character Ingestion</h4>
+                <p class="text-secondary-c text-sm-c mb-4">Tell us who the character is and where they're from. The LLM handles the rest — personality, speech style, traits, memories, everything.</p>
+                
+                <div class="form-group">
+                  <label>Character Name <span class="text-accent">*</span></label>
+                  <input type="text" id="charEntityName" placeholder="e.g., Mad Hatter, Sherlock Holmes, Nikola Tesla">
+                </div>
+                <div class="form-group">
+                  <label>Source / Origin <span class="text-accent">*</span></label>
+                  <input type="text" id="charEntitySource" placeholder="e.g., Alice in Wonderland, BBC Sherlock, historical figure">
+                  <p class="text-xs-c text-secondary-c mt-1">Book, movie, game, TV show, mythology, real person — whatever the source is.</p>
+                </div>
+                <div class="form-group">
+                  <label>Additional Notes <span class="text-secondary-c text-xs-c">(optional)</span></label>
+                  <textarea id="charEntityNotes" placeholder="Add anything extra: custom backstory twists, crossover adventures, specific traits you want emphasized, AU details, etc. Leave blank to use pure canon." rows="4"></textarea>
+                  <p class="text-xs-c text-secondary-c mt-1">This is where you make it yours. Want the Mad Hatter to have gone on an adventure with Superman? Put it here.</p>
+                </div>
+
+                <div class="callout callout-info mt-4">
+                  <strong class="block mb-2">What the LLM will figure out for you:</strong>
+                  <ul class="text-sm-c text-secondary-c" style="margin:.5rem 0;padding-left:1.5rem">
+                    <li>Personality traits, gender, archetype</li>
+                    <li>Speech style, mannerisms, catchphrases</li>
+                    <li>Beliefs, motivations, relationships</li>
+                    <li>8-20 core memories from canonical lore</li>
+                    <li>In-character greeting &amp; voice calibration</li>
+                    <li>Behavioral rules &amp; tone drift protection</li>
+                  </ul>
+                  <p class="text-xs-c text-tertiary-c mt-2" style="margin-bottom:0">Entity will be created as "inspired by" the source character.</p>
+                </div>
+              </div>
+              
+              <!-- Step 5: Guided Creation -->
+              <div id="entityGuidedFormStep" style="display:none">
+                <div class="mb-4">
+                  <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
+                </div>
+                <h4 class="mb-4">Guided Entity Creation</h4>
+                <p class="text-secondary-c text-sm-c mb-4">Define your entity's identity and backstory. The LLM will generate a rich life history and core memories from your description.</p>
+                
+                <div class="form-group">
+                  <label>Entity Name <span class="text-accent">*</span></label>
+                  <input type="text" id="guidedEntityName" placeholder="e.g., Neko, Luna, Marcus">
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Gender</label>
+                    <select id="guidedEntityGender">
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="neutral">Neutral</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Age/Era <span class="text-secondary-c text-xs-c">(optional)</span></label>
+                    <input type="text" id="guidedEntityAge" placeholder="e.g., young adult, ancient, 25">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Personality Traits <span class="text-accent">*</span></label>
+                  <input type="text" id="guidedEntityTraits" placeholder="e.g., sarcastic, brilliant, secretly caring (comma-separated)">
+                  <p class="text-xs-c text-secondary-c mt-1">3-7 traits that define the entity's character. Be specific!</p>
+                </div>
+                <div class="form-group">
+                  <label>Backstory / Description <span class="text-secondary-c text-xs-c">(recommended)</span></label>
+                  <textarea id="guidedEntityBackstory" placeholder="Describe who this entity is, their history, relationships, skills, quirks, speaking style, and anything that makes them unique. The more detail you provide, the richer the generated life will be." rows="6"></textarea>
+                  <p class="text-xs-c text-secondary-c mt-1">You can leave this lighter if you use intent presets + knowledge seed docs below.</p>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Primary Intent</label>
+                    <select id="guidedEntityIntent">
+                      <option value="programming">Programming Partner</option>
+                      <option value="companion">Companion</option>
+                      <option value="assistant">General Assistant</option>
+                      <option value="custom">Custom Hybrid</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Interaction Style</label>
+                    <select id="guidedEntityInteractionStyle">
+                      <option value="balanced">Balanced</option>
+                      <option value="supportive">Supportive / Gentle</option>
+                      <option value="blunt">Direct / Blunt</option>
+                      <option value="mentor">Mentor / Coach</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Speaking Style <span class="text-secondary-c text-xs-c">(optional)</span></label>
+                  <input type="text" id="guidedEntityStyle" placeholder="e.g., formal, witty, blunt, poetic, uses lots of sarcasm">
+                </div>
+                <div class="form-group">
+                  <label>Knowledge Seed Notes / Documents <span class="text-secondary-c text-xs-c">(optional but powerful)</span></label>
+                  <textarea id="guidedEntityKnowledgeSeed" placeholder="Paste notes, coding standards, personal preferences, or domain docs here. Content is automatically chunked and ingested through the full document pipeline — no separators needed." rows="6"></textarea>
+                  <p class="text-xs-c text-secondary-c mt-1">These are converted into initial knowledge memories at creation time.</p>
+                </div>
+                <div class="form-group">
+                  <label>Introduction Message <span class="text-secondary-c text-xs-c">(optional)</span></label>
+                  <textarea id="guidedEntityIntro" placeholder="How should this entity introduce themselves? Leave blank to auto-generate." rows="3"></textarea>
+                </div>
+
+                <!-- Identity Mode -->  
+                <div class="form-group mt-4">
+                  <label style="display:flex;align-items:center;gap:.7rem;cursor:pointer;user-select:none">
+                    <input type="checkbox" id="guidedEntityUnbreakable" style="width:1.1rem;height:1.1rem;cursor:pointer;accent-color:var(--accent)">
+                    <span>
+                      <strong>🔒 Unbreakable Identity</strong>
+                      <span class="text-xs-c text-secondary-c" style="display:block;margin-top:.15rem">Locks this entity to its origin story — backstory and traits are permanently authoritative. Great for NPCs and fixed characters that must never drift. Leave unchecked for companions and entities meant to evolve.</span>
+                    </span>
+                  </label>
+                </div>
+
+                <div class="callout callout-info mt-4">
+                  <strong class="block mb-2">What the LLM will generate:</strong>
+                  <ul class="text-sm-c text-secondary-c" style="margin:.5rem 0;padding-left:1.5rem">
+                    <li>Life story based on your description</li>
+                    <li>Core memories extracted from the story</li>
+                    <li>Custom system prompt with personality</li>
+                    <li>Emotional baseline matching the character</li>
+                    <li>Initial goals and exploration themes</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Creator onboarding block (shared across all creation modes) -->
+              <div id="creatorOnboardingBlock" class="callout callout-info mt-4" style="display:none">
+                <strong class="block mb-2">Creator Onboarding</strong>
+                <p class="text-xs-c text-secondary-c mb-3">Optional: fill any fields now to pre-seed context. Leave blank to have the entity ask these as onboarding questions in chat.</p>
+                <div class="form-group">
+                  <label>What should the entity call you? <span class="text-secondary-c text-xs-c">(optional)</span></label>
+                  <input type="text" id="creatorOnboardName" placeholder="Your preferred name">
+                </div>
+                <div class="form-group">
+                  <label>Your interests</label>
+                  <input type="text" id="creatorOnboardInterests" placeholder="e.g., coding, art, robotics, storytelling">
+                </div>
+                <div class="form-group">
+                  <label>What do you do?</label>
+                  <input type="text" id="creatorOnboardOccupation" placeholder="e.g., developer, student, founder">
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label>What are you hoping to do together?</label>
+                  <input type="text" id="creatorOnboardIntent" placeholder="e.g., build tools, explore ideas, stay focused">
+                </div>
+              </div>
+              
+            </div>
+            <div class="modal-footer">
+              <button class="btn bg" onclick="closeNewEntityDialog()">Cancel</button>
+              <button class="btn bp" id="createEntityBtn" style="display:none" onclick="executeEntityCreation()">Create Entity</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Entity Creation Progress Modal -->
+        <div class="modal" id="hatchProgressModal" style="display:none;z-index:10000">
+          <div class="modal-content" style="width:90%;max-width:500px;text-align:center">
+            <div class="modal-header" style="border-bottom:none">
+              <h3>Creating Entity...</h3>
+            </div>
+            <div class="modal-body" style="padding:2rem">
+              <div class="mb-5 text-center">
+                <div style="font-size:3rem;margin-bottom:.5rem">🧬</div>
+                <p class="text-secondary-c text-sm-c">Hatching entity with generated history...</p>
+              </div>
+              <div id="hatchProgressSteps" style="text-align:left;margin:1.5rem 0">
+                <div class="hatch-step" style="opacity:0.6">
+                  <span class="hatch-step-icon">⏳</span>
+                  <span class="hatch-step-text">Generating identity and personality</span>
+                </div>
+                <div class="hatch-step" style="opacity:0.4">
+                  <span class="hatch-step-icon">⏳</span>
+                  <span class="hatch-step-text">Creating life chapters</span>
+                </div>
+                <div class="hatch-step" style="opacity:0.4">
+                  <span class="hatch-step-icon">⏳</span>
+                  <span class="hatch-step-text">Generating memories</span>
+                </div>
+                <div class="hatch-step" style="opacity:0.4">
+                  <span class="hatch-step-icon">⏳</span>
+                  <span class="hatch-step-text">Building memory connections</span>
+                </div>
+                <div class="hatch-step" style="opacity:0.4">
+                  <span class="hatch-step-icon">⏳</span>
+                  <span class="hatch-step-text">Generating goals and finalizing</span>
+                </div>
+                <div class="hatch-step" id="hatchStepSeed" style="display:none;opacity:0.4">
+                  <span class="hatch-step-icon">⏳</span>
+                  <span class="hatch-step-text">Ingesting knowledge seed documents</span>
+                </div>
+              </div>
+              <div class="text-xs-c text-secondary-c mt-4">
+                This may take 10-30 seconds depending on system load...
+              </div>
+            </div>
+          </div>
+        </div>
+
+      <!-- LLM Provider Section -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <h2>LLM Provider</h2>
+          <p>Pick a provider and model. This applies to all pipeline stages.</p>
+        </div>
+
+        <!-- Provider picker -->
+        <div class="flex gap-3 mb-4">
+          <button class="provider-btn on" id="simpleProviderBtn-openrouter" onclick="simplePickProvider('openrouter')" style="flex:1;padding:.75rem;font-size:1rem">☁️ OpenRouter</button>
+          <button class="provider-btn" id="simpleProviderBtn-ollama" onclick="simplePickProvider('ollama')" style="flex:1;padding:.75rem;font-size:1rem">🏠 Ollama (Local)</button>
+        </div>
+
+        <!-- OpenRouter panel -->
+        <div id="simplePanel-openrouter" class="config-card">
+          <div class="fl">
+            <label>API Key</label>
+            <input type="password" id="simpleOrKey" placeholder="sk-or-v1-...">
+          </div>
+          <div class="fl">
+            <label>Model <span class="text-xs-c text-secondary-c">(pick or paste any OpenRouter model ID)</span></label>
+            <input type="text" id="simpleOrModel" list="simpleOrModelList" placeholder="anthropic/claude-sonnet-4">
+            <datalist id="simpleOrModelList"></datalist>
+          </div>
+          <div class="flex gap-2 mt-2" style="flex-wrap:wrap">
+            <button class="provider-btn text-xs-c" id="simplePresetBtn-best" onclick="simpleApplyPreset('best')" style="padding:.35rem .7rem">Best Quality</button>
+            <button class="provider-btn text-xs-c" id="simplePresetBtn-fast" onclick="simpleApplyPreset('fast')" style="padding:.35rem .7rem">Fastest</button>
+            <button class="provider-btn text-xs-c" id="simplePresetBtn-cheap" onclick="simpleApplyPreset('cheap')" style="padding:.35rem .7rem">Cheapest</button>
+            <button class="provider-btn text-xs-c" id="simplePresetBtn-hybrid" onclick="simpleApplyPreset('hybrid')" style="padding:.35rem .7rem">Balanced</button>
+          </div>
+          <div class="flex gap-2 mt-4">
+            <button class="btn bp" onclick="simpleSaveConfig()">Save &amp; Connect</button>
+            <span id="simpleOrStatus" class="text-sm-c" style="align-self:center"></span>
+          </div>
+        </div>
+
+        <!-- Ollama panel -->
+        <div id="simplePanel-ollama" class="config-card" style="display:none">
+          <div class="fl">
+            <label>Ollama Address</label>
+            <input type="text" id="simpleOllamaUrl" value="http://localhost:11434" placeholder="http://localhost:11434">
+          </div>
+          <div class="flex gap-2 mt-1">
+            <button class="btn bg" onclick="simpleFetchOllamaModels()" style="font-size:.8rem;padding:.35rem .8rem">Fetch Models</button>
+            <span id="simpleOllamaFetchStatus" class="text-xs-c text-secondary-c" style="align-self:center"></span>
+          </div>
+          <div class="fl mt-3">
+            <label>Model</label>
+            <select id="simpleOllamaModel" style="width:100%;padding:.45rem;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--surface-1);color:var(--text-primary)">
+              <option value="">-- fetch models first --</option>
+            </select>
+          </div>
+          <div class="flex gap-2 mt-4">
+            <button class="btn bp" onclick="simpleSaveConfig()">Save &amp; Connect</button>
+            <span id="simpleOllamaStatus" class="text-sm-c" style="align-self:center"></span>
+          </div>
+        </div>
+
+        <!-- Advanced per-aspect overrides (collapsed by default) -->
+        <details id="simpleAdvancedToggle" class="mt-4" style="border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:.5rem 1rem">
+          <summary style="cursor:pointer;font-size:.85rem;color:var(--text-secondary);user-select:none;padding:.4rem 0">⚙️ Advanced — per-stage model overrides</summary>
+          <div class="text-xs-c text-secondary-c mt-2 mb-3">Leave blank to use the main model for all stages. Only set these if you want different models per pipeline stage.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+            <div class="fl">
+              <label class="text-xs-c">Subconscious <span class="text-secondary-c">(memory/background)</span></label>
+              <input type="text" id="simpleAdvSub" list="simpleOrModelList" placeholder="(same as main)">
+            </div>
+            <div class="fl">
+              <label class="text-xs-c">Dream Engine <span class="text-secondary-c">(sleep/consolidation)</span></label>
+              <input type="text" id="simpleAdvDream" list="simpleOrModelList" placeholder="(same as main)">
+            </div>
+            <div class="fl">
+              <label class="text-xs-c">Orchestrator <span class="text-secondary-c">(final synthesis)</span></label>
+              <input type="text" id="simpleAdvOrch" list="simpleOrModelList" placeholder="(same as main)">
+            </div>
+          </div>
+        </details>
+
+        <!-- Connection status -->
+        <div id="simpleLlmStatus" class="mt-3" style="display:none;padding:.75rem 1rem;border-radius:var(--radius-lg);font-size:.85rem"></div>
+      </div>
+
+      <!-- System Health Section -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <h2>System Health</h2>
+          <p>Maintenance and diagnostic tools</p>
+        </div>
+
+        <div class="health-tools">
+          <div class="health-card">
+            <div class="health-title">🔧 Memory Log Self-Healing</div>
+            <div class="health-desc">Automatically detect and repair corrupted memory log files</div>
+            <button class="btn bp" onclick="repairMemoryLogs()">Run Self-Heal</button>
+            <div id="healStatus" class="status-toast" style="margin-top:.75rem;display:none"></div>
+          </div>
+          
+          <div class="health-card">
+            <div class="health-title">📊 Memory Statistics</div>
+            <div class="health-desc">View memory usage and compression statistics</div>
+            <button class="btn bg" onclick="showMemoryStats()">View Stats</button>
+          </div>
+
+          <div class="health-card">
+            <div class="health-title">🔄 Rebuild Trace Graph</div>
+            <div class="health-desc">Rebuild semantic connections in memory graph</div>
+            <button class="btn bg" onclick="rebuildTraceGraph()">Rebuild</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== VISUALIZER TAB (embedded) ===== -->
+  <div class="tab-content" id="tab-visualizer">
+    <iframe id="visualizerFrame" src="/visualizer.html" style="width:100%;height:calc(100vh - 80px);border:none;border-radius:var(--radius-lg);background:var(--bg-primary)"></iframe>
+  </div>
+
+  <!-- ===== PHYSICAL BODY TAB ===== -->
+  <div class="tab-content" id="tab-physical">
+    <div style="padding:var(--space-4);max-width:900px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+        <h2 style="font-size:var(--text-lg);margin:0">Physical Body</h2>
+        <span class="text-xs-c text-tertiary-c">— how the entity feels its hardware</span>
+      </div>
+
+      <!-- Overall Status -->
+      <div class="config-card" style="margin-bottom:var(--space-4);border-left:3px solid var(--accent-green)" id="physicalOverallCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2)">
+          <span style="font-weight:600;font-size:var(--text-base)">Overall State</span>
+          <span class="text-xs-c" id="physicalOverallZone" style="padding:2px 8px;border-radius:4px;background:var(--accent-green);color:var(--bg-primary)">HEALTHY</span>
+        </div>
+        <div class="text-sm-c" id="physicalNarrative" style="color:var(--text-secondary);font-style:italic">Loading somatic state...</div>
+        <div style="margin-top:var(--space-2);height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden">
+          <div id="physicalOverallBar" style="height:100%;width:0%;background:var(--accent-green);border-radius:2px;transition:width .5s,background .5s"></div>
+        </div>
+      </div>
+
+      <!-- Metric Cards Grid -->
+      <div class="grid grid-2" id="physicalMetricsGrid" style="gap:var(--space-3)">
+        <!-- Cards are generated by JS -->
+      </div>
+
+      <!-- Deep Sleep Interval Slider -->
+      <div class="config-card" style="margin-top:var(--space-4);border-left:3px solid var(--accent-blue,var(--accent-green))">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2)">
+          <div style="display:flex;align-items:center;gap:var(--space-2)">
+            <span style="font-size:1.1rem">💤</span>
+            <span style="font-weight:600;font-size:var(--text-sm)">Deep Sleep Interval</span>
+          </div>
+          <span class="text-xs-c" id="deepSleepIntervalValue" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);font-variant-numeric:tabular-nums">150 cycles</span>
+        </div>
+        <div class="text-xs-c text-tertiary-c" style="margin-bottom:var(--space-2)">How many brain loop cycles between deep sleep phases (consolidation, pruning, belief emergence)</div>
+        <input type="range" id="deepSleepIntervalSlider" min="5" max="500" step="5" value="150" style="width:100%;accent-color:var(--accent-green)" oninput="updateDeepSleepIntervalLabel(this.value)" onchange="saveDeepSleepInterval(this.value)">
+        <div style="display:flex;justify-content:space-between" class="text-xs-c text-tertiary-c">
+          <span>5 (frequent)</span><span>500 (rare)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DREAM GALLERY TAB ===== -->
+  <div class="tab-content" id="tab-dreamgallery">
+    <div class="settings-section" style="margin:0;border:none;background:transparent;padding:var(--space-4)">
+      <div class="settings-section-header" style="margin-bottom:var(--space-4);border-bottom:1px solid var(--border-default);padding-bottom:var(--space-3)">
+        <div class="flex items-center gap-3">
+          <h2 style="font-size:var(--text-base)">&#127912; Dream Gallery</h2>
+          <button class="btn bg text-xs-c" onclick="loadDreamGallery()" title="Refresh gallery">Refresh</button>
+          <button class="btn bp text-xs-c" onclick="generateMemoryArt()" title="Generate pixel art from a memory">&#10024; Generate Art</button>
+          <button class="btn bg text-xs-c" onclick="toggleImageGenSettings()" title="Image generation settings">&#9881; Settings</button>
+        </div>
+        <p>Pixel art visualizations generated from dreams and memories &mdash; 64x64 abstract impressions</p>
+      </div>
+
+      <!-- Image Generation Settings Panel -->
+      <div id="imageGenSettingsPanel" style="display:none;margin-bottom:var(--space-4)">
+        <div class="config-card">
+          <div class="config-card-title" style="color:var(--info)">&#127912; Image Generation Settings</div>
+          <div class="fl mb-3">
+            <label>Generation Mode</label>
+            <select id="imageGenMode" class="w-full" onchange="onImageGenModeChange()">
+              <option value="off">Disabled — No Image Generation</option>
+              <option value="pixel">Built-in Pixel Art (Neko-Pixel-Pro)</option>
+              <option value="api">External Image API (DALL-E, etc.)</option>
+            </select>
+            <span class="text-xs-c text-tertiary-c" id="imageGenModeHint">No images will be generated during sleep cycles or manual generation.</span>
+          </div>
+
+          <!-- Dependency install prompt (shown when pixel mode selected without deps) -->
+          <div id="pixelDepInstallPrompt" style="display:none; background:var(--bg-card); border:1px solid var(--warning); border-radius:var(--radius-md); padding:var(--space-3); margin-bottom:var(--space-3)">
+            <div style="color:var(--warning); font-weight:600; margin-bottom:var(--space-1)">&#9888; Optional Dependencies Required</div>
+            <p class="text-sm-c text-secondary-c" style="margin:0 0 var(--space-2)">
+              Built-in pixel art requires <code>@napi-rs/canvas</code> and <code>gif-encoder-2</code>. Run this in your terminal:
+            </p>
+            <pre style="background:var(--bg-primary);padding:var(--space-2);border-radius:var(--radius-sm);font-size:var(--text-xs);margin:0 0 var(--space-2);user-select:all">npm install @napi-rs/canvas gif-encoder-2</pre>
+            <p class="text-xs-c text-tertiary-c" style="margin:0">After installing, restart the server and select Built-in Pixel Art again.</p>
+          </div>
+
+          <!-- API Config (shown only when mode = api) -->
+          <div id="imageApiConfigSection" style="display:none">
+            <div class="fl mb-2">
+              <label>Image API Endpoint</label>
+              <input type="text" id="imageApiEndpoint" class="w-full" placeholder="https://api.openai.com/v1/images/generations" autocomplete="off">
+              <span class="text-xs-c text-tertiary-c">OpenAI-compatible image generation endpoint (DALL-E, etc.)</span>
+            </div>
+            <div class="grid grid-2" style="gap:var(--space-2)">
+              <div class="fl">
+                <label>API Key</label>
+                <input type="password" id="imageApiKey" class="w-full" placeholder="sk-..." autocomplete="off">
+              </div>
+              <div class="fl">
+                <label>Model (optional)</label>
+                <input type="text" id="imageApiModel" class="w-full" placeholder="dall-e-2" autocomplete="off">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-2 mt-3">
+            <button class="btn bp" onclick="saveImageGenSettings()">Save Settings</button>
+            <button class="btn bg" onclick="toggleImageGenSettings()">Close</button>
+          </div>
+          <div id="imageGenSaveStatus" class="text-xs-c text-tertiary-c mt-2" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- Generate Art Panel -->
+      <div id="generateArtPanel" style="display:none;margin-bottom:var(--space-4)">
+        <div class="config-card">
+          <div class="config-card-title" style="color:var(--info)">Generate Pixel Art from Text</div>
+          <div class="fl mb-2">
+            <label>Narrative / Memory Text</label>
+            <textarea id="artNarrativeInput" rows="3" class="w-full" placeholder="Describe a scene, paste a memory, or enter dream text..."></textarea>
+          </div>
+          <div class="grid grid-2" style="gap:var(--space-2)">
+            <div class="fl">
+              <label>Emotion</label>
+              <select id="artEmotionSelect" class="w-full">
+                <option value="neutral">Neutral</option>
+                <option value="joy">Joy</option>
+                <option value="wonder">Wonder</option>
+                <option value="peace">Peace</option>
+                <option value="curiosity">Curiosity</option>
+                <option value="longing">Longing</option>
+                <option value="dread">Dread</option>
+                <option value="confusion">Confusion</option>
+              </select>
+            </div>
+            <div class="fl">
+              <label>Style</label>
+              <select id="artGenreSelect" class="w-full">
+                <option value="abstract_vision">Abstract Vision</option>
+                <option value="surreal_narrative">Surreal</option>
+                <option value="emotional_echo">Emotional Echo</option>
+                <option value="memory_remix">Memory Remix</option>
+                <option value="prophetic_fable">Prophetic</option>
+                <option value="lucid_adventure">Lucid Adventure</option>
+                <option value="free_imagination">Free Imagination</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-3">
+            <button class="btn bp" onclick="submitGenerateArt()">&#10024; Generate</button>
+            <button class="btn bg" onclick="document.getElementById('generateArtPanel').style.display='none'">Cancel</button>
+          </div>
+          <div id="artGenerateStatus" class="text-xs-c text-tertiary-c mt-2" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- Gallery Grid -->
+      <div id="dreamGalleryGrid" class="grid" style="grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:var(--space-4)">
+        <div class="text-tertiary-c text-center" style="grid-column:1/-1;padding:var(--space-8)">
+          <div style="font-size:3rem;opacity:0.3;margin-bottom:var(--space-3)">&#127912;</div>
+          <p>No dream visualizations yet.</p>
+          <p class="text-xs-c mt-2">Dream art is generated automatically during sleep cycles,<br>or you can generate art manually using the button above.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LIFE DIARY TAB ===== -->
+  <div class="tab-content" id="tab-lifediary">
+    <div class="settings-section" style="margin:0;border:none;background:transparent;padding:var(--space-4)">
+      <div class="settings-section-header" style="margin-bottom:var(--space-4);border-bottom:1px solid var(--border-default);padding-bottom:var(--space-3)">
+        <div class="flex items-center gap-3">
+          <h2 style="font-size:var(--text-base)">&#128214; Life Diary</h2>
+          <button class="btn bg text-xs-c" onclick="loadLifeDiary()" title="Refresh">Refresh</button>
+          <a id="lifeDiaryDownload" class="btn bg text-xs-c" style="display:none" title="Download .md">&#11015; Download</a>
+        </div>
+        <p>Autobiographical journal &mdash; the entity's first-person life narrative</p>
+      </div>
+      <div id="lifeDiaryContent" class="diary-content">
+        <div class="text-tertiary-c text-center" style="padding:var(--space-8)">
+          <div style="font-size:3rem;opacity:0.3;margin-bottom:var(--space-3)">&#128214;</div>
+          <p>No life diary entries yet.</p>
+          <p class="text-xs-c mt-2">Life diary entries are written by the entity during significant moments.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DREAM DIARY TAB ===== -->
+  <div class="tab-content" id="tab-dreamdiary">
+    <div class="settings-section" style="margin:0;border:none;background:transparent;padding:var(--space-4)">
+      <div class="settings-section-header" style="margin-bottom:var(--space-4);border-bottom:1px solid var(--border-default);padding-bottom:var(--space-3)">
+        <div class="flex items-center gap-3">
+          <h2 style="font-size:var(--text-base)">&#127769; Dream Diary</h2>
+          <button class="btn bg text-xs-c" onclick="loadDreamDiary()" title="Refresh">Refresh</button>
+          <a id="dreamDiaryDownload" class="btn bg text-xs-c" style="display:none" title="Download .md">&#11015; Download</a>
+        </div>
+        <p>The entity's dream journal &mdash; first-person interpretations with dream visualizations</p>
+      </div>
+      <div id="dreamDiaryContent" class="diary-content">
+        <div class="text-tertiary-c text-center" style="padding:var(--space-8)">
+          <div style="font-size:3rem;opacity:0.3;margin-bottom:var(--space-3)">&#127769;</div>
+          <p>No dream diary entries yet.</p>
+          <p class="text-xs-c mt-2">Dream diary entries are created during sleep cycles as the entity interprets its dreams.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DOCUMENTS TAB ===== -->
+  <div class="tab-content" id="tab-documents">
+    <div class="settings-section" style="margin:0;border:none;background:transparent;padding:var(--space-4)">
+      <div class="settings-section-header" style="margin-bottom:var(--space-4);border-bottom:1px solid var(--border-default);padding-bottom:var(--space-3)">
+        <div class="flex items-center gap-3">
+          <h2 style="font-size:var(--text-base)">&#128196; Document Digest</h2>
+        </div>
+        <p>Upload documents (.txt, .md, .json) to break them into bite-sized chunks and ingest them into the entity's long-term memory as searchable knowledge.</p>
+      </div>
+
+      <!-- Document Upload Zone -->
+      <div id="documentUploadZone" class="config-card" style="margin-bottom:var(--space-4)">
+        <div class="config-card-title" style="color:var(--info)">Upload Document</div>
+        
+        <!-- Drop Zone -->
+        <div id="documentDropZone" style="border:2px dashed var(--border-default);border-radius:var(--radius-md);padding:var(--space-6);text-align:center;cursor:pointer;transition:all 0.2s ease;background:rgba(0,0,0,0.1)">
+          <div style="font-size:3rem;opacity:0.4;margin-bottom:var(--space-3)">&#128196;</div>
+          <p class="text-tertiary-c mb-3">Drag & drop a document here</p>
+          <button class="btn bp" id="documentBrowseBtn">Browse Files</button>
+          <input type="file" id="documentFileInput" accept=".txt,.md,.json" style="display:none">
+          <p class="text-xs-c text-tertiary-c mt-3">Supported formats: .txt, .md, .json (max 10MB)</p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="documentDigestProgress" style="display:none;margin-top:var(--space-4)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2)">
+            <span class="text-sm-c">Ingesting document...</span>
+            <span id="documentDigestProgressText" class="text-xs-c text-tertiary-c font-mono">0 / 0</span>
+          </div>
+          <div style="width:100%;height:8px;background:var(--bg-tertiary);border-radius:var(--radius-sm);overflow:hidden">
+            <div id="documentDigestProgressBar" style="width:0%;height:100%;background:var(--bp);transition:width 0.3s ease"></div>
+          </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="documentDigestStatus" class="text-xs-c mt-3" style="display:none"></div>
+      </div>
+
+      <!-- Instructions -->
+      <div class="config-card">
+        <div class="config-card-title" style="color:var(--info)">How It Works</div>
+        <ul class="text-sm-c text-tertiary-c" style="list-style:disc;padding-left:var(--space-4);line-height:1.8">
+          <li>Documents are automatically split into ~1500 token chunks</li>
+          <li>Each chunk is stored as both a conscious LTM memory and an episodic memory</li>
+          <li>Topics are extracted from capitalized words and filename</li>
+          <li>Sequential chunks are connected via the trace graph</li>
+          <li>Knowledge becomes fully searchable and retrievable during conversations</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADVANCED TAB (was dropdown, now a regular tab panel) ===== -->
+  <div class="tab-content" id="tab-advanced">
+    <div style="max-width:1100px">
+      
+      <!-- Sleep Cycle Configuration -->
+      <div class="settings-section" style="margin:0;border:none;background:transparent;padding:var(--space-4)">
+        <div class="settings-section-header" style="margin-bottom:var(--space-4);border-bottom:1px solid var(--border-default);padding-bottom:var(--space-3)">
+          <h2 style="font-size:var(--text-base)">Sleep Cycle Configuration</h2>
+          <p>Control when and how the entity sleeps, dreams, and consolidates memories</p>
+        </div>
+
+        <div class="grid grid-2" style="gap:var(--space-4)">
+          <!-- Auto Sleep -->
+          <div class="config-card">
+            <div class="config-card-title" style="color:var(--accent-green)">Auto-Sleep</div>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="sub-toggle on" id="sleepAutoToggle" onclick="toggleSleepAuto()" title="Enable/disable automatic sleep"></div>
+              <span class="text-xs-c text-tertiary-c" id="sleepAutoLabel">Enabled</span>
+            </div>
+            <div class="fl mb-2">
+              <label>Interval (minutes)</label>
+              <input type="number" id="sleepInterval" value="60" min="5" max="1440" class="w-full">
+            </div>
+            <p class="text-xs-c text-tertiary-c mt-1">How often the entity will automatically enter a sleep cycle when idle</p>
+          </div>
+
+          <!-- Dream Depth -->
+          <div class="config-card">
+            <div class="config-card-title" style="color:var(--info)">Dream Engine</div>
+            <div class="fl mb-2">
+              <label>Dream Depth</label>
+              <select id="sleepDreamDepth" class="w-full">
+                <option value="shallow">Shallow — Quick dreams, minimal consolidation</option>
+                <option value="normal" selected>Normal — Balanced dreaming and memory processing</option>
+                <option value="deep">Deep — Extended dreaming, rich memory consolidation</option>
+              </select>
+            </div>
+            <div class="fl mb-2">
+              <label>Max Dream Cycles</label>
+              <input type="number" id="sleepMaxDreams" value="3" min="1" max="10" class="w-full">
+            </div>
+            <p class="text-xs-c text-tertiary-c mt-1">Controls how deeply the entity dreams during sleep</p>
+          </div>
+
+          <!-- Memory Consolidation -->
+          <div class="config-card">
+            <div class="config-card-title" style="color:var(--accent-cyan)">Memory Consolidation</div>
+            <div class="fl mb-2">
+              <label>Compress chat on sleep</label>
+              <select id="sleepCompressChat" class="w-full">
+                <option value="always" selected>Always</option>
+                <option value="threshold">Only above threshold</option>
+                <option value="never">Never</option>
+              </select>
+            </div>
+            <div class="fl mb-2">
+              <label>Persona Update</label>
+              <select id="sleepPersonaUpdate" class="w-full">
+                <option value="always" selected>Update after every sleep</option>
+                <option value="significant">Only on significant change</option>
+                <option value="never">Never update</option>
+              </select>
+            </div>
+            <p class="text-xs-c text-tertiary-c mt-1">How memories are processed during sleep</p>
+          </div>
+
+          <!-- Active Hours -->
+          <div class="config-card">
+            <div class="config-card-title" style="color:var(--warning)">Active Hours</div>
+            <div class="grid grid-2" style="gap:var(--space-2)">
+              <div class="fl">
+                <label>Wake Time</label>
+                <input type="time" id="sleepWakeTime" value="08:00" class="w-full">
+              </div>
+              <div class="fl">
+                <label>Sleep Time</label>
+                <input type="time" id="sleepBedTime" value="23:00" class="w-full">
+              </div>
+            </div>
+            <p class="text-xs-c text-tertiary-c mt-2">When active hours are set, the entity prefers to sleep outside these times</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-5 justify-end">
+          <button class="btn bg" onclick="loadSleepConfig()">Reset to Saved</button>
+          <button class="btn bp" onclick="saveSleepConfig()">Save Sleep Config</button>
+        </div>
+        <div id="sleepConfigStatus" class="status-toast" style="display:none;margin-top:var(--space-3)"></div>
+      </div>
+
+      <!-- Output Token Limit -->
+      <div class="settings-section" style="margin:0;border:none;background:transparent;padding:var(--space-4);border-top:1px solid var(--border-default)">
+        <div class="settings-section-header" style="margin-bottom:var(--space-4);border-bottom:1px solid var(--border-default);padding-bottom:var(--space-3)">
+          <h2 style="font-size:var(--text-base)">Output Token Limit</h2>
+          <p>Maximum tokens for LLM responses. Higher = longer outputs but more cost per message</p>
+        </div>
+
+        <div class="config-card">
+          <div class="flex items-center gap-4 mb-3">
+            <input type="range" id="maxTokensSlider" min="1024" max="65536" step="512" value="16000"
+              style="flex:1;accent-color:var(--accent)" oninput="document.getElementById('maxTokensValue').textContent=this.value">
+            <span id="maxTokensValue" class="text-base-c font-bold text-accent" style="min-width:4rem;text-align:right">16000</span>
+          </div>
+          <div class="flex justify-between text-xs-c text-tertiary-c mb-3">
+            <span>1024 (cheap)</span>
+            <span>65536 (unlimited)</span>
+          </div>
+          <div class="flex gap-2 items-center">
+            <div class="fl" style="flex:1;margin:0">
+              <input type="number" id="maxTokensInput" min="256" max="128000" value="16000" class="w-full"
+                oninput="let v=parseInt(this.value)||16000; if(v>=1024&&v<=65536){document.getElementById('maxTokensSlider').value=v; document.getElementById('maxTokensValue').textContent=v;}">
+            </div>
+            <button class="btn bp whitespace-nowrap" onclick="saveMaxTokensConfig()">Save</button>
+          </div>
+          <p class="text-xs-c text-tertiary-c mt-2">Applies to main chat, conscious mind, orchestrator, and task runner. For internal system calls, see "Internal Token Limits" below.</p>
+          <div id="maxTokensStatus" class="status-toast" style="display:none;margin-top:var(--space-3)"></div>
+        </div>
+      </div>
+
+      <!-- Per-Function Token Limits -->
+      <div class="settings-section" style="margin:0;border:none;background:transparent;padding:var(--space-4);border-top:1px solid var(--border-default)">
+        <div class="settings-section-header" style="margin-bottom:var(--space-4);border-bottom:1px solid var(--border-default);padding-bottom:var(--space-3)">
+          <h2 style="font-size:var(--text-base)">Internal Token Limits</h2>
+          <p>Fine-tune token limits for each internal system call. Lower values save cost; higher values prevent truncated output.</p>
+        </div>
+
+        <div class="config-card">
+          <div id="tokenLimitsContainer" style="display:flex;flex-direction:column;gap:var(--space-3)">
+            <p class="text-xs-c text-tertiary-c">Loading...</p>
+          </div>
+          <div style="display:flex;gap:var(--space-2);margin-top:var(--space-4)">
+            <button class="btn bp" onclick="saveTokenLimits()">Save All</button>
+            <button class="btn bg" onclick="resetTokenLimits()">Reset to Defaults</button>
+          </div>
+          <div id="tokenLimitsStatus" class="status-toast" style="display:none;margin-top:var(--space-3)"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== ENTITY PROFILE TAB ===== -->
+  <div class="tab-content" id="tab-entity">
+    <div style="padding:var(--space-4);max-width:720px;margin:0 auto">
+      <div id="entityInfoPanel"></div>
+    </div>
+  </div>
+
+        <!-- User Name Collection Modal -->
+        <div class="modal" id="userNameModal" style="display:none;z-index:10001">
+          <div class="modal-content" style="width:90%;max-width:420px">
+            <div class="modal-header">
+              <h3>What should I call you?</h3>
+            </div>
+            <div class="modal-body">
+              <p class="text-secondary-c text-sm-c mb-4">Before we start chatting, please tell me your name so I can remember you across our conversations.</p>
+              <div class="form-group">
+                <label>Your Name</label>
+                <input type="text" id="userNameInput" placeholder="Enter your name..." autocomplete="off">
+                <p class="text-xs-c text-tertiary-c mt-1">This will be stored in the entity's memory and used throughout your interactions.</p>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn bg" onclick="skipUserName()">Skip for now</button>
+              <button class="btn bp" onclick="saveUserName()">Save Name</button>
+            </div>
+          </div>
+        </div>
+
+<!-- ===== SETUP WIZARD OVERLAY ===== -->
+<div class="setup-overlay" id="setupOverlay">
+      <div class="setup-card">
+    <div class="setup-logo">REM</div>
+    <h1 class="setup-title">REM System</h1>
+    <p class="setup-subtitle">Recursive Echo Memory for AI Minds — Built with MA (Memory Architect v1)</p>
+
+    <div class="setup-steps-bar">
+      <div class="setup-step active" id="setupStep1">1</div>
+      <div class="setup-step-line"></div>
+      <div class="setup-step" id="setupStep2">2</div>
+      <div class="setup-step-line"></div>
+      <div class="setup-step" id="setupStep3">3</div>
+      <div class="setup-step-line"></div>
+      <div class="setup-step" id="setupStep4">4</div>
+    </div>
+
+    <!-- Step 1: Configure Main LLM (Conscious Mind) -->
+    <div class="setup-panel" id="setupPanel1">
+      <h2 class="setup-panel-title">Main Mind (Conscious)</h2>
+      <p class="text-secondary-c text-sm-c mb-4">Your primary conversational AI that interacts directly with the user.</p>
+      <div class="setup-provider-options">
+        <button class="setup-provider-btn" onclick="setupSelectProviderForAspect('main', 'openrouter')">
+          <div class="setup-provider-icon">🌐</div>
+          <div class="setup-provider-name">OpenRouter</div>
+          <div class="setup-provider-desc">Cloud LLMs via API key</div>
+        </button>
+        <button class="setup-provider-btn" onclick="setupSelectProviderForAspect('main', 'ollama')">
+          <div class="setup-provider-icon">🐋</div>
+          <div class="setup-provider-name">Ollama</div>
+          <div class="setup-provider-desc">Local LLMs on your machine</div>
+        </button>
+      </div>
+      <div class="setup-config-section" style="display:none;margin-top:1.5rem">
+        <div id="setupOpenrouter" style="display:none">
+          <div class="fl mb-3">
+            <label>API Key</label>
+            <input type="password" id="setupOrKey" placeholder="sk-or-...">
+          </div>
+          <div class="fl mb-3">
+            <label>Model</label>
+            <input type="text" id="setupOrModel" list="setupOrModelList" placeholder="openai/gpt-4o, anthropic/claude-sonnet-4, ...">
+            <datalist id="setupOrModelList">
+              <option value="openai/gpt-4o"></option>
+              <option value="anthropic/claude-sonnet-4"></option>
+              <option value="google/gemini-2.5-flash"></option>
+              <option value="meta-llama/llama-3.3-70b-instruct"></option>
+              <option value="deepseek/deepseek-chat-v3-0324"></option>
+            </datalist>
+          </div>
+        </div>
+        <div id="setupOllama" style="display:none">
+          <div class="fl mb-3">
+            <label>Ollama URL</label>
+            <input type="text" id="setupOllamaUrl" value="http://localhost:11434">
+          </div>
+          <div class="fl mb-3">
+            <label>Model</label>
+            <input type="text" id="setupOllamaModel" value="llama3" placeholder="llama3, mistral, etc.">
+          </div>
+        </div>
+        <button class="btn bp w-full mt-2" onclick="setupTestConnectionForAspect()">Test &amp; Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Configure Subconscious LLM -->
+    <div class="setup-panel" id="setupPanel2" style="display:none">
+      <h2 class="setup-panel-title">Subconscious Mind</h2>
+      <p class="text-secondary-c text-sm-c mb-4">Processes memories, extracts context, and reflects on experiences in the background.</p>
+      <div class="setup-provider-options">
+        <button class="setup-provider-btn" onclick="setupSelectProviderForAspect('subconscious', 'openrouter')">
+          <div class="setup-provider-icon">🌐</div>
+          <div class="setup-provider-name">OpenRouter</div>
+          <div class="setup-provider-desc">Cloud LLMs via API key</div>
+        </button>
+        <button class="setup-provider-btn" onclick="setupSelectProviderForAspect('subconscious', 'ollama')">
+          <div class="setup-provider-icon">🐋</div>
+          <div class="setup-provider-name">Ollama</div>
+          <div class="setup-provider-desc">Local LLMs on your machine</div>
+        </button>
+      </div>
+      <div class="setup-config-section" style="display:none;margin-top:1.5rem">
+        <div id="setupOpenrouter2" style="display:none">
+          <div class="fl mb-3">
+            <label>API Key</label>
+            <input type="password" id="setupOrKey2" placeholder="sk-or-...">
+          </div>
+          <div class="fl mb-3">
+            <label>Model</label>
+            <input type="text" id="setupOrModel2" list="setupOrModelList2" placeholder="openai/gpt-4o, anthropic/claude-sonnet-4, ...">
+            <datalist id="setupOrModelList2">
+              <option value="openai/gpt-4o"></option>
+              <option value="anthropic/claude-sonnet-4"></option>
+              <option value="google/gemini-2.5-flash"></option>
+              <option value="meta-llama/llama-3.3-70b-instruct"></option>
+              <option value="deepseek/deepseek-chat-v3-0324"></option>
+            </datalist>
+          </div>
+        </div>
+        <div id="setupOllama2" style="display:none">
+          <div class="fl mb-3">
+            <label>Ollama URL</label>
+            <input type="text" id="setupOllamaUrl2" value="http://localhost:11434">
+          </div>
+          <div class="fl mb-3">
+            <label>Model</label>
+            <input type="text" id="setupOllamaModel2" value="llama3" placeholder="llama3, mistral, etc.">
+          </div>
+        </div>
+        <button class="btn bp w-full mt-2" onclick="setupTestConnectionForAspect()">Test &amp; Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Configure Dream LLM -->
+    <div class="setup-panel" id="setupPanel3" style="display:none">
+      <h2 class="setup-panel-title">Dream Engine</h2>
+      <p class="text-secondary-c text-sm-c mb-4">Simulates experiences, consolidates learning, and evolves the entity during sleep cycles.</p>
+      <div class="setup-provider-options">
+        <button class="setup-provider-btn" onclick="setupSelectProviderForAspect('dream', 'openrouter')">
+          <div class="setup-provider-icon">🌐</div>
+          <div class="setup-provider-name">OpenRouter</div>
+          <div class="setup-provider-desc">Cloud LLMs via API key</div>
+        </button>
+        <button class="setup-provider-btn" onclick="setupSelectProviderForAspect('dream', 'ollama')">
+          <div class="setup-provider-icon">🐋</div>
+          <div class="setup-provider-name">Ollama</div>
+          <div class="setup-provider-desc">Local LLMs on your machine</div>
+        </button>
+      </div>
+      <div class="setup-config-section" style="display:none;margin-top:1.5rem">
+        <div id="setupOpenrouter3" style="display:none">
+          <div class="fl mb-3">
+            <label>API Key</label>
+            <input type="password" id="setupOrKey3" placeholder="sk-or-...">
+          </div>
+          <div class="fl mb-3">
+            <label>Model</label>
+            <input type="text" id="setupOrModel3" list="setupOrModelList3" placeholder="openai/gpt-4o, anthropic/claude-sonnet-4, ...">
+            <datalist id="setupOrModelList3">
+              <option value="openai/gpt-4o"></option>
+              <option value="anthropic/claude-sonnet-4"></option>
+              <option value="google/gemini-2.5-flash"></option>
+              <option value="meta-llama/llama-3.3-70b-instruct"></option>
+              <option value="deepseek/deepseek-chat-v3-0324"></option>
+            </datalist>
+          </div>
+        </div>
+        <div id="setupOllama3" style="display:none">
+          <div class="fl mb-3">
+            <label>Ollama URL</label>
+            <input type="text" id="setupOllamaUrl3" value="http://localhost:11434">
+          </div>
+          <div class="fl mb-3">
+            <label>Model</label>
+            <input type="text" id="setupOllamaModel3" value="llama3" placeholder="llama3, mistral, etc.">
+          </div>
+        </div>
+        <button class="btn bp w-full mt-2" onclick="setupTestConnectionForAspect()">Test &amp; Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Ready to Hatch -->
+    <div class="setup-panel" id="setupPanel4" style="display:none">
+      <h2 class="setup-panel-title">Ready to Go</h2>
+      <p class="text-secondary-c text-sm-c mb-5">All cognitive systems configured. Save your settings and choose how to create your first entity.</p>
+      <div class="summary-card">
+        <div class="summary-row" style="margin-bottom:.5rem"><strong>Configuration Summary:</strong></div>
+        <div class="summary-row">Main Mind: <span id="setupSummaryMain">Configured</span></div>
+        <div class="summary-row">Subconscious: <span id="setupSummarySub">Configured</span></div>
+        <div class="summary-row">Dream Engine: <span id="setupSummaryDream">Configured</span></div>
+      </div>
+      <button class="btn bp w-full" onclick="setupFinish()">Save &amp; Choose Entity Type</button>
+    </div>
+
+    <div class="setup-status" id="setupStatus"></div>
+  </div>
+</div>
+  </div>
+
+<!-- Sleep overlay -->
+<div class="sleep-overlay" id="sleepOverlay">
+  <div class="sleep-moon">&#127769;</div>
+  <div class="sleep-title">Sleeping...</div>
+  <div class="sleep-status" id="sleepStatus">Consolidating memories</div>
+  <div class="sleep-progress"><div class="sleep-progress-fill" id="sleepFill" style="width:0%"></div></div>
+  <div class="sleep-phase" id="sleepPhase">Initializing sleep cycle</div>
+</div>
+
+<!-- Module scripts — load order matters -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<!-- Shared utility modules (must load before app scripts) -->
+<script src="shared/sse.js"></script>
+<script src="shared/api.js"></script>
+<script src="shared/entity-select.js"></script>
+<script src="shared/notify.js"></script>
+<!-- App scripts -->
+<script src="js/login.js"></script>
+<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/pipeline.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/memory-ui.js"></script>
+<script src="js/sleep.js"></script>
+<script src="js/skills-ui.js"></script>
+<!-- Neural viz (split: renderer → data-layer → index) -->
+<script src="js/neural-viz/renderer.js"></script>
+<script src="js/neural-viz/data-layer.js"></script>
+<script src="js/neural-viz/index.js"></script>
+<script src="js/dream-gallery.js"></script>
+<script src="js/diary.js"></script>
+<script src="js/document-digest.js"></script>
+
+<!-- Star Field Animation -->
+<script>
+(function() {
+  const canvas = document.getElementById('stars');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, stars = [], cStars = [], cEdges = [], comet = null;
+  let speedMult = 1.0;
+
+  const CDEFS = [
+    { pts:[[0.07,0.14],[0.12,0.11],[0.17,0.10],[0.22,0.12],[0.25,0.18],[0.29,0.23],[0.34,0.19]],
+      edges:[[0,1],[1,2],[2,3],[3,0],[3,4],[4,5],[5,6]] },
+    { pts:[[0.70,0.27],[0.76,0.32],[0.72,0.40],[0.730,0.405],[0.740,0.40],[0.68,0.50],[0.78,0.48],[0.72,0.23]],
+      edges:[[0,2],[1,2],[2,3],[3,4],[4,5],[4,6],[7,0],[7,1]] },
+    { pts:[[0.44,0.07],[0.49,0.12],[0.54,0.08],[0.59,0.13],[0.64,0.09]],
+      edges:[[0,1],[1,2],[2,3],[3,4]] },
+    { pts:[[0.86,0.62],[0.86,0.74],[0.80,0.68],[0.92,0.68]],
+      edges:[[0,1],[2,3]] },
+    { pts:[[0.38,0.53],[0.41,0.46],[0.45,0.43],[0.49,0.45],[0.52,0.51],[0.57,0.59],[0.45,0.60]],
+      edges:[[0,1],[1,2],[2,3],[3,4],[4,5],[4,6],[6,0]] },
+    { pts:[[0.60,0.68],[0.63,0.63],[0.66,0.60],[0.70,0.62],[0.73,0.67],[0.76,0.72],[0.78,0.78],[0.75,0.84],[0.71,0.83]],
+      edges:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]] },
+  ];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function mkComet() {
+    const side = Math.floor(Math.random() * 4);
+    let x, y;
+    if (side === 0) { x = Math.random() * W; y = -40; }
+    else if (side === 1) { x = W + 40; y = Math.random() * H; }
+    else if (side === 2) { x = Math.random() * W; y = H + 40; }
+    else { x = -40; y = Math.random() * H; }
+    const tx = W * 0.2 + Math.random() * W * 0.6;
+    const ty = H * 0.2 + Math.random() * H * 0.6;
+    const d = Math.hypot(tx - x, ty - y) || 1;
+    const sp = 0.18 + Math.random() * 0.13;
+    comet = { x, y, vx:(tx-x)/d*sp, vy:(ty-y)/d*sp,
+              tailLen: 68 + Math.random() * 52, r: 2.4, alive: true };
+  }
+
+  function init() {
+    stars = [];
+    for (let i = 0; i < 230; i++) {
+      const vx = (Math.random()-0.5)*0.028, vy = (Math.random()-0.5)*0.016;
+      stars.push({ x:Math.random()*W, y:Math.random()*H,
+                   r:Math.random()*1.1+0.15, a:Math.random()*0.65+0.12,
+                   da:(Math.random()-0.5)*0.0038, vx, vy });
+    }
+    cStars = []; cEdges = [];
+    for (const def of CDEFS) {
+      const base = cStars.length;
+      for (const [fx, fy] of def.pts) {
+        cStars.push({ x:fx*W, y:fy*H, fx, fy,
+                      r:Math.random()*0.65+1.9, a:0.55+Math.random()*0.35,
+                      da:(Math.random()-0.5)*0.0018,
+                      vx:(Math.random()-0.5)*0.006,
+                      vy:(Math.random()-0.5)*0.004 });
+      }
+      for (const [i, j] of def.edges) cEdges.push([base+i, base+j]);
+    }
+    if (!comet) mkComet();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    speedMult = Math.max(1.0, speedMult * 0.952);
+    const sm = speedMult;
+
+    for (const s of stars) {
+      s.a += s.da;
+      if (s.a < 0.08 || s.a > 0.88) s.da *= -1;
+      s.x += s.vx * sm; s.y += s.vy * sm;
+      if (s.x < -4) s.x = W+3; else if (s.x > W+4) s.x = -3;
+      if (s.y < -4) s.y = H+3; else if (s.y > H+4) s.y = -3;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(200,215,255,' + s.a + ')';
+      ctx.fill();
+    }
+
+    for (const [i, j] of cEdges) {
+      const a = cStars[i], b = cStars[j];
+      const alpha = Math.min(a.a, b.a) * 0.20;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = 'rgba(175,210,255,' + alpha + ')';
+      ctx.lineWidth = 0.65;
+      ctx.stroke();
+    }
+
+    for (const s of cStars) {
+      s.a += s.da;
+      if (s.a < 0.28 || s.a > 0.96) s.da *= -1;
+      s.x += s.vx * sm * 0.11; s.y += s.vy * sm * 0.11;
+      if (s.x < -20) s.x = W+19; else if (s.x > W+20) s.x = -19;
+      if (s.y < -20) s.y = H+19; else if (s.y > H+20) s.y = -19;
+      const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r*3.8);
+      g.addColorStop(0, 'rgba(210,228,255,' + (s.a*0.50) + ')');
+      g.addColorStop(1, 'rgba(210,228,255,0)');
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r*3.8, 0, Math.PI*2);
+      ctx.fillStyle = g; ctx.fill();
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(240,248,255,' + s.a + ')'; ctx.fill();
+    }
+
+    if (comet && comet.alive) {
+      comet.x += comet.vx * sm;
+      comet.y += comet.vy * sm;
+      const sp = Math.hypot(comet.vx, comet.vy) || 0.001;
+      const nx = comet.vx / sp, ny = comet.vy / sp;
+      const tail = comet.tailLen;
+      const grad = ctx.createLinearGradient(comet.x, comet.y, comet.x - nx*tail, comet.y - ny*tail);
+      grad.addColorStop(0, 'rgba(200,230,255,0.9)');
+      grad.addColorStop(0.15, 'rgba(52,211,153,0.5)');
+      grad.addColorStop(0.6, 'rgba(34,211,238,0.15)');
+      grad.addColorStop(1, 'rgba(34,211,238,0)');
+      ctx.beginPath();
+      ctx.moveTo(comet.x + ny*1.5, comet.y - nx*1.5);
+      ctx.lineTo(comet.x - nx*tail, comet.y - ny*tail);
+      ctx.lineTo(comet.x - ny*1.5, comet.y + nx*1.5);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+      const hg = ctx.createRadialGradient(comet.x, comet.y, 0, comet.x, comet.y, comet.r*4);
+      hg.addColorStop(0, 'rgba(220,240,255,0.9)');
+      hg.addColorStop(0.4, 'rgba(52,211,153,0.3)');
+      hg.addColorStop(1, 'rgba(52,211,153,0)');
+      ctx.beginPath(); ctx.arc(comet.x, comet.y, comet.r*4, 0, Math.PI*2);
+      ctx.fillStyle = hg; ctx.fill();
+      ctx.beginPath(); ctx.arc(comet.x, comet.y, comet.r, 0, Math.PI*2);
+      ctx.fillStyle = '#e8f4ff'; ctx.fill();
+      if (comet.x < -100 || comet.x > W+100 || comet.y < -100 || comet.y > H+100) {
+        comet.alive = false;
+        setTimeout(mkComet, 4000 + Math.random() * 10000);
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', () => { resize(); init(); });
+  resize(); init(); draw();
+})();
+</script>
+
+</body>
+</html>

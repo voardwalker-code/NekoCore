@@ -1,0 +1,32 @@
+node_modules/
+.env
+*.log
+.DS_Store
+Thumbs.db
+
+# API keys and runtime config — copy Config/ma-config.example.json and fill in yours
+Config/ma-config.json
+
+# Auth runtime data — generated at startup
+server/data/accounts.json
+server/data/sessions.json
+server/data/checkouts.json
+
+# Entity runtime data — generated when entities are created
+entities/
+
+# Root system memory — generated at runtime
+memories/
+
+# Server entity runtime state
+server/entity/
+
+# Skill workspace runtime dirs
+skills/*/workspace/
+
+# Local planning docs
+Documents/
+
+# IDE
+.vscode/
+*.code-workspace

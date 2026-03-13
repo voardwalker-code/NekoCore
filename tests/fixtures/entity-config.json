@@ -1,0 +1,17 @@
+{
+  "id": "test-entity",
+  "name": "TestEntity",
+  "model": "mistral",
+  "provider": "ollama",
+  "endpoint": "http://localhost:11434",
+  "maxTokens": 8000,
+  "personality": {
+    "openness": 0.8,
+    "conscientiousness": 0.6,
+    "extraversion": 0.5,
+    "agreeableness": 0.7,
+    "neuroticism": 0.3
+  },
+  "traits": ["curious", "analytical", "empathetic"],
+  "systemPrompt": "You are TestEntity, a helpful AI companion."
+}

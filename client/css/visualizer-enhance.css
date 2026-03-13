@@ -1,0 +1,39 @@
+/* ============================================================
+   Neural Visualizer — Enhancement Layer
+   Deep-Space / Emerald theme — matches REM Architecture v0.6.0 doc
+   ============================================================ */
+
+/* Header */
+.viz-header {
+  background: rgba(8, 13, 24, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(52,211,153,0.13);
+  box-shadow: 0 1px 20px rgba(0,0,0,0.4);
+}
+.viz-logo {
+  font-family: var(--font-mono);
+  color: #34d399;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 12px rgba(52,211,153,0.4);
+}
+.viz-tab.active {
+  color: #34d399;
+  border-bottom-color: #34d399;
+  text-shadow: 0 0 15px rgba(52,211,153,0.3);
+}
+.viz-tab:hover { color: #6ee7b7; }
+.viz-btn-sm {
+  background: rgba(13, 21, 38, 0.7);
+  border: 1px solid rgba(52,211,153,0.12);
+  font-family: var(--font-mono);
+}
+.viz-btn-sm:hover {
+  background: rgba(52,211,153,0.07);
+  border-color: rgba(52,211,153,0.28);
+  color: #34d399;
+}
+.viz-status.connected {
+  color: #34d399;
+  text-shadow: 0 0 8px rgba(52,211,153,0.4);
+}

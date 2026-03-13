@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REM-System — Neural Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/theme.css">
+  <link rel="stylesheet" href="/css/visualizer.css">
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <!-- ═══════════════════ TOP BAR ═══════════════════ -->
+  <header class="viz-header">
+    <div class="viz-header-left">
+      <span class="viz-logo">◇ Neural Visualizer</span>
+      <span class="viz-entity-name" id="entityName">—</span>
+    </div>
+    <div class="viz-header-center">
+      <button class="viz-tab active" data-panel="chat">Chat</button>
+      <button class="viz-tab" data-panel="memory-browser">Memory Browser</button>
+      <button class="viz-tab" data-panel="timeline">Timeline Playback</button>
+      <button class="viz-tab" data-panel="diagnostics">Diagnostics</button>
+    </div>
+    <div class="viz-header-right">
+      <span class="viz-status" id="sseStatus">● Disconnected</span>
+      <button class="viz-btn-sm viz-btn-accent" id="btnFullMind" title="Load ALL memories into 3D view">🧠 Full Mind</button>
+      <button class="viz-btn-sm" id="btnShowAll" title="Show all memories">Show All</button>
+      <button class="viz-btn-sm" id="btnRefreshGraph" title="Refresh graph">⟳</button>
+      <button class="viz-btn-sm" id="btnCenterGraph" title="Center camera">◎</button>
+      <label class="viz-node-limit-label" title="Max nodes rendered in 3D view">
+        Nodes: <span id="nodeLimitValue">350</span>
+        <input type="range" id="nodeLimit" min="0" max="1000" step="100" value="350" style="width:90px;vertical-align:middle;accent-color:var(--accent,#34d399);">
+      </label>
+    </div>
+  </header>
+
+  <!-- ═══════════════════ MAIN LAYOUT ═══════════════════ -->
+  <div class="viz-layout">
+
+    <!-- ─── LEFT PANEL: Chat / Memory Browser / Diagnostics ─── -->
+    <div class="viz-left-panel" id="leftPanel">
+
+      <!-- CHAT PANEL -->
+      <div class="viz-panel-content active" id="panel-chat">
+        <div class="viz-chat-toolbar">
+          <button class="viz-btn-sm" id="btnLoadChatHistory" title="Load saved chat history">📂 Load History</button>
+          <span class="viz-chat-history-status" id="chatHistoryStatus"></span>
+        </div>
+        <div class="viz-chat-messages" id="chatMessages">
+          <div class="viz-chat-empty">Listening for chat messages...</div>
+        </div>
+      </div>
+
+      <!-- MEMORY BROWSER PANEL -->
+      <div class="viz-panel-content" id="panel-memory-browser">
+        <div class="viz-memory-toolbar">
+          <input type="text" class="viz-search-input" id="memorySearchInput" placeholder="Search keywords, topics, emotions...">
+          <select class="viz-select" id="memoryTypeFilter">
+            <option value="">All Types</option>
+            <option value="episodic">Episodic</option>
+            <option value="semantic">Semantic</option>
+            <option value="core_memory">Core Memory</option>
+            <option value="long_term_memory">Long Term</option>
+            <option value="reflection">Reflection</option>
+            <option value="interaction">Interaction</option>
+            <option value="learning">Learning</option>
+            <option value="creation">Creation</option>
+            <option value="achievement">Achievement</option>
+            <option value="dream">Dream</option>
+            <option value="chatlog">Chatlog</option>
+          </select>
+          <select class="viz-select" id="memorySortBy">
+            <option value="date">Sort: Date</option>
+            <option value="importance">Sort: Importance</option>
+            <option value="type">Sort: Type</option>
+          </select>
+          <button class="viz-btn-sm" id="btnSearchMemories">Search</button>
+        </div>
+        <div class="viz-memory-list" id="memoryList">
+          <div class="viz-memory-empty">Search or browse memories above</div>
+        </div>
+        <!-- Memory detail overlay -->
+        <div class="viz-memory-detail" id="memoryDetail" style="display:none;">
+          <div class="viz-memory-detail-header">
+            <span id="memoryDetailTitle">Memory</span>
+            <button class="viz-btn-sm" id="btnCloseMemoryDetail">✕</button>
+          </div>
+          <div class="viz-memory-detail-body" id="memoryDetailBody"></div>
+        </div>
+      </div>
+
+      <!-- TIMELINE PLAYBACK PANEL -->
+      <div class="viz-panel-content" id="panel-timeline">
+        <div class="viz-timeline-toolbar">
+          <label class="viz-timeline-field">
+            Records
+            <input type="number" id="timelineLimit" min="50" max="5000" step="50" value="600">
+          </label>
+          <label class="viz-timeline-field">
+            Speed
+            <input type="range" id="timelineSpeed" min="0.25" max="4" step="0.25" value="1">
+            <span id="timelineSpeedValue">1.00x</span>
+          </label>
+          <button class="viz-btn-sm" id="btnTimelineLoad">Load</button>
+          <button class="viz-btn-sm" id="btnTimelineRewindBig">&lt;&lt;</button>
+          <button class="viz-btn-sm" id="btnTimelineRewind">-10</button>
+          <button class="viz-btn-sm" id="btnTimelineStepBack">Step -</button>
+          <button class="viz-btn-sm viz-btn-accent" id="btnTimelinePlay">Play</button>
+          <button class="viz-btn-sm" id="btnTimelinePause">Pause</button>
+          <button class="viz-btn-sm" id="btnTimelineStop">Stop</button>
+          <button class="viz-btn-sm" id="btnTimelineStepForward">Step +</button>
+          <button class="viz-btn-sm" id="btnTimelineFastForward">+10</button>
+          <button class="viz-btn-sm" id="btnTimelineFastForwardBig">&gt;&gt;</button>
+          <button class="viz-btn-sm" id="btnTimelineSlowMo">Slow Mo</button>
+          <button class="viz-btn-sm" id="btnTimelineSpeedHalf">0.5x</button>
+          <button class="viz-btn-sm" id="btnTimelineSpeedNormal">1x</button>
+          <button class="viz-btn-sm" id="btnTimelineSpeedFast">2x</button>
+          <button class="viz-btn-sm" id="btnTimelineLive">Live SSE</button>
+          <span class="viz-timeline-status" id="timelineStatus">Idle</span>
+        </div>
+        <div class="viz-timeline-meta" id="timelineMeta">No timeline loaded yet.</div>
+        <div class="viz-timeline-log" id="timelineLog">
+          <div class="viz-timeline-empty">Load timeline records, then press Play to animate memory/thought flow.</div>
+        </div>
+      </div>
+
+      <!-- DIAGNOSTICS PANEL -->
+      <div class="viz-panel-content" id="panel-diagnostics">
+        <div class="viz-diag-toolbar">
+          <button class="viz-diag-tab active" data-diag="events">Events</button>
+          <button class="viz-diag-tab" data-diag="phases">Pipeline</button>
+          <button class="viz-diag-tab" data-diag="system">System</button>
+          <button class="viz-btn-sm" id="btnClearLogs" title="Clear logs">Clear</button>
+        </div>
+        <div class="viz-diag-content active" id="diag-events">
+          <div class="viz-diag-log" id="diagEventLog"></div>
+        </div>
+        <div class="viz-diag-content" id="diag-phases">
+          <div class="viz-diag-log" id="diagPhaseLog"></div>
+        </div>
+        <div class="viz-diag-content" id="diag-system">
+          <div class="viz-diag-system-grid" id="diagSystemGrid">
+            <div class="viz-diag-card" id="diagBrainStatus">
+              <div class="viz-diag-card-title">Brain Status</div>
+              <div class="viz-diag-card-body">—</div>
+            </div>
+            <div class="viz-diag-card" id="diagNeuroState">
+              <div class="viz-diag-card-title">Neurochemistry</div>
+              <div class="viz-diag-card-body">—</div>
+            </div>
+            <div class="viz-diag-card" id="diagGraphStats">
+              <div class="viz-diag-card-title">Memory Graph</div>
+              <div class="viz-diag-card-body">—</div>
+            </div>
+            <div class="viz-diag-card" id="diagTokenUsage">
+              <div class="viz-diag-card-title">Token Usage</div>
+              <div class="viz-diag-card-body">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── RIGHT: 3D Visualization ─── -->
+    <div class="viz-right-panel" id="rightPanel">
+      <div class="viz-3d-container" id="vizContainer"></div>
+      <!-- Node detail overlay -->
+      <div class="viz-node-detail" id="nodeDetail" style="display:none;">
+        <div class="viz-node-detail-header">
+          <span id="nodeDetailTitle">Node</span>
+          <button class="viz-btn-sm" id="btnCloseNodeDetail">✕</button>
+        </div>
+        <div class="viz-node-detail-body" id="nodeDetailBody"></div>
+      </div>
+      <!-- Legend -->
+      <div class="viz-legend" id="vizLegend">
+        <div class="viz-legend-item"><span class="viz-legend-dot" style="background:#ffd700"></span>Core</div>
+        <div class="viz-legend-item"><span class="viz-legend-dot" style="background:#34d399"></span>Episodic</div>
+        <div class="viz-legend-item"><span class="viz-legend-dot" style="background:#818cf8"></span>Semantic</div>
+        <div class="viz-legend-item"><span class="viz-legend-dot" style="background:#22d3ee"></span>Long Term</div>
+        <div class="viz-legend-item"><span class="viz-legend-dot" style="background:#a78bfa"></span>Reflection</div>
+        <div class="viz-legend-item"><span class="viz-legend-dot" style="background:#fb7185"></span>Interaction</div>
+        <div class="viz-legend-item"><span class="viz-legend-dot" style="background:#f472b6"></span>Dream</div>
+        <div class="viz-legend-item"><span class="viz-legend-dot" style="background:#f97316"></span>Creation</div>
+      </div>
+      <!-- Filter indicator -->
+      <div class="viz-filter-indicator" id="filterIndicator" style="display:none;">
+        <span id="filterLabel">Filtered</span>
+        <button class="viz-btn-sm" id="btnClearFilter">✕ Show All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared utility modules -->
+  <script src="/shared/sse.js"></script>
+  <script src="/shared/api.js"></script>
+  <!-- Neural viz (split: renderer → data-layer → index) -->
+  <script src="/js/neural-viz/renderer.js"></script>
+  <script src="/js/neural-viz/data-layer.js"></script>
+  <script src="/js/neural-viz/index.js"></script>
+  <script src="/js/visualizer.js"></script>
+</body>
+</html>
