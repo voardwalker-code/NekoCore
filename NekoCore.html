@@ -34,30 +34,28 @@
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
-html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); font-family:'Outfit',system-ui,sans-serif; overflow:hidden; }
+html, body { width:100%; background:var(--bg0); color:var(--text); font-family:'Outfit',system-ui,sans-serif; overflow-y:auto; scroll-behavior:smooth; }
 
 /* ─── DECK ─── */
-#deck { width:100%; height:100%; position:relative; }
+#deck { width:100%; position:relative; }
+
+/* ─── SCROLL PROGRESS ─── */
+#scroll-progress {
+  position:fixed; top:0; left:0; height:2px; z-index:500;
+  background:linear-gradient(90deg, var(--accent), var(--cyan));
+  width:0%; pointer-events:none; transition:width 0.1s linear;
+}
 
 .slide {
-  position:absolute; inset:0;
+  position:relative; z-index:1;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:14px 12px 88px;
-  opacity:0; pointer-events:none;
-  transition:opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1);
-  transform:translateX(60px);
+  padding:60px 20px 60px;
+  min-height:100vh;
 }
-.slide.active { opacity:1; pointer-events:all; transform:translateX(0); }
-.slide.prev   { opacity:0; pointer-events:none; transform:translateX(-60px); }
+.slide + .slide { border-top:1px solid rgba(52,211,153,0.07); }
 
-/* ─── NAV ─── */
-#nav {
-  position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
-  display:flex; align-items:center; gap:7px; z-index:100;
-  background:rgba(8,13,24,0.78); backdrop-filter:blur(16px);
-  border:1px solid var(--border); border-radius:40px;
-  padding:8px 12px;
-}
+/* ─── NAV (hidden — replaced by scroll) ─── */
+#nav { display:none; }
 #nav-ticker {
   display:flex; align-items:center; gap:7px;
   width:96px; justify-content:center;
@@ -366,7 +364,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 .brain-ring {
   position:relative; width:320px; height:320px; flex-shrink:0;
   transform:scale(0.62); transform-origin:top center;
-  margin-bottom:-120px;
+  margin-bottom:0;
 }
 .brain-center {
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -519,7 +517,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 .tip.show { opacity:1; }
 
 /* ─── SCROLLABLE INSIDE SLIDE ─── */
-.slide-scroll { overflow-y:auto; max-height:calc(100vh - 110px); width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; scrollbar-width:thin; }
+.slide-scroll { width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; }
 
 /* ─── ANIMATED FLOW LINE (SVG) ─── */
 .flow-svg { overflow:visible; }
@@ -561,12 +559,12 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 
 /* ════════════ RESPONSIVE: wider screens get extra breathing room ════════════ */
 @media (min-width: 700px) {
-  .slide { padding: 24px 32px 88px; }
+  .slide { padding: 60px 40px 60px; }
   .sys-grid { grid-template-columns: repeat(4,1fr); gap:14px; }
   .api-grid { grid-template-columns: repeat(3,1fr); gap:14px; }
   .disk-grid { grid-template-columns: repeat(2,1fr); }
   .viz-layout { flex-direction: row; gap:20px; }
-  .brain-ring { width:420px; height:420px; transform:scale(0.8); margin-bottom:-84px; }
+  .brain-ring { width:420px; height:420px; transform:scale(0.8); margin-bottom:0; }
   .pipeline-wrap { height:420px; }
   .orch-grid { grid-template-columns:1fr 40px 1fr 40px 1fr; gap:0; }
   .orch-grid > .arrow { display:flex; }
@@ -583,6 +581,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 
 <!-- STARFIELD -->
 <canvas id="stars"></canvas>
+<div id="scroll-progress"></div>
 
 <!-- TOOLTIP -->
 <div class="tip" id="tip"></div>
@@ -617,7 +616,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
   <div style="margin-top:28px;display:flex;align-items:center;gap:18px;font-size:12px;color:var(--text3)">
     <span>14 Slides</span>
     <span>·</span>
-    <span>Use ← → arrow keys or click nav dots</span>
+    <span>↓ Scroll to explore · ← → keys jump sections</span>
   </div>
 </div>
 
@@ -880,7 +879,7 @@ html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); 
 </div>
 
 <!-- ────────────────── SLIDE 5 · ORCHESTRATOR ──────────────────── -->
-<div class="slide" id="s5" style="padding-bottom:88px">
+<div class="slide" id="s5">
   <div class="slide-label">Inner Dialog Engine</div>
   <div class="slide-title">The Orchestrator Pipeline</div>
   <div class="slide-sub">1A and 1D run in parallel, 1C reasons with both outputs, then Final Orchestrator voices the response.</div>
@@ -1396,25 +1395,14 @@ const TOTAL = 14;
 let current = 1;
 let prev = null;
 
-// ─── SLIDE TRANSITION ───
+// ─── SCROLL NAVIGATION ───
 function goTo(n) {
   n = Math.max(1, Math.min(TOTAL, n));
-  if (n === current) return;
-
-  const cur = document.getElementById('s' + current);
-  const nxt = document.getElementById('s' + n);
-  if (!cur || !nxt) return;
-
-  cur.classList.remove('active');
-  cur.classList.add('prev');
-  setTimeout(() => cur.classList.remove('prev'), 700);
-  nxt.classList.add('active');
-
-  prev = current;
+  const el = document.getElementById('s' + n);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth' });
   current = n;
-  updateNav();
   if (window._starBurst) window._starBurst();
-  onSlideEnter(n);
 }
 
 function updateNav() {
@@ -1439,31 +1427,13 @@ document.getElementById('tick-p').onclick    = () => { if (current > 1)     goTo
 document.getElementById('tick-n').onclick    = () => { if (current < TOTAL) goTo(current + 1); };
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight' || e.key === 'Space') { e.preventDefault(); goTo(current + 1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); goTo(current + 1); }
   if (e.key === 'ArrowLeft')  { e.preventDefault(); goTo(current - 1); }
-  if (e.key === 'Home') goTo(1);
-  if (e.key === 'End')  goTo(TOTAL);
+  if (e.key === 'Home') { e.preventDefault(); goTo(1); }
+  if (e.key === 'End')  { e.preventDefault(); goTo(TOTAL); }
 });
 
-// ─── TOUCH SWIPE ───
-(function() {
-  let tx = 0, ty = 0, dragging = false;
-  document.addEventListener('touchstart', e => {
-    if (e.touches.length !== 1) return;
-    tx = e.touches[0].clientX;
-    ty = e.touches[0].clientY;
-    dragging = true;
-  }, { passive: true });
-  document.addEventListener('touchend', e => {
-    if (!dragging) return;
-    dragging = false;
-    const dx = e.changedTouches[0].clientX - tx;
-    const dy = e.changedTouches[0].clientY - ty;
-    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
-    if (dx < 0) goTo(current + 1);
-    else        goTo(current - 1);
-  }, { passive: true });
-})();
+// ─── TOUCH: native scroll handles mobile swiping ───
 
 // ─── STAR FIELD v2 — drift · constellations · comet ───
 (function() {
@@ -1879,8 +1849,35 @@ function onSlideEnter(n) {
 
 // ─── INIT ───
 buildBrainRing();
-updateNav();
-onSlideEnter(1);
+
+// Track current section for keyboard nav
+const _sectionObs = new IntersectionObserver(entries => {
+  for (const e of entries) {
+    if (e.isIntersecting) current = parseInt(e.target.id.slice(1), 10);
+  }
+}, { threshold: 0.4 });
+for (let i = 1; i <= TOTAL; i++) {
+  const el = document.getElementById('s' + i);
+  if (el) _sectionObs.observe(el);
+}
+
+// Trigger per-slide animations on scroll-into-view (once each)
+const _animObs = new IntersectionObserver(entries => {
+  for (const e of entries) {
+    if (!e.isIntersecting) continue;
+    if (e.target.id === 's4')  animatePipelineSteps();
+    if (e.target.id === 's11') requestAnimationFrame(drawMockViz);
+    _animObs.unobserve(e.target);
+  }
+}, { threshold: 0.3 });
+['s4', 's11'].forEach(id => { const el = document.getElementById(id); if (el) _animObs.observe(el); });
+
+// Scroll progress bar
+window.addEventListener('scroll', () => {
+  const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+  const bar = document.getElementById('scroll-progress');
+  if (bar) bar.style.width = Math.min(100, pct).toFixed(1) + '%';
+}, { passive: true });
 </script>
 </body>
 </html>
