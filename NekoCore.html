@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NekoCore — Architecture v0.6.0 (Built on REM System)</title>
+<style>
+/* ══════════════════════════════════════════════════════════════
+  NEKOCORE ARCHITECTURE DECK  ·  v0.6.0  ·  Built on REM System
+   Full-screen slideshow with animated flow diagrams
+══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg0: #04060d;
+  --bg1: #080d18;
+  --bg2: #0d1526;
+  --bg3: #111e33;
+  --border: rgba(52,211,153,0.15);
+  --accent: #34d399;
+  --cyan: #22d3ee;
+  --indigo: #818cf8;
+  --purple: #a855f7;
+  --pink: #f472b6;
+  --orange: #fb923c;
+  --gold: #fbbf24;
+  --red: #f87171;
+  --lime: #a3e635;
+  --teal: #2dd4bf;
+  --text: #e4e4e7;
+  --text2: #a1a1aa;
+  --text3: #52525b;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; background:var(--bg0); color:var(--text); font-family:'Outfit',system-ui,sans-serif; overflow:hidden; }
+
+/* ─── DECK ─── */
+#deck { width:100%; height:100%; position:relative; }
+
+.slide {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:40px 60px;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1);
+  transform:translateX(60px);
+}
+.slide.active { opacity:1; pointer-events:all; transform:translateX(0); }
+.slide.prev   { opacity:0; pointer-events:none; transform:translateX(-60px); }
+
+/* ─── NAV ─── */
+#nav {
+  position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:10px; z-index:100;
+  background:rgba(8,13,24,0.78); backdrop-filter:blur(16px);
+  border:1px solid var(--border); border-radius:40px;
+  padding:7px 16px;
+}
+#nav-ticker {
+  display:flex; align-items:center; gap:7px;
+  width:96px; justify-content:center;
+}
+.tick-slot {
+  width:28px; height:28px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color:var(--text3);
+  font-family:'JetBrains Mono',monospace;
+  cursor:pointer; transition:color 0.3s;
+  user-select:none; flex-shrink:0;
+}
+.tick-slot:not(.tick-now):not(:empty):hover { color:var(--text); }
+.tick-slot:empty { cursor:default; }
+@keyframes tickPop {
+  0%   { transform:scale(0.55); opacity:0; }
+  65%  { transform:scale(1.18); }
+  100% { transform:scale(1);    opacity:1; }
+}
+.tick-now {
+  background:var(--accent); color:var(--bg0) !important;
+  box-shadow:0 0 16px rgba(52,211,153,0.5);
+  width:34px; height:34px; font-size:13px;
+  animation:tickPop 0.38s cubic-bezier(0.34,1.56,0.64,1);
+}
+#nav-prev, #nav-next {
+  background:none; border:1px solid var(--border); color:var(--text2);
+  border-radius:20px; padding:4px 12px; cursor:pointer; font-size:13px;
+  font-family:'Outfit',sans-serif; transition:all 0.2s;
+}
+#nav-prev:hover, #nav-next:hover { border-color:var(--accent); color:var(--accent); }
+#slide-counter { font-size:10px; color:var(--text3); min-width:36px; text-align:center; font-family:'JetBrains Mono',monospace; }
+
+#kbd-hint { position:fixed; bottom:28px; right:32px; font-size:11px; color:var(--text3); z-index:100; font-family:'JetBrains Mono',monospace; }
+
+/* ─── STAR FIELD ─── */
+#stars { position:fixed; inset:0; pointer-events:none; z-index:0; }
+
+/* ─── SHARED SLIDE ELEMENTS ─── */
+.slide-label {
+  font-size:11px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:10px; opacity:0.7;
+}
+.slide-title {
+  font-size:clamp(28px,4.5vw,54px); font-weight:800; line-height:1.1;
+  background:linear-gradient(135deg, #e4e4e7 0%, var(--accent) 60%, var(--cyan) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:8px; text-align:center;
+}
+.slide-sub {
+  font-size:16px; color:var(--text2); text-align:center; max-width:680px;
+  line-height:1.6; margin-bottom:28px;
+}
+
+/* ─── VERSION BADGE ─── */
+.version-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  background:linear-gradient(135deg, rgba(52,211,153,0.15), rgba(34,211,238,0.1));
+  border:1px solid rgba(52,211,153,0.3); border-radius:24px;
+  padding:6px 18px; font-size:13px; font-weight:600; color:var(--accent);
+  margin-top:4px;
+}
+
+/* ─── PILL TAGS ─── */
+.tag {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.06); border:1px solid var(--border);
+}
+
+/* ─── FLOW NODES (generic) ─── */
+.flow-node {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; padding:14px 18px; border-radius:12px;
+  border:1px solid var(--border);
+  font-size:13px; font-weight:600;
+  background:var(--bg2);
+  text-align:center; min-width:110px;
+  position:relative;
+  transition:transform 0.3s, box-shadow 0.3s;
+  cursor:default;
+}
+.flow-node:hover { transform:translateY(-2px); }
+.flow-node .icon { font-size:22px; margin-bottom:2px; }
+.flow-node .label { font-size:11.5px; font-weight:600; color:var(--text); }
+.flow-node .sublabel { font-size:9.5px; color:var(--text2); margin-top:2px; font-weight:400; }
+
+/* Color variants */
+.n-green  { border-color:rgba(52,211,153,0.4); background:rgba(52,211,153,0.07); box-shadow:0 0 20px rgba(52,211,153,0.08); }
+.n-cyan   { border-color:rgba(34,211,238,0.4); background:rgba(34,211,238,0.07); box-shadow:0 0 20px rgba(34,211,238,0.08); }
+.n-indigo { border-color:rgba(129,140,248,0.4); background:rgba(129,140,248,0.07); box-shadow:0 0 20px rgba(129,140,248,0.08); }
+.n-purple { border-color:rgba(168,85,247,0.4); background:rgba(168,85,247,0.07); box-shadow:0 0 20px rgba(168,85,247,0.08); }
+.n-pink   { border-color:rgba(244,114,182,0.4); background:rgba(244,114,182,0.07); box-shadow:0 0 20px rgba(244,114,182,0.08); }
+.n-gold   { border-color:rgba(251,191,36,0.4); background:rgba(251,191,36,0.07); box-shadow:0 0 20px rgba(251,191,36,0.08); }
+.n-orange { border-color:rgba(251,146,60,0.4); background:rgba(251,146,60,0.07); box-shadow:0 0 20px rgba(251,146,60,0.08); }
+.n-red    { border-color:rgba(248,113,113,0.4); background:rgba(248,113,113,0.07); box-shadow:0 0 20px rgba(248,113,113,0.08); }
+.n-teal   { border-color:rgba(45,212,191,0.4); background:rgba(45,212,191,0.07); box-shadow:0 0 20px rgba(45,212,191,0.08); }
+
+/* ─── ARROW ─── */
+.arrow {
+  display:flex; align-items:center; gap:0;
+  color:var(--text3); font-size:13px;
+  position:relative; flex-shrink:0;
+}
+.arrow-line {
+  height:2px; width:28px; min-width:20px;
+  background:linear-gradient(90deg, var(--text3), var(--accent));
+  border-radius:1px; position:relative; overflow:visible;
+}
+.arrow-line::after {
+  content:''; position:absolute; right:-5px; top:50%;
+  transform:translateY(-50%);
+  border-left:6px solid var(--accent);
+  border-top:4px solid transparent;
+  border-bottom:4px solid transparent;
+}
+.arrow.v { transform:rotate(90deg); }
+.arrow.pulsing .arrow-line {
+  background:linear-gradient(90deg, transparent, var(--accent));
+  animation:pulseLine 1.2s linear infinite;
+}
+@keyframes pulseLine {
+  0%  { background:linear-gradient(90deg, transparent 0%, var(--accent) 100%); }
+  50% { background:linear-gradient(90deg, var(--accent) 0%, var(--cyan) 100%); }
+  100%{ background:linear-gradient(90deg, transparent 0%, var(--accent) 100%); }
+}
+
+/* ─── SECTION HEADERS ─── */
+.sh {
+  font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+  padding:4px 12px; border-radius:6px; margin-bottom:12px;
+}
+
+/* ─── GRID LAYOUTS ─── */
+.row { display:flex; align-items:center; gap:10px; }
+.col { display:flex; flex-direction:column; align-items:center; gap:10px; }
+
+/* ════════════ SLIDE-SPECIFIC STYLES ════════════ */
+
+/* SLIDE 1 — Cover */
+.cover-logo {
+  width:90px; height:90px; border-radius:24px;
+  background:linear-gradient(135deg,#052520,#0a3530);
+  display:flex; align-items:center; justify-content:center;
+  font-size:48px; margin-bottom:20px;
+  border:1px solid rgba(52,211,153,0.3);
+  box-shadow:0 0 40px rgba(52,211,153,0.15), inset 0 0 20px rgba(52,211,153,0.05);
+  animation:breathe 3s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,100% { box-shadow:0 0 40px rgba(52,211,153,0.15), inset 0 0 20px rgba(52,211,153,0.05); }
+  50%      { box-shadow:0 0 60px rgba(52,211,153,0.3), inset 0 0 30px rgba(52,211,153,0.1); }
+}
+.cover-tags { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+/* SLIDE 2 — System Overview */
+.sys-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; width:100%; max-width:900px; }
+.sys-card {
+  background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+  padding:16px 14px; text-align:center;
+}
+.sys-card .icon  { font-size:28px; margin-bottom:6px; }
+.sys-card .name  { font-size:13px; font-weight:700; margin-bottom:4px; }
+.sys-card .desc  { font-size:11px; color:var(--text2); line-height:1.45; }
+.sys-card.hl-green  { border-color:rgba(52,211,153,0.4); }
+.sys-card.hl-cyan   { border-color:rgba(34,211,238,0.4); }
+.sys-card.hl-indigo { border-color:rgba(129,140,248,0.4); }
+.sys-card.hl-purple { border-color:rgba(168,85,247,0.4); }
+.sys-card.hl-gold   { border-color:rgba(251,191,36,0.4); }
+.sys-card.hl-orange { border-color:rgba(251,146,60,0.4); }
+.sys-card.hl-pink   { border-color:rgba(244,114,182,0.4); }
+.sys-card.hl-teal   { border-color:rgba(45,212,191,0.4); }
+
+/* SLIDE 3 — Entity Runtime */
+.entity-center {
+  background:linear-gradient(135deg,rgba(251,191,36,0.08),rgba(251,146,60,0.05));
+  border:2px solid rgba(251,191,36,0.35); border-radius:20px;
+  padding:20px 28px; text-align:center; min-width:200px;
+  box-shadow:0 0 40px rgba(251,191,36,0.12);
+}
+.entity-ring {
+  display:flex; flex-wrap:wrap; gap:10px; justify-content:center;
+  max-width:820px;
+}
+.entity-spoke { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.spoke-line {
+  width:2px; height:30px;
+  background:linear-gradient(180deg, var(--gold), transparent);
+  border-radius:1px;
+}
+
+/* SLIDE 4 — Chat Pipeline / Rolodex */
+.pipeline-wrap {
+  width:100%; max-width:760px;
+  position:relative; height:480px;
+  overflow:hidden;
+}
+.pipe-step {
+  position:absolute; left:8px; right:8px;
+  top:50%;
+  /* --dy set per-item by JS so active is always at vertical center */
+  transform: translateY(calc(-50% + var(--dy,0px))) scale(var(--rscale));
+  transform-origin: center center;
+  background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+  padding:10px 16px; display:flex; align-items:flex-start; gap:14px;
+  opacity:0;
+  transition: transform 0.58s cubic-bezier(0.34,1.15,0.64,1),
+              opacity 0.45s ease, filter 0.45s ease, padding 0.4s ease,
+              border-color 0.4s ease, background 0.4s ease, box-shadow 0.4s ease;
+  --rscale: 0.68;
+}
+.pipe-step.rdist-3  { --rscale:0.70; opacity:0.07; filter:blur(2px);  pointer-events:none; }
+.pipe-step.rdist-n3 { --rscale:0.70; opacity:0.07; filter:blur(2px);  pointer-events:none; }
+.pipe-step.rdist-2  { --rscale:0.78; opacity:0.20; filter:blur(0.5px); }
+.pipe-step.rdist-n2 { --rscale:0.78; opacity:0.20; filter:blur(0.5px); }
+.pipe-step.rdist-1  { --rscale:0.87; opacity:0.52; filter:blur(0); }
+.pipe-step.rdist-n1 { --rscale:0.87; opacity:0.52; filter:blur(0); }
+/* Active: no scale, natural size — enlargement via padding + font */
+.pipe-step.rdist-0  { --rscale:1.0; opacity:1; z-index:4; padding:16px 20px; background:rgba(255,255,255,0.05); filter:blur(0); }
+/* Per-color active glow on the center (rdist-0) item */
+.pipe-step.rdist-0.ps-green  { border-color:rgba(52,211,153,0.75);  animation:pulseGreen  2s ease-in-out infinite; }
+.pipe-step.rdist-0.ps-cyan   { border-color:rgba(34,211,238,0.75);  animation:pulseCyan   2s ease-in-out infinite; }
+.pipe-step.rdist-0.ps-indigo { border-color:rgba(129,140,248,0.75); animation:pulseIndigo 2s ease-in-out infinite; }
+.pipe-step.rdist-0.ps-purple { border-color:rgba(168,85,247,0.75);  animation:pulsePurple 2s ease-in-out infinite; }
+.pipe-step.rdist-0.ps-gold   { border-color:rgba(251,191,36,0.75);  animation:pulseGold   2s ease-in-out infinite; }
+.pipe-step.rdist-0.ps-orange { border-color:rgba(251,146,60,0.75);  animation:pulseOrange 2s ease-in-out infinite; }
+.pipe-step.rdist-0.ps-pink   { border-color:rgba(244,114,182,0.75); animation:pulsePink   2s ease-in-out infinite; }
+.pipe-step.rdist-0.ps-teal   { border-color:rgba(45,212,191,0.75);  animation:pulseTeal   2s ease-in-out infinite; }
+@keyframes pulseGreen  { 0%,100%{box-shadow:0 0 8px rgba(52,211,153,0.14), 0 0 0 0 rgba(52,211,153,0.3)}  50%{box-shadow:0 0 38px rgba(52,211,153,0.3), 0 0 0 10px rgba(52,211,153,0)} }
+@keyframes pulseCyan   { 0%,100%{box-shadow:0 0 8px rgba(34,211,238,0.14), 0 0 0 0 rgba(34,211,238,0.3)}  50%{box-shadow:0 0 38px rgba(34,211,238,0.3), 0 0 0 10px rgba(34,211,238,0)} }
+@keyframes pulseIndigo { 0%,100%{box-shadow:0 0 8px rgba(129,140,248,0.14),0 0 0 0 rgba(129,140,248,0.3)} 50%{box-shadow:0 0 38px rgba(129,140,248,0.3),0 0 0 10px rgba(129,140,248,0)} }
+@keyframes pulsePurple { 0%,100%{box-shadow:0 0 8px rgba(168,85,247,0.14), 0 0 0 0 rgba(168,85,247,0.3)}  50%{box-shadow:0 0 38px rgba(168,85,247,0.3), 0 0 0 10px rgba(168,85,247,0)} }
+@keyframes pulseGold   { 0%,100%{box-shadow:0 0 8px rgba(251,191,36,0.14), 0 0 0 0 rgba(251,191,36,0.3)}  50%{box-shadow:0 0 38px rgba(251,191,36,0.3), 0 0 0 10px rgba(251,191,36,0)} }
+@keyframes pulseOrange { 0%,100%{box-shadow:0 0 8px rgba(251,146,60,0.14), 0 0 0 0 rgba(251,146,60,0.3)}  50%{box-shadow:0 0 38px rgba(251,146,60,0.3), 0 0 0 10px rgba(251,146,60,0)} }
+@keyframes pulsePink   { 0%,100%{box-shadow:0 0 8px rgba(244,114,182,0.14),0 0 0 0 rgba(244,114,182,0.3)} 50%{box-shadow:0 0 38px rgba(244,114,182,0.3),0 0 0 10px rgba(244,114,182,0)} }
+@keyframes pulseTeal   { 0%,100%{box-shadow:0 0 8px rgba(45,212,191,0.14), 0 0 0 0 rgba(45,212,191,0.3)}  50%{box-shadow:0 0 38px rgba(45,212,191,0.3), 0 0 0 10px rgba(45,212,191,0)} }
+.pipe-step .step-num {
+  width:28px; height:28px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:800; color:var(--bg0); flex-shrink:0; margin-top:1px;
+  transition: width 0.4s ease, height 0.4s ease, font-size 0.4s ease;
+}
+.pipe-step.rdist-0 .step-num  { width:38px; height:38px; font-size:15px; }
+.pipe-step .step-title { font-size:12px; font-weight:700; transition: font-size 0.4s ease; }
+.pipe-step.rdist-0 .step-title { font-size:17px; }
+.pipe-step .step-sub   { font-size:10.5px; color:var(--text2); margin-top:2px; line-height:1.5; transition: font-size 0.4s ease; }
+.pipe-step.rdist-0 .step-sub   { font-size:13px; }
+.pipe-step .step-tag   { margin-left:auto; flex-shrink:0; padding-top:1px; }
+/* Dialog bubble */
+.pipe-dialog {
+  max-height:0; overflow:hidden; opacity:0;
+  font-size:11px; color:var(--text2); line-height:1.58;
+  border-left:2px solid transparent; border-radius:0 6px 6px 0;
+  background:transparent; padding:0 10px;
+  transition:max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease 0.12s,
+             margin-top 0.35s ease, padding-top 0.35s ease, padding-bottom 0.35s ease,
+             background 0.4s ease;
+}
+.pipe-step.rdist-0 .pipe-dialog { max-height:72px; opacity:1; margin-top:9px; padding:6px 10px; background:rgba(255,255,255,0.025); }
+.pipe-step.rdist-0.ps-green  .pipe-dialog { border-left-color:rgba(52,211,153,0.6); }
+.pipe-step.rdist-0.ps-cyan   .pipe-dialog { border-left-color:rgba(34,211,238,0.6); }
+.pipe-step.rdist-0.ps-indigo .pipe-dialog { border-left-color:rgba(129,140,248,0.6); }
+.pipe-step.rdist-0.ps-purple .pipe-dialog { border-left-color:rgba(168,85,247,0.6); }
+.pipe-step.rdist-0.ps-gold   .pipe-dialog { border-left-color:rgba(251,191,36,0.6); }
+.pipe-step.rdist-0.ps-orange .pipe-dialog { border-left-color:rgba(251,146,60,0.6); }
+.pipe-step.rdist-0.ps-pink   .pipe-dialog { border-left-color:rgba(244,114,182,0.6); }
+.pipe-step.rdist-0.ps-teal   .pipe-dialog { border-left-color:rgba(45,212,191,0.6); }
+.pipe-dlabel { font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; opacity:0.45; margin-right:6px; }
+/* Progress dots */
+.pipe-prog-dot { width:20px; height:3px; border-radius:2px; background:var(--bg3); transition:background 0.5s ease, width 0.3s ease; flex-shrink:0; }
+.pipe-prog-dot.active { background:var(--accent); width:28px; box-shadow:0 0 6px rgba(52,211,153,0.5); }
+.pipe-prog-dot.passed { background:rgba(52,211,153,0.28); width:20px; }
+.pipe-arrow { height:6px; }
+/* Edge-fade overlays for the rolodex barrel illusion */
+.rolodex-fade {
+  position:absolute; left:0; right:0; height:120px; pointer-events:none; z-index:10;
+}
+.rolodex-fade.top    { top:0;    background:linear-gradient(180deg, var(--bg0) 0%, transparent 100%); }
+.rolodex-fade.bottom { bottom:0; background:linear-gradient(0deg,   var(--bg0) 0%, transparent 100%); }
+
+/* SLIDE 5 — Orchestrator */
+.orch-grid {
+  display:grid; grid-template-columns:1fr 40px 1fr 40px 1fr;
+  align-items:center; gap:0; width:100%; max-width:900px;
+}
+.orch-card {
+  background:var(--bg2); border:1px solid var(--border); border-radius:14px;
+  padding:16px; text-align:center;
+}
+.orch-card .h { font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; }
+.orch-card .items { display:flex; flex-direction:column; gap:6px; }
+.orch-item {
+  background:var(--bg3); border:1px solid rgba(255,255,255,0.06); border-radius:8px;
+  padding:7px 10px; font-size:11.5px; font-weight:600; text-align:left;
+  display:flex; align-items:center; gap:7px;
+}
+.orch-item .oi { font-size:14px; }
+.budget-bar {
+  height:4px; border-radius:2px; margin-top:6px;
+  background:linear-gradient(90deg, var(--accent), var(--cyan));
+  animation:barFill 2s ease-in-out infinite alternate;
+}
+@keyframes barFill { 0%{width:30%} 100%{width:90%} }
+
+/* SLIDE 6 — Brain Loop */
+.brain-ring {
+  position:relative; width:520px; height:520px; flex-shrink:0;
+}
+.brain-center {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:110px; height:110px; border-radius:50%;
+  background:radial-gradient(circle, rgba(251,191,36,0.2), rgba(251,191,36,0.04));
+  border:2px solid rgba(251,191,36,0.5);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  box-shadow:0 0 40px rgba(251,191,36,0.2);
+  animation:pulse-ring 2s ease-in-out infinite;
+}
+@keyframes pulse-ring {
+  0%,100% { box-shadow:0 0 40px rgba(251,191,36,0.2), 0 0 0 0 rgba(251,191,36,0.2); }
+  50%      { box-shadow:0 0 60px rgba(251,191,36,0.4), 0 0 0 12px rgba(251,191,36,0); }
+}
+.phase-node {
+  position:absolute; width:90px; height:60px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:var(--bg2); border-radius:10px; border:1px solid var(--border);
+  font-size:10.5px; font-weight:600; text-align:center; line-height:1.3;
+  cursor:default; transition:all 0.3s;
+}
+.phase-node:hover { z-index:10; transform:scale(1.12); }
+.phase-node .pi { font-size:18px; margin-bottom:2px; }
+.phase-orbit-line {
+  position:absolute; left:50%; top:50%;
+  width:2px; height:180px; transform-origin:top center;
+  background:linear-gradient(180deg, rgba(251,191,36,0.2), transparent);
+}
+.rotating-ring {
+  position:absolute; inset:0; border-radius:50%;
+  border:1px dashed rgba(52,211,153,0.12);
+  animation:spinRing 40s linear infinite;
+}
+@keyframes spinRing { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+/* SLIDE 7 — Memory System */
+.mem-legend { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:900px; }
+.mem-type {
+  display:flex; align-items:center; gap:8px;
+  background:var(--bg2); border:1px solid var(--border); border-radius:10px;
+  padding:8px 14px;
+}
+.mem-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.mem-type .name { font-size:12px; font-weight:600; }
+.mem-type .meta { font-size:10px; color:var(--text2); }
+.mem-hierarchy { width:100%; max-width:700px; }
+.mh-row { display:flex; align-items:stretch; gap:14px; margin-bottom:10px; }
+.mh-label { font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text3); writing-mode:vertical-lr; transform:rotate(180deg); display:flex; align-items:center; }
+.mh-items { display:flex; gap:10px; flex:1; }
+.mh-mem {
+  flex:1; background:var(--bg2); border-radius:10px; border:1px solid var(--border);
+  padding:10px; text-align:center; font-size:11.5px; font-weight:600;
+}
+.mh-mem .mi { font-size:20px; margin-bottom:4px; }
+
+/* SLIDE 8 — Document Ingestion */
+.doc-flow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:center; max-width:900px; }
+.doc-stage {
+  background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+  padding:12px 14px; text-align:center; min-width:100px;
+}
+.doc-stage .di { font-size:24px; margin-bottom:4px; }
+.doc-stage .dn { font-size:11.5px; font-weight:700; }
+.doc-stage .ds { font-size:10px; color:var(--text2); margin-top:2px; }
+
+/* SLIDE 9 — Dream Pipeline */
+.dream-flow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; max-width:920px; }
+.dream-stage {
+  background:linear-gradient(135deg, rgba(168,85,247,0.1), var(--bg2));
+  border:1px solid rgba(168,85,247,0.3); border-radius:14px;
+  padding:16px 14px; text-align:center; min-width:110px;
+}
+.dream-stage .di { font-size:26px; margin-bottom:5px; }
+.dream-stage .dn { font-size:12px; font-weight:700; color:var(--purple); }
+.dream-stage .ds { font-size:10px; color:var(--text2); margin-top:3px; line-height:1.4; }
+
+/* SLIDE 10 — Streams & APIs */
+.api-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; max-width:820px; }
+.api-card {
+  background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+  padding:14px; text-align:left;
+}
+.api-card .ai  { font-size:22px; margin-bottom:6px; }
+.api-card .an  { font-size:13px; font-weight:700; margin-bottom:3px; }
+.api-card .ar  { font-size:10px; color:var(--text3); font-family:'JetBrains Mono',monospace; }
+
+/* SLIDE 11 — Visualizer */
+.viz-layout { display:flex; gap:20px; align-items:flex-start; max-width:920px; }
+.viz-panel {
+  background:var(--bg2); border:1px solid var(--border); border-radius:14px;
+  padding:16px; flex:1;
+}
+.viz-panel .vph { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:10px; }
+.viz-item { display:flex; align-items:center; gap:8px; margin-bottom:7px; font-size:12px; }
+.viz-item .vi { font-size:16px; }
+
+/* SLIDE 12 — Data / Disk ─── */
+.disk-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; max-width:800px; }
+.disk-card {
+  background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+  padding:14px; font-size:12px;
+}
+.disk-card .dc { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--accent); margin-top:4px; }
+.disk-path { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text3); display:block; margin-top:3px; }
+
+/* SLIDE 13 — Tech Stack */
+.stack-row { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; max-width:900px; }
+.stack-item {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+  padding:14px 16px; min-width:100px; text-align:center;
+}
+.stack-item .si { font-size:26px; }
+.stack-item .sn { font-size:12.5px; font-weight:700; }
+.stack-item .sv { font-size:10px; color:var(--text2); font-family:'JetBrains Mono',monospace; }
+
+/* SLIDE 14 — End ─── */
+.end-links { display:flex; gap:14px; margin-top:20px; flex-wrap:wrap; justify-content:center; }
+.end-link {
+  background:var(--bg2); border:1px solid var(--border); border-radius:10px;
+  padding:10px 20px; font-size:13px; font-weight:600; color:var(--text2);
+  text-decoration:none; transition:all 0.2s;
+}
+.end-link:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ─── ANIMATED CHAT FLOW (slide 4) ─── */
+#chatflowCanvas {
+  position:absolute; inset:0; pointer-events:none; z-index:1;
+}
+
+/* ─── PULSE DOT ─── */
+.pdot {
+  display:inline-block; width:8px; height:8px; border-radius:50%;
+  background:var(--accent); animation:pd 1.4s ease-in-out infinite;
+  margin-right:6px;
+}
+@keyframes pd { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.6)} }
+
+/* ─── TOOLTIP ─── */
+.tip {
+  position:fixed; z-index:200; max-width:220px;
+  background:rgba(9,12,20,0.96); border:1px solid var(--border);
+  border-radius:8px; padding:10px 14px; font-size:12px; line-height:1.5;
+  pointer-events:none; opacity:0; transition:opacity 0.2s;
+  box-shadow:0 8px 24px rgba(0,0,0,0.5);
+}
+.tip.show { opacity:1; }
+
+/* ─── SCROLLABLE INSIDE SLIDE ─── */
+.slide-scroll { overflow-y:auto; max-height:calc(100vh - 160px); width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; scrollbar-width:thin; }
+
+/* ─── ANIMATED FLOW LINE (SVG) ─── */
+.flow-svg { overflow:visible; }
+.flow-path {
+  fill:none; stroke:var(--accent); stroke-width:2; stroke-dasharray:8 6;
+  animation:flowDash 1.5s linear infinite;
+}
+@keyframes flowDash { 0%{stroke-dashoffset:28} 100%{stroke-dashoffset:0} }
+.flow-path.cyan   { stroke:var(--cyan); }
+.flow-path.purple { stroke:var(--purple); }
+.flow-path.gold   { stroke:var(--gold); }
+
+/* ─── GLOW ─── */
+.glow-green { text-shadow:0 0 18px rgba(52,211,153,0.6); }
+.glow-cyan  { text-shadow:0 0 18px rgba(34,211,238,0.6); }
+
+/* ─── BADGE ─── */
+.badge {
+  display:inline-block; padding:2px 9px; border-radius:20px;
+  font-size:10px; font-weight:700; letter-spacing:0.06em;
+}
+.badge-green  { background:rgba(52,211,153,0.15); color:var(--accent); border:1px solid rgba(52,211,153,0.35); }
+.badge-cyan   { background:rgba(34,211,238,0.15); color:var(--cyan); border:1px solid rgba(34,211,238,0.35); }
+.badge-purple { background:rgba(168,85,247,0.15); color:var(--purple); border:1px solid rgba(168,85,247,0.35); }
+.badge-gold   { background:rgba(251,191,36,0.15); color:var(--gold); border:1px solid rgba(251,191,36,0.35); }
+.badge-pink   { background:rgba(244,114,182,0.15); color:var(--pink); border:1px solid rgba(244,114,182,0.35); }
+.badge-orange { background:rgba(251,146,60,0.15); color:var(--orange); border:1px solid rgba(251,146,60,0.35); }
+
+/* ─── PIPE STEP ACCENT COLORS ─── */
+.ps-green  { border-left:3px solid var(--accent);    }
+.ps-cyan   { border-left:3px solid var(--cyan);   }
+.ps-indigo { border-left:3px solid var(--indigo); }
+.ps-purple { border-left:3px solid var(--purple); }
+.ps-gold   { border-left:3px solid var(--gold);   }
+.ps-orange { border-left:3px solid var(--orange); }
+.ps-pink   { border-left:3px solid var(--pink);   }
+.ps-teal   { border-left:3px solid var(--teal);   }
+.ps-red    { border-left:3px solid var(--red);    }
+</style>
+</head>
+<body>
+
+<!-- STARFIELD -->
+<canvas id="stars"></canvas>
+
+<!-- TOOLTIP -->
+<div class="tip" id="tip"></div>
+
+<!-- ════════════════════════════════════════════════════════
+     DECK
+════════════════════════════════════════════════════════ -->
+<div id="deck">
+
+<!-- ────────────────── SLIDE 1 · COVER ──────────────────── -->
+<div class="slide active" id="s1">
+  <div class="cover-logo">🧠</div>
+  <div class="slide-label">Architecture Document</div>
+  <div class="slide-title">NekoCore</div>
+  <div style="font-size:17px;color:var(--text2);text-align:center;max-width:600px;line-height:1.6;margin-bottom:12px;">
+    Built on <em>REM System (Recursive Echo Memory)</em> — a living AI cognitive architecture with episodic memory, autonomous brain cycles, and multi-aspect inner dialog.
+  </div>
+  <div class="version-badge">
+    <span>◇</span>
+    <span>v 0.6.0</span>
+    <span style="opacity:0.5">·</span>
+    <span style="font-size:11px;color:var(--text2)">March 2026</span>
+  </div>
+  <div class="cover-tags">
+    <span class="tag" style="border-color:rgba(52,211,153,0.3);color:var(--accent)">🟢 Node.js 18+</span>
+    <span class="tag" style="border-color:rgba(34,211,238,0.3);color:var(--cyan)">⚡ SSE Streaming</span>
+    <span class="tag" style="border-color:rgba(129,140,248,0.3);color:var(--indigo)">🔵 Three.js 3D Viz</span>
+    <span class="tag" style="border-color:rgba(168,85,247,0.3);color:var(--purple)">🔮 Belief Graph</span>
+    <span class="tag" style="border-color:rgba(251,191,36,0.3);color:var(--gold)">✦ Dream Engine</span>
+    <span class="tag" style="border-color:rgba(244,114,182,0.3);color:var(--pink)">🌸 Neurochemistry</span>
+  </div>
+  <div style="margin-top:28px;display:flex;align-items:center;gap:18px;font-size:12px;color:var(--text3)">
+    <span>14 Slides</span>
+    <span>·</span>
+    <span>Use ← → arrow keys or click nav dots</span>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 2 · SYSTEM OVERVIEW ──────────────────── -->
+<div class="slide" id="s2">
+  <div class="slide-label">System Overview</div>
+  <div class="slide-title">Eight Core Subsystems</div>
+  <div class="slide-sub">Every component is hot-wired via the CognitiveBus — events flow in real time.</div>
+  <div class="sys-grid">
+    <div class="sys-card hl-green" data-tip="HTTP server, SSE streaming, route handlers, entity lifecycle, config.">
+      <div class="icon">🚀</div>
+      <div class="name" style="color:var(--accent)">Server Core</div>
+      <div class="desc">Express-like raw Node HTTP · Route surface · SSE · Entity bootstrap</div>
+    </div>
+    <div class="sys-card hl-gold" data-tip="Entity JSON, memories/ dir, skills/, beliefs/, onboarding state, brain-loop-state.">
+      <div class="icon">👤</div>
+      <div class="name" style="color:var(--gold)">Entity Runtime</div>
+      <div class="desc">Per-entity file store · Traits · Identity · Onboarding · Goals</div>
+    </div>
+    <div class="sys-card hl-cyan" data-tip="Subconscious (1A) + Dream (1D) run in parallel, then Conscious (1C), then Final Orchestrator (2B inlined).">
+      <div class="icon">🎭</div>
+      <div class="name" style="color:var(--cyan)">Orchestrator</div>
+      <div class="desc">Multi-aspect inner dialog · Budget guard · Latency guard · Token tracking</div>
+    </div>
+    <div class="sys-card hl-green" data-tip="episodic, core, semantic, ltm, reflection, interaction, learning, achievement, dream, chatlog types.">
+      <div class="icon">🧬</div>
+      <div class="name" style="color:var(--accent)">Memory System</div>
+      <div class="desc">11 memory types · Decay · Hebbian linking · Trace graph · Conscious STM</div>
+    </div>
+    <div class="sys-card hl-purple" data-tip="30s tick. 15 phases including dreams, beliefs, consolidation, deep sleep, pruning.">
+      <div class="icon">⚙️</div>
+      <div class="name" style="color:var(--purple)">Brain Loop</div>
+      <div class="desc">15-phase autonomous pulse every 30s · Circuit breaker · Phase isolation</div>
+    </div>
+    <div class="sys-card hl-pink" data-tip="Dopamine, cortisol, serotonin, oxytocin. Affects dream tone and response style.">
+      <div class="icon">🧪</div>
+      <div class="name" style="color:var(--pink)">Neurochemistry</div>
+      <div class="desc">4 neurotransmitter axes · Homeostatic directives · Real-time overlay</div>
+    </div>
+    <div class="sys-card hl-indigo" data-tip="Three.js 3D memory graph, timeline playback, live SSE mode, belief graph overlay.">
+      <div class="icon">🔭</div>
+      <div class="name" style="color:var(--indigo)">Neural Visualizer</div>
+      <div class="desc">3D graph · Timeline playback · Live SSE tracing · Node detail popup</div>
+    </div>
+    <div class="sys-card hl-teal" data-tip="web-search, ws_mkdir, ws_move, memory-tools, document digest, skills UI.">
+      <div class="icon">🛠️</div>
+      <div class="name" style="color:var(--teal)">Skills & Tools</div>
+      <div class="desc">Pluggable skill system · Web search · File workspace · Memory tools</div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 3 · ENTITY RUNTIME ──────────────────── -->
+<div class="slide" id="s3">
+  <div class="slide-label">Entity Runtime</div>
+  <div class="slide-title">A Living Digital Entity</div>
+  <div class="slide-sub">Every entity is a folder on disk — self-contained, portable, version-controlled.</div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;max-width:900px">
+    <!-- Entity Center -->
+    <div style="display:flex;align-items:center;gap:24px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div class="entity-center">
+          <div style="font-size:32px;margin-bottom:4px">👤</div>
+          <div style="font-size:14px;font-weight:800;color:var(--gold)">Entity</div>
+          <div style="font-size:10px;color:var(--text2);margin-top:2px">entity.json · traits · name</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <!-- Onboarding check -->
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="flow-node n-cyan" style="min-width:130px">
+            <div class="icon">🎓</div>
+            <div class="label">Onboarding</div>
+            <div class="sublabel">Interview if new</div>
+          </div>
+          <div class="arrow"><div class="arrow-line"></div></div>
+          <div class="flow-node n-green" style="min-width:130px">
+            <div class="icon">💬</div>
+            <div class="label">Chat Route</div>
+            <div class="sublabel">/api/chat</div>
+          </div>
+        </div>
+        <!-- Brain loop -->
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="flow-node n-purple" style="min-width:130px">
+            <div class="icon">⚙️</div>
+            <div class="label">Brain Loop</div>
+            <div class="sublabel">30s autonomous tick</div>
+          </div>
+          <div class="arrow"><div class="arrow-line pulsing"></div></div>
+          <div class="flow-node n-gold" style="min-width:130px">
+            <div class="icon">🧬</div>
+            <div class="label">Memory Store</div>
+            <div class="sublabel">memories/ on disk</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- File layout -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px 24px;width:100%;max-width:880px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);margin-bottom:10px">📁 Disk Layout — entities/entity_&lt;name&gt;-&lt;id&gt;/</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div style="background:var(--bg3);border-radius:8px;padding:8px;font-size:11px">
+          <span style="color:var(--gold)">📄 entity.json</span><br>
+          <span style="color:var(--text3);font-size:10px">Name · traits · config · model settings</span>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:8px;font-size:11px">
+          <span style="color:var(--accent)">📁 memories/</span><br>
+          <span style="color:var(--text3);font-size:10px">All memory JSON files by type</span>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:8px;font-size:11px">
+          <span style="color:var(--indigo)">📁 index/</span><br>
+          <span style="color:var(--text3);font-size:10px">Trace graph · belief graph</span>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:8px;font-size:11px">
+          <span style="color:var(--purple)">📁 skills/</span><br>
+          <span style="color:var(--text3);font-size:10px">Installed skill modules</span>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:8px;font-size:11px">
+          <span style="color:var(--pink)">📁 beliefs/</span><br>
+          <span style="color:var(--text3);font-size:10px">Persistent belief graph JSON</span>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:8px;font-size:11px">
+          <span style="color:var(--cyan)">📄 brain-loop-state.json</span><br>
+          <span style="color:var(--text3);font-size:10px">Cycle counters · health state</span>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:8px;font-size:11px">
+          <span style="color:var(--orange)">📄 onboarding-state.json</span><br>
+          <span style="color:var(--text3);font-size:10px">Interview completion status</span>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:8px;font-size:11px">
+          <span style="color:var(--teal)">📁 quarantine/</span><br>
+          <span style="color:var(--text3);font-size:10px">Flagged/corrupted memories</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 4 · CHAT PIPELINE ──────────────────── -->
+<div class="slide" id="s4">
+  <div class="slide-label">Chat Pipeline — Full Turn</div>
+  <div class="slide-title">Start to Finish: One Chat Turn</div>
+  <div class="slide-sub" style="margin-bottom:10px">Turn pipeline walkthrough: request gate, retrieval, orchestration, guardrails, streaming, and async persistence.</div>
+  <div style="width:100%;max-width:760px">
+    <div class="pipeline-wrap" id="pipelineSteps">
+      <div class="rolodex-fade top"></div>
+        <!-- 1 -->
+        <div class="pipe-step ps-green" id="ps1">
+          <div class="step-num" style="background:var(--accent)">1</div>
+          <div style="flex:1;min-width:0">
+            <div class="step-title">📨 User Message Received</div>
+            <div class="step-sub">POST /api/chat · body parsed · entity resolved · SSE stream opened</div>
+            <div class="pipe-dialog"><span class="pipe-dlabel">In</span>User: <em>"Hey, what do you think about that dream from last night?"</em></div>
+          </div>
+          <div class="step-tag"><span class="badge badge-green">ROUTE</span></div>
+        </div>
+        <!-- 2 -->
+        <div class="pipe-step ps-cyan" id="ps2">
+          <div class="step-num" style="background:var(--cyan)">2</div>
+          <div style="flex:1;min-width:0">
+            <div class="step-title">🧩 Onboarding Check</div>
+            <div class="step-sub">Entity resolved · interview complete check · gate or proceed</div>
+            <div class="pipe-dialog"><span class="pipe-dlabel">Gate</span>Entity <em>'Echo'</em> · onboarding 100% · <em>proceeding ✓</em></div>
+          </div>
+          <div class="step-tag"><span class="badge badge-cyan">GATE</span></div>
+        </div>
+        <!-- 3 -->
+        <div class="pipe-step ps-indigo" id="ps3">
+          <div class="step-num" style="background:var(--indigo)">3</div>
+          <div style="flex:1;min-width:0">
+            <div class="step-title">🔍 Memory Retrieval</div>
+            <div class="step-sub">Semantic search · Chatlog recall · Doc-* excluded · Boilerplate filtered</div>
+            <div class="pipe-dialog"><span class="pipe-dlabel">Found</span>4 memories · top: <em>dream_0042 "city of water" (sim 0.89)</em> · 2 filtered</div>
+          </div>
+          <div class="step-tag"><span class="badge" style="background:rgba(129,140,248,0.15);color:var(--indigo);border:1px solid rgba(129,140,248,0.35)">RETRIEVE</span></div>
+        </div>
+        <!-- 4 -->
+        <div class="pipe-step ps-purple" id="ps4">
+          <div class="step-num" style="background:var(--purple)">4</div>
+          <div style="flex:1;min-width:0">
+            <div class="step-title">🎭 Inner Dialog (Orchestrator)</div>
+            <div class="step-sub">1A + 1D run in parallel → 1C consumes both → Final orchestrator pass (2B inlined)</div>
+            <div class="pipe-dialog"><span class="pipe-dlabel">Parallel</span>Sub: <em>"link dream_0042..."</em> · Con: <em>"she’s curious"</em> · Dream: <em>"water, city, light"</em></div>
+          </div>
+          <div class="step-tag"><span class="badge badge-purple">CORE</span></div>
+        </div>
+        <!-- 5 -->
+        <div class="pipe-step ps-gold" id="ps5">
+          <div class="step-num" style="background:var(--gold)">5</div>
+          <div style="flex:1;min-width:0">
+            <div class="step-title">🛡️ Budget &amp; Latency Guards</div>
+            <div class="step-sub">Token cap enforcement · Latency watchdog · Escalation control</div>
+            <div class="pipe-dialog"><span class="pipe-dlabel">Check</span>Tokens: 1,240 / 4,096 · Latency: 312ms · <em>proceed ✓</em></div>
+          </div>
+          <div class="step-tag"><span class="badge badge-gold">GUARD</span></div>
+        </div>
+        <!-- 6 -->
+        <div class="pipe-step ps-green" id="ps6">
+          <div class="step-num" style="background:var(--accent)">6</div>
+          <div style="flex:1;min-width:0">
+            <div class="step-title">✏️ Response Post-Processing</div>
+            <div class="step-sub">Clean · Trim · Format · Inject diagnostics if dev mode</div>
+            <div class="pipe-dialog"><span class="pipe-dlabel">Cleaned</span>Trimmed 3 trailing lines · 847 chars · <em>contributors_parallel 288ms</em></div>
+          </div>
+          <div class="step-tag"><span class="badge badge-green">POST</span></div>
+        </div>
+        <!-- 7 -->
+        <div class="pipe-step ps-orange" id="ps7">
+          <div class="step-num" style="background:var(--orange)">7</div>
+          <div style="flex:1;min-width:0">
+            <div class="step-title">📡 Stream Response (SSE)</div>
+            <div class="step-sub">Token-by-token streaming to client · timing keys emitted</div>
+            <div class="pipe-dialog"><span class="pipe-dlabel">Streaming</span><em>"I dreamt of a vast city..."</em> • first-byte 54ms · 118 tokens</div>
+          </div>
+          <div class="step-tag"><span class="badge badge-orange">STREAM</span></div>
+        </div>
+        <!-- 8 -->
+        <div class="pipe-step ps-pink" id="ps8">
+          <div class="step-num" style="background:var(--pink)">8</div>
+          <div style="flex:1;min-width:0">
+            <div class="step-title">🧬 Memory Encoding</div>
+            <div class="step-sub">Boilerplate guard → createCoreMemory · Hebbian update · Trace graph</div>
+            <div class="pipe-dialog"><span class="pipe-dlabel">Stored</span>Created <em>episodic_8f3a</em> · linked → dream_0042 · 3 trace edges added</div>
+          </div>
+          <div class="step-tag"><span class="badge badge-pink">STORE</span></div>
+        </div>
+        <!-- 9 -->
+        <div class="pipe-step ps-teal" id="ps9">
+          <div class="step-num" style="background:var(--teal)">9</div>
+          <div style="flex:1;min-width:0">
+            <div class="step-title">📊 Timeline Log + SSE Broadcast</div>
+            <div class="step-sub">timeline-logger · cognitive-bus events · Neural Visualizer update</div>
+            <div class="pipe-dialog"><span class="pipe-dlabel">Emitted</span>TIMELINE_ENTRY logged · <em>1 SSE event → all clients</em> · graph updated</div>
+          </div>
+          <div class="step-tag"><span class="badge" style="background:rgba(45,212,191,0.15);color:var(--teal);border:1px solid rgba(45,212,191,0.35)">BROADCAST</span></div>
+        </div>
+      <div class="rolodex-fade bottom"></div>
+    </div>
+    <!-- footer: progress + replay -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+      <div style="display:flex;gap:5px;align-items:center">
+        <div class="pipe-prog-dot" id="pp1"></div>
+        <div class="pipe-prog-dot" id="pp2"></div>
+        <div class="pipe-prog-dot" id="pp3"></div>
+        <div class="pipe-prog-dot" id="pp4"></div>
+        <div class="pipe-prog-dot" id="pp5"></div>
+        <div class="pipe-prog-dot" id="pp6"></div>
+        <div class="pipe-prog-dot" id="pp7"></div>
+        <div class="pipe-prog-dot" id="pp8"></div>
+        <div class="pipe-prog-dot" id="pp9"></div>
+      </div>
+      <button id="pipe-replay"
+        style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:8px;padding:4px 14px;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.2s"
+        onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'"
+        onclick="animatePipelineSteps()">↺ Replay</button>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 5 · ORCHESTRATOR ──────────────────── -->
+<div class="slide" id="s5" style="padding-bottom:88px">
+  <div class="slide-label">Inner Dialog Engine</div>
+  <div class="slide-title">The Orchestrator Pipeline</div>
+  <div class="slide-sub">1A and 1D run in parallel, 1C reasons with both outputs, then Final Orchestrator voices the response.</div>
+  <div style="width:100%;max-width:940px">
+    <!-- Parallel phase -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:6px">
+      <div class="orch-card" style="border-color:rgba(34,211,238,0.4)">
+        <div class="h" style="color:var(--cyan)">🌊 Subconscious (1A)</div>
+        <div class="items">
+          <div class="orch-item"><span class="oi">🔍</span>Context connections retrieved</div>
+          <div class="orch-item"><span class="oi">🧠</span>Low-level pattern matching</div>
+          <div class="orch-item"><span class="oi">📌</span>Topic + emotion signals</div>
+          <div class="orch-item"><span class="oi">⚗️</span>Neurochemistry input</div>
+        </div>
+      </div>
+      <div class="orch-card" style="border-color:rgba(52,211,153,0.4)">
+        <div class="h" style="color:var(--accent)">💡 Conscious (1C)</div>
+        <div class="items">
+          <div class="orch-item"><span class="oi">🔗</span>Consumes 1A + 1D outputs</div>
+          <div class="orch-item"><span class="oi">📚</span>Belief graph active beliefs</div>
+          <div class="orch-item"><span class="oi">🎯</span>Goal-aware reasoning</div>
+          <div class="orch-item"><span class="oi">👁️</span>Identity + values alignment</div>
+          <div class="orch-item"><span class="oi">🗝️</span>Somatic awareness input</div>
+        </div>
+      </div>
+      <div class="orch-card" style="border-color:rgba(168,85,247,0.4)">
+        <div class="h" style="color:var(--purple)">✨ Dream Intuition (1D)</div>
+        <div class="items">
+          <div class="orch-item"><span class="oi">🌌</span>Dream memory context</div>
+          <div class="orch-item"><span class="oi">🔮</span>Associative leaps</div>
+          <div class="orch-item"><span class="oi">🌀</span>Metaphor + symbolism</div>
+          <div class="orch-item"><span class="oi">🎨</span>Creative lateral signal</div>
+        </div>
+      </div>
+    </div>
+    <!-- Promise.all -->
+    <div style="display:flex;justify-content:center;margin-bottom:6px">
+      <div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.2);border-radius:8px;padding:5px 22px;font-size:11px;font-weight:700;color:var(--accent)">
+        ⟳ Promise.all — runs in parallel simultaneously
+      </div>
+    </div>
+    <!-- Arrows down -->
+    <div style="display:flex;justify-content:center;gap:0;margin-bottom:6px">
+      <svg width="640" height="36" class="flow-svg">
+        <line x1="107" y1="0" x2="320" y2="36" stroke="rgba(52,211,153,0.3)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <line x1="320" y1="0" x2="320" y2="36" stroke="rgba(52,211,153,0.3)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <line x1="533" y1="0" x2="320" y2="36" stroke="rgba(52,211,153,0.3)" stroke-width="1.5" stroke-dasharray="4,3"/>
+      </svg>
+    </div>
+    <!-- Refinement -->
+    <div class="orch-grid" style="grid-template-columns:1fr 36px 1fr 36px 1fr;align-items:center;margin-bottom:6px">
+      <div class="orch-card" style="border-color:rgba(251,191,36,0.4)">
+        <div class="h" style="color:var(--gold)">🔥 Refinement Signal (2B inlined)</div>
+        <div class="items">
+          <div class="orch-item"><span class="oi">🧵</span>No separate LLM pass</div>
+          <div class="orch-item"><span class="oi">⚡</span>Captured as inlined stage marker</div>
+          <div class="budget-bar"></div>
+        </div>
+      </div>
+      <div style="text-align:center;color:var(--text3);font-size:18px">→</div>
+      <div class="orch-card" style="border-color:rgba(251,146,60,0.4)">
+        <div class="h" style="color:var(--orange)">🎙️ Final Orchestrator (O2)</div>
+        <div class="items">
+          <div class="orch-item"><span class="oi">📢</span>Unified entity voice</div>
+          <div class="orch-item"><span class="oi">🛡️</span>Budget &amp; escalation check</div>
+          <div class="orch-item"><span class="oi">✅</span>Response validated</div>
+        </div>
+      </div>
+      <div style="text-align:center;color:var(--text3);font-size:18px">→</div>
+      <div class="orch-card" style="border-color:rgba(34,211,238,0.4)">
+        <div class="h" style="color:var(--cyan)">📊 Diagnostics</div>
+        <div class="items">
+          <div class="orch-item"><span class="oi">⏱️</span>contributors_parallel_ms</div>
+          <div class="orch-item"><span class="oi">⏱️</span>refinement_ms / final_ms</div>
+          <div class="orch-item"><span class="oi">🪙</span>Token usage per phase</div>
+        </div>
+      </div>
+    </div>
+    <!-- Timing row -->
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <span class="badge badge-cyan">Contributors ∥</span>
+      <span class="badge badge-gold">Refinement marker (inlined)</span>
+      <span class="badge badge-orange">Orchestrator O2</span>
+      <span class="badge badge-green">total_ms tracked</span>
+      <span class="badge badge-purple">Token budget enforced</span>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 6 · BRAIN LOOP ──────────────────── -->
+<div class="slide" id="s6">
+  <div class="slide-label">Autonomous Cognitive Pulse</div>
+  <div class="slide-title">Brain Loop — 15 Phases</div>
+  <div class="slide-sub">Every 30 seconds the entity autonomously processes its mental state, regardless of chat activity.</div>
+  <div style="display:flex;align-items:center;gap:40px;max-width:940px">
+    <!-- Ring diagram -->
+    <div class="brain-ring" id="brainRing">
+      <div class="rotating-ring"></div>
+      <div class="brain-center">
+        <div style="font-size:28px">⚙️</div>
+        <div style="font-size:11px;font-weight:800;color:var(--gold)">BRAIN</div>
+        <div style="font-size:9.5px;color:var(--text3)">30s tick</div>
+      </div>
+      <!-- Phase nodes placed by JS -->
+    </div>
+    <!-- Phase list -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:7px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px" id="phaseList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 7 · MEMORY SYSTEM ──────────────────── -->
+<div class="slide" id="s7">
+  <div class="slide-label">Memory Architecture</div>
+  <div class="slide-title">11 Memory Types, One Graph</div>
+  <div class="slide-sub">All memories live on disk as JSON. The trace graph links them by semantic association.</div>
+  <div class="slide-scroll" style="width:100%;max-width:940px;gap:12px">
+    <div class="mem-legend">
+      <div class="mem-type" data-tip="Created during chat turns. Most frequent type."><div class="mem-dot" style="background:#34d399"></div><div><div class="name">Episodic</div><div class="meta">Chat turns · recent events</div></div></div>
+      <div class="mem-type" data-tip="Highest importance. Gold nodes. Drives personality core."><div class="mem-dot" style="background:#fbbf24"></div><div><div class="name">Core Memory</div><div class="meta">Identity-shaping · impulse=1.0</div></div></div>
+      <div class="mem-type" data-tip="Facts, knowledge, concepts learned from conversation."><div class="mem-dot" style="background:#60a5fa"></div><div><div class="name">Semantic</div><div class="meta">Knowledge · facts · concepts</div></div></div>
+      <div class="mem-type" data-tip="Consolidated long-term storage via deep sleep phase."><div class="mem-dot" style="background:#2dd4bf"></div><div><div class="name">Long-Term</div><div class="meta">Consolidated · teal nodes</div></div></div>
+      <div class="mem-type" data-tip="Introspective analysis generated during identity phase."><div class="mem-dot" style="background:#c084fc"></div><div><div class="name">Reflection</div><div class="meta">Self-analysis · tone loops</div></div></div>
+      <div class="mem-type" data-tip="Social interaction metadata."><div class="mem-dot" style="background:#fb7185"></div><div><div class="name">Interaction</div><div class="meta">Social · relational context</div></div></div>
+      <div class="mem-type" data-tip="Skills and knowledge intentionally acquired."><div class="mem-dot" style="background:#22d3ee"></div><div><div class="name">Learning</div><div class="meta">Deliberate acquisition</div></div></div>
+      <div class="mem-type" data-tip="Creative works, ideas, outputs the entity produced."><div class="mem-dot" style="background:#fb923c"></div><div><div class="name">Creation</div><div class="meta">Works · ideas · output</div></div></div>
+      <div class="mem-type" data-tip="Milestones and accomplishments."><div class="mem-dot" style="background:#a3e635"></div><div><div class="name">Achievement</div><div class="meta">Milestones · goals reached</div></div></div>
+      <div class="mem-type" data-tip="Dream content from nightly dream engine cycles."><div class="mem-dot" style="background:#e879f9"></div><div><div class="name">Dream</div><div class="meta">Dream narratives · imagery</div></div></div>
+      <div class="mem-type" data-tip="Compressed conversation transcripts for recall."><div class="mem-dot" style="background:#f472b6"></div><div><div class="name">Chatlog</div><div class="meta">Compressed transcripts</div></div></div>
+    </div>
+    <!-- Lifecycle -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px 20px;width:100%">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);margin-bottom:12px">🔄 Memory Lifecycle</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
+        <div class="flow-node n-green" style="min-width:100px;padding:10px"><div class="icon">💬</div><div class="label">Chat Turn</div></div>
+        <div class="arrow"><div class="arrow-line"></div></div>
+        <div class="flow-node n-cyan" style="min-width:100px;padding:10px"><div class="icon">🧠</div><div class="label">Encoding</div><div class="sublabel">importance · decay · emotion</div></div>
+        <div class="arrow"><div class="arrow-line"></div></div>
+        <div class="flow-node n-indigo" style="min-width:100px;padding:10px"><div class="icon">🕸️</div><div class="label">Trace Graph</div><div class="sublabel">Hebbian links</div></div>
+        <div class="arrow"><div class="arrow-line"></div></div>
+        <div class="flow-node n-purple" style="min-width:100px;padding:10px"><div class="icon">📉</div><div class="label">Decay</div><div class="sublabel">daily tick</div></div>
+        <div class="arrow"><div class="arrow-line"></div></div>
+        <div class="flow-node n-teal" style="min-width:100px;padding:10px"><div class="icon">🔒</div><div class="label">LTM Archive</div><div class="sublabel">deep sleep</div></div>
+        <div class="arrow"><div class="arrow-line"></div></div>
+        <div class="flow-node n-red" style="min-width:100px;padding:10px"><div class="icon">✂️</div><div class="label">Pruning</div><div class="sublabel">weak edges</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 8 · DOCUMENT INGESTION ──────────────────── -->
+<div class="slide" id="s8">
+  <div class="slide-label">Knowledge Ingestion</div>
+  <div class="slide-title">Document Processing Pipeline</div>
+  <div class="slide-sub">Paste any document — it's chunked, semantically embedded, and woven into the entity's long-term memory.</div>
+  <div style="max-width:920px;width:100%">
+    <!-- Flow -->
+    <div class="doc-flow" style="margin-bottom:20px">
+      <div class="doc-stage" style="border-color:rgba(34,211,238,0.4)">
+        <div class="di">📄</div>
+        <div class="dn" style="color:var(--cyan)">Input</div>
+        <div class="ds">Raw text paste<br>Document UI</div>
+      </div>
+      <svg width="30" height="40" style="flex-shrink:0"><path d="M2,20 L28,20" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr)"/><defs><marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs></svg>
+      <div class="doc-stage" style="border-color:rgba(52,211,153,0.4)">
+        <div class="di">✂️</div>
+        <div class="dn" style="color:var(--accent)">Chunking</div>
+        <div class="ds">Split into<br>paragraph chunks</div>
+      </div>
+      <svg width="30" height="40" style="flex-shrink:0"><path d="M2,20 L28,20" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr2)"/><defs><marker id="arr2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs></svg>
+      <div class="doc-stage" style="border-color:rgba(129,140,248,0.4)">
+        <div class="di">🔬</div>
+        <div class="dn" style="color:var(--indigo)">POST /api/document/ingest</div>
+        <div class="ds">Content validated<br>min 10 chars</div>
+      </div>
+      <svg width="30" height="40" style="flex-shrink:0"><path d="M2,20 L28,20" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr3)"/><defs><marker id="arr3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs></svg>
+      <div class="doc-stage" style="border-color:rgba(45,212,191,0.4)">
+        <div class="di">💡</div>
+        <div class="dn" style="color:var(--teal)">LLM Summarise</div>
+        <div class="ds">Conscious LTM<br>semantic summary</div>
+      </div>
+      <svg width="30" height="40" style="flex-shrink:0"><path d="M2,20 L28,20" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr4)"/><defs><marker id="arr4" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs></svg>
+      <div class="doc-stage" style="border-color:rgba(251,191,36,0.4)">
+        <div class="di">🧬</div>
+        <div class="dn" style="color:var(--gold)">Memory Creation</div>
+        <div class="ds">doc_* ID<br>importance:1 decay:1</div>
+      </div>
+      <svg width="30" height="40" style="flex-shrink:0"><path d="M2,20 L28,20" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr5)"/><defs><marker id="arr5" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs></svg>
+      <div class="doc-stage" style="border-color:rgba(168,85,247,0.4)">
+        <div class="di">🕸️</div>
+        <div class="dn" style="color:var(--purple)">Trace Links</div>
+        <div class="ds">Sequential chunk<br>links created</div>
+      </div>
+    </div>
+    <!-- Details -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%">
+      <div style="background:var(--bg2);border:1px solid rgba(34,211,238,0.25);border-radius:12px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:8px">🔤 IDs</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6">
+          Chunks stored with <code style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:10px">doc_&lt;hash&gt;</code> prefix. Excluded from subconscious context to prevent noise flooding (E1). Excluded from chatlog recall ltmFolders scan (E2).
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(45,212,191,0.25);border-radius:12px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:8px">🗜️ Compression</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6">
+          Each chunk is V4-compressed (zlib) on disk. Reconstruct via <code style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:10px">getChatlogContent()</code>. Memory schema v1 normalization is applied on write.
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(251,191,36,0.25);border-radius:12px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px">📡 Recall</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6">
+          Stored for reconstruction and long-term knowledge. `doc_*` chunks are intentionally excluded from subconscious live-turn context to prevent retrieval noise. Preview endpoint: <code style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:10px">/api/memory/preview</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 9 · DREAM ENGINE ──────────────────── -->
+<div class="slide" id="s9">
+  <div class="slide-label">Dream &amp; Imagination System</div>
+  <div class="slide-title">Dream Engine + Pixel Visualizer</div>
+  <div class="slide-sub">Every N brain-loop cycles the entity dreams — generating narrative memory and optionally animated GIF imagery.</div>
+  <div style="max-width:940px;width:100%">
+    <div class="dream-flow" style="margin-bottom:20px">
+      <div class="dream-stage">
+        <div class="di">🌱</div>
+        <div class="dn">Seed Pool</div>
+        <div class="ds">Recent memories<br>selected as dream seeds</div>
+      </div>
+      <svg width="28" height="40"><path d="M2,20 L26,20" stroke="var(--purple)" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#parr)"/><defs><marker id="parr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--purple)"/></marker></defs></svg>
+      <div class="dream-stage">
+        <div class="di">🔍</div>
+        <div class="dn">Candidate Selection</div>
+        <div class="ds">Buckets by type:<br>emotional / recent / core</div>
+      </div>
+      <svg width="28" height="40"><path d="M2,20 L26,20" stroke="var(--purple)" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#parr2)"/><defs><marker id="parr2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--purple)"/></marker></defs></svg>
+      <div class="dream-stage">
+        <div class="di">🎭</div>
+        <div class="dn">LLM Dream Gen</div>
+        <div class="ds">Narrative dream<br>story from seeds</div>
+      </div>
+      <svg width="28" height="40"><path d="M2,20 L26,20" stroke="var(--purple)" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#parr3)"/><defs><marker id="parr3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--purple)"/></marker></defs></svg>
+      <div class="dream-stage">
+        <div class="di">💾</div>
+        <div class="dn">Dream Memory</div>
+        <div class="ds">dream / dream_memory<br>type stored</div>
+      </div>
+      <svg width="28" height="40"><path d="M2,20 L26,20" stroke="var(--purple)" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#parr4)"/><defs><marker id="parr4" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--purple)"/></marker></defs></svg>
+      <div class="dream-stage">
+        <div class="di">🔗</div>
+        <div class="dn">Dream Links</div>
+        <div class="ds">Source memories<br>linked to dream</div>
+      </div>
+      <svg width="28" height="40"><path d="M2,20 L26,20" stroke="var(--purple)" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#parr5)"/><defs><marker id="parr5" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--purple)"/></marker></defs></svg>
+      <div class="dream-stage" style="border-color:rgba(244,114,182,0.4)">
+        <div class="di">🖼️</div>
+        <div class="dn" style="color:var(--pink)">Image Generation</div>
+        <div class="ds">Pixel art GIF<br>or external API</div>
+      </div>
+    </div>
+    <!-- Image gen modes -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <div style="background:linear-gradient(135deg,rgba(168,85,247,0.1),var(--bg2));border:1px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px">
+        <div style="font-size:20px;margin-bottom:6px">🎨</div>
+        <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:4px">Mode: pixel</div>
+        <div style="font-size:11px;color:var(--text2)">Built-in NekoPixelPro engine. 64×64 grid, animated GIF output. No external deps.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(244,114,182,0.1),var(--bg2));border:1px solid rgba(244,114,182,0.3);border-radius:12px;padding:14px">
+        <div style="font-size:20px;margin-bottom:6px">🌐</div>
+        <div style="font-size:12px;font-weight:700;color:var(--pink);margin-bottom:4px">Mode: api</div>
+        <div style="font-size:11px;color:var(--text2)">External image API (DALL-E compatible). Configured via imageApiEndpoint + imageApiKey.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(113,113,122,0.08),var(--bg2));border:1px solid var(--border);border-radius:12px;padding:14px">
+        <div style="font-size:20px;margin-bottom:6px">⚡</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Mode: off (default)</div>
+        <div style="font-size:11px;color:var(--text2)">Dreams still generate narrative + memory. Image step simply skipped. Lightest mode.</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <span class="badge badge-purple">Every N cycles (default 5)</span>
+      <span class="badge badge-pink">DreamSeedPool gates quality</span>
+      <span class="badge" style="background:rgba(168,85,247,0.1);color:var(--purple);border:1px solid rgba(168,85,247,0.3)">Deep Sleep triggers consolidation</span>
+      <span class="badge badge-green">Dream Intuition feeds chat pipeline</span>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 10 · BELIEF + NEURO ──────────────────── -->
+<div class="slide" id="s10">
+  <div class="slide-label">Higher-Order Cognition</div>
+  <div class="slide-title">Beliefs · Neurochemistry · Somatic</div>
+  <div class="slide-sub">Three systems that give the entity personality, mood, and a body-sense.</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:940px;width:100%">
+    <!-- Belief Graph -->
+    <div style="background:linear-gradient(135deg,rgba(168,85,247,0.08),var(--bg2));border:1px solid rgba(168,85,247,0.3);border-radius:16px;padding:18px">
+      <div style="font-size:28px;margin-bottom:8px">🔮</div>
+      <div style="font-size:15px;font-weight:800;color:var(--purple);margin-bottom:6px">Belief Graph</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:10px">
+        Persistent knowledge-graph of first-person beliefs. Each node has a <em>confidence</em> score (0–1), source memories, and typed relations: supports / contradicts / related.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="orch-item" style="font-size:11px"><span class="oi">📈</span>BELIEF_REINFORCED on recall</div>
+        <div class="orch-item" style="font-size:11px"><span class="oi">📉</span>BELIEF_CONTRADICTED on conflict</div>
+        <div class="orch-item" style="font-size:11px"><span class="oi">✨</span>BELIEF_EMERGENCE on consensus</div>
+        <div class="orch-item" style="font-size:11px"><span class="oi">✂️</span>BELIEF_PRUNED on low confidence</div>
+      </div>
+    </div>
+    <!-- Neurochemistry -->
+    <div style="background:linear-gradient(135deg,rgba(244,114,182,0.08),var(--bg2));border:1px solid rgba(244,114,182,0.3);border-radius:16px;padding:18px">
+      <div style="font-size:28px;margin-bottom:8px">🧪</div>
+      <div style="font-size:15px;font-weight:800;color:var(--pink);margin-bottom:6px">Neurochemistry</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:10px">
+        4-axis neurotransmitter model. Updated every brain-loop tick. Drives homeostatic directives that gate dream content, response tone, and goal selection.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:18px">💛</div>
+          <div style="font-size:11px;font-weight:700;color:#ffd700">Dopamine</div>
+          <div style="font-size:10px;color:var(--text3)">reward · drive</div>
+        </div>
+        <div style="background:rgba(255,102,102,0.08);border:1px solid rgba(255,102,102,0.2);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:18px">❤️</div>
+          <div style="font-size:11px;font-weight:700;color:#ff6666">Cortisol</div>
+          <div style="font-size:10px;color:var(--text3)">stress · alert</div>
+        </div>
+        <div style="background:rgba(0,255,153,0.08);border:1px solid rgba(0,255,153,0.2);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:18px">💚</div>
+          <div style="font-size:11px;font-weight:700;color:#00ff99">Serotonin</div>
+          <div style="font-size:10px;color:var(--text3)">mood · calm</div>
+        </div>
+        <div style="background:rgba(255,105,180,0.08);border:1px solid rgba(255,105,180,0.2);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:18px">🩷</div>
+          <div style="font-size:11px;font-weight:700;color:#ff69b4">Oxytocin</div>
+          <div style="font-size:10px;color:var(--text3)">bond · trust</div>
+        </div>
+      </div>
+    </div>
+    <!-- Somatic & Attention -->
+    <div style="background:linear-gradient(135deg,rgba(34,211,238,0.06),var(--bg2));border:1px solid rgba(34,211,238,0.3);border-radius:16px;padding:18px">
+      <div style="font-size:28px;margin-bottom:8px">🫀</div>
+      <div style="font-size:15px;font-weight:800;color:var(--cyan);margin-bottom:6px">Somatic + Attention</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:10px">
+        Somatic awareness models physical states (energy, tension, hunger). Attention system routes focus across topics. Boredom engine triggers curiosity when stagnant.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="orch-item" style="font-size:11px"><span class="oi">🫀</span>SomaticAwareness — body-sense</div>
+        <div class="orch-item" style="font-size:11px"><span class="oi">👁️</span>AttentionSystem — focus routing</div>
+        <div class="orch-item" style="font-size:11px"><span class="oi">😴</span>BoredomEngine — curiosity trigger</div>
+        <div class="orch-item" style="font-size:11px"><span class="oi">🏃</span>CuriosityEngine — question gen</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 11 · NEURAL VISUALIZER ──────────────────── -->
+<div class="slide" id="s11">
+  <div class="slide-label">Neural Visualizer</div>
+  <div class="slide-title">Real-Time 3D Memory Graph</div>
+  <div class="slide-sub">A live Three.js powered view of the entity's mind — playback, live tracing, and node inspection.</div>
+  <div style="display:flex;gap:18px;max-width:940px;width:100%;align-items:flex-start">
+    <!-- Mock 3D canvas -->
+    <div style="flex:0 0 340px;background:var(--bg1);border:1px solid rgba(52,211,153,0.2);border-radius:16px;overflow:hidden;position:relative;height:280px">
+      <canvas id="mockViz" width="340" height="280" style="display:block"></canvas>
+      <div style="position:absolute;bottom:10px;left:10px;font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace">Three.js · OrbitControls · WebGL</div>
+      <div style="position:absolute;top:10px;right:10px;background:rgba(8,13,24,0.85);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:10px;width:130px">
+        <div style="color:var(--gold);font-weight:700;margin-bottom:5px">★ core_memory</div>
+        <div style="color:var(--accent);margin-bottom:3px">● episodic</div>
+        <div style="color:#60a5fa;margin-bottom:3px">◆ semantic</div>
+        <div style="color:#a855f7;margin-bottom:3px">◇ belief</div>
+        <div style="color:var(--pink)">◦ dream</div>
+      </div>
+    </div>
+    <!-- Feature panels -->
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="viz-panel" style="border-color:rgba(34,211,238,0.25)">
+        <div class="vph" style="color:var(--cyan)">📺 Timeline Playback</div>
+        <div class="viz-item"><div class="vi">🎬</div>Nodes hidden until their creation event</div>
+        <div class="viz-item"><div class="vi">🌱</div>Spring birth animation per node</div>
+        <div class="viz-item"><div class="vi">⏯️</div>Play/Pause/Step/Speed controls</div>
+        <div class="viz-item"><div class="vi">⌨️</div>Spacebar toggles play/pause</div>
+      </div>
+      <div class="viz-panel" style="border-color:rgba(129,140,248,0.25)">
+        <div class="vph" style="color:var(--indigo)">📡 Live SSE Mode</div>
+        <div class="viz-item"><div class="vi">🔴</div>Real-time event queue (500ms gap)</div>
+        <div class="viz-item"><div class="vi">✨</div>Slow trace pulses (2s per hop)</div>
+        <div class="viz-item"><div class="vi">⏸️</div>Click a node → auto-pause</div>
+        <div class="viz-item"><div class="vi">🔗</div>Edge lights up as path traces</div>
+      </div>
+      <div class="viz-panel" style="border-color:rgba(251,191,36,0.25)">
+        <div class="vph" style="color:var(--gold)">🔎 Node Detail Popup</div>
+        <div class="viz-item"><div class="vi">📊</div>Importance · Activation · Emotion bars</div>
+        <div class="viz-item"><div class="vi">🏷️</div>Topic tags + type badge</div>
+        <div class="viz-item"><div class="vi">📝</div>LLM-fetched semantic summary</div>
+        <div class="viz-item"><div class="vi">🕸️</div>Connection count</div>
+      </div>
+      <div class="viz-panel" style="border-color:rgba(52,211,153,0.25)">
+        <div class="vph" style="color:var(--accent)">🧪 Neurochemistry Overlay</div>
+        <div class="viz-item"><div class="vi">📊</div>4-bar live neuro display</div>
+        <div class="viz-item"><div class="vi">🔮</div>Belief graph overlay layer</div>
+        <div class="viz-item"><div class="vi">🧠</div>Full Mind / filter / node limit</div>
+        <div class="viz-item"><div class="vi">🪟</div>Pop-out to separate window</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 12 · API SURFACE ──────────────────── -->
+<div class="slide" id="s12">
+  <div class="slide-label">API Surface</div>
+  <div class="slide-title">Routes &amp; SSE Streams</div>
+  <div class="slide-sub">Ten route modules, one SSE hub, real-time timeline logging.</div>
+  <div class="api-grid">
+    <div class="api-card" style="border-color:rgba(52,211,153,0.3)"><div class="ai">💬</div><div class="an" style="color:var(--accent)">Chat Routes</div><div class="ar">/api/chat · /api/shutdown</div><div style="font-size:11px;color:var(--text2);margin-top:6px">Chat orchestration, response contract, graceful shutdown trigger</div></div>
+    <div class="api-card" style="border-color:rgba(34,211,238,0.3)"><div class="ai">👤</div><div class="an" style="color:var(--cyan)">Entity Routes</div><div class="ar">/api/entities · /api/entities/load</div><div style="font-size:11px;color:var(--text2);margin-top:6px">Create, delete, switch active entity, visibility, checkout-aware listing</div></div>
+    <div class="api-card" style="border-color:rgba(129,140,248,0.3)"><div class="ai">🧬</div><div class="an" style="color:var(--indigo)">Memory Routes</div><div class="ar">/api/memories · /api/memory/summary</div><div style="font-size:11px;color:var(--text2);margin-top:6px">CRUD · search · preview · decay trigger</div></div>
+    <div class="api-card" style="border-color:rgba(168,85,247,0.3)"><div class="ai">🔮</div><div class="an" style="color:var(--purple)">Brain Routes</div><div class="ar">/api/brain/status · /api/brain/events</div><div style="font-size:11px;color:var(--text2);margin-top:6px">Brain loop control, SSE event stream, health</div></div>
+    <div class="api-card" style="border-color:rgba(251,191,36,0.3)"><div class="ai">📄</div><div class="an" style="color:var(--gold)">Document Routes</div><div class="ar">/api/document/ingest</div><div style="font-size:11px;color:var(--text2);margin-top:6px">Document chunk ingestion into LTM</div></div>
+    <div class="api-card" style="border-color:rgba(45,212,191,0.3)"><div class="ai">🔗</div><div class="an" style="color:var(--teal)">Cognitive Routes</div><div class="ar">/api/belief-graph · /api/traces</div><div style="font-size:11px;color:var(--text2);margin-top:6px">Belief CRUD, trace graph, memory graph</div></div>
+    <div class="api-card" style="border-color:rgba(251,146,60,0.3)"><div class="ai">🛠️</div><div class="an" style="color:var(--orange)">Skills Routes</div><div class="ar">/api/skills · /api/skills/create</div><div style="font-size:11px;color:var(--text2);margin-top:6px">List, install, create, quarantine, workspace, and web-search skill routes</div></div>
+    <div class="api-card" style="border-color:rgba(244,114,182,0.3)"><div class="ai">📡</div><div class="an" style="color:var(--pink)">SSE Routes</div><div class="ar">/api/brain/events · /api/timeline/stream</div><div style="font-size:11px;color:var(--text2);margin-top:6px">Live cognitive stream plus timeline event streaming</div></div>
+    <div class="api-card" style="border-color:rgba(161,161,170,0.3)"><div class="ai">⚙️</div><div class="an" style="color:var(--text2)">Config Routes</div><div class="ar">/api/config · /api/neurochemistry</div><div style="font-size:11px;color:var(--text2);margin-top:6px">Runtime config read/write, neuro state</div></div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 13 · TECH STACK ──────────────────── -->
+<div class="slide" id="s13">
+  <div class="slide-label">Technical Foundation</div>
+  <div class="slide-title">Technology Stack</div>
+  <div class="slide-sub">Zero heavy frameworks — raw Node.js with purpose-built modules.</div>
+  <div class="stack-row" style="margin-bottom:16px">
+    <div class="stack-item" style="border-color:rgba(52,211,153,0.35)"><div class="si">🟢</div><div class="sn" style="color:var(--accent)">Node.js</div><div class="sv">18+ LTS</div></div>
+    <div class="stack-item" style="border-color:rgba(34,211,238,0.35)"><div class="si">🌐</div><div class="sn" style="color:var(--cyan)">HTTP/SSE</div><div class="sv">Raw http module</div></div>
+    <div class="stack-item" style="border-color:rgba(129,140,248,0.35)"><div class="si">🔵</div><div class="sn" style="color:var(--indigo)">Three.js</div><div class="sv">r128 · 3D Viz</div></div>
+    <div class="stack-item" style="border-color:rgba(251,191,36,0.35)"><div class="si">📁</div><div class="sn" style="color:var(--gold)">File-System DB</div><div class="sv">JSON · zlib v4</div></div>
+    <div class="stack-item" style="border-color:rgba(168,85,247,0.35)"><div class="si">🧪</div><div class="sn" style="color:var(--purple)">node:test</div><div class="sv">318 tests · 0 fail</div></div>
+    <div class="stack-item" style="border-color:rgba(244,114,182,0.35)"><div class="si">🎨</div><div class="sn" style="color:var(--pink)">napi-rs/canvas</div><div class="sv">GIF generation</div></div>
+    <div class="stack-item" style="border-color:rgba(45,212,191,0.35)"><div class="si">🔗</div><div class="sn" style="color:var(--teal)">OpenRouter</div><div class="sv">Multi-model LLM</div></div>
+    <div class="stack-item" style="border-color:rgba(251,146,60,0.35)"><div class="si">📦</div><div class="sn" style="color:var(--orange)">Outfit · JBMono</div><div class="sv">UI typography</div></div>
+  </div>
+  <!-- Architecture principles -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px 22px;max-width:860px;width:100%">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);margin-bottom:12px">🏗️ Architecture Principles</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div style="font-size:11.5px;color:var(--text2)"><strong style="color:var(--accent)">Contract-First</strong><br>Memory schema v1 · contributor contracts · response contracts enforced on every turn.</div>
+      <div style="font-size:11.5px;color:var(--text2)"><strong style="color:var(--cyan)">Event-Driven</strong><br>CognitiveBus broadcasts all thoughts. SSE streams them to the visualizer in real-time.</div>
+      <div style="font-size:11.5px;color:var(--text2)"><strong style="color:var(--purple)">Phase Isolation</strong><br>Brain loop uses per-phase try/catch + health counters + circuit-breaker. No phase can crash the loop.</div>
+      <div style="font-size:11.5px;color:var(--text2)"><strong style="color:var(--gold)">File-First Persistence</strong><br>Everything is plain JSON on disk. No database dependency. Portable, inspectable, diff-able.</div>
+      <div style="font-size:11.5px;color:var(--text2)"><strong style="color:var(--pink)">Multi-Model LLM Routing</strong><br>ModelRouter selects different models for different phases. Budget guard prevents runaway token usage.</div>
+      <div style="font-size:11.5px;color:var(--text2)"><strong style="color:var(--teal)">Pluggable Skills</strong><br>Skills are drop-in folders. Trigger-based activation via /skill and on-demand /tool docs loading.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── SLIDE 14 · END ──────────────────── -->
+<div class="slide" id="s14">
+  <div class="cover-logo" style="animation:breathe 4s ease-in-out infinite">◇</div>
+  <div class="slide-label">v 0.6.0 · March 2026</div>
+  <div class="slide-title">NekoCore</div>
+  <div style="font-size:16px;color:var(--text2);text-align:center;max-width:560px;line-height:1.7;margin-bottom:20px">
+    A living AI architecture — where memory decays, dreams generate imagery, beliefs form and contradict, and the entity never truly sleeps.
+  </div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:24px">
+    <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.28);border-radius:10px;padding:10px 18px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--accent)">318</div>
+      <div style="font-size:11px;color:var(--text2)">Tests passing</div>
+    </div>
+    <div style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.28);border-radius:10px;padding:10px 18px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--purple)">15</div>
+      <div style="font-size:11px;color:var(--text2)">Brain phases / tick</div>
+    </div>
+    <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.28);border-radius:10px;padding:10px 18px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--gold)">11</div>
+      <div style="font-size:11px;color:var(--text2)">Memory types</div>
+    </div>
+    <div style="background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.28);border-radius:10px;padding:10px 18px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--cyan)">9</div>
+      <div style="font-size:11px;color:var(--text2)">API route modules</div>
+    </div>
+    <div style="background:rgba(244,114,182,0.08);border:1px solid rgba(244,114,182,0.28);border-radius:10px;padding:10px 18px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--pink)">4</div>
+      <div style="font-size:11px;color:var(--text2)">Neurotransmitters</div>
+    </div>
+    <div style="background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.28);border-radius:10px;padding:10px 18px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--orange)">3</div>
+      <div style="font-size:11px;color:var(--text2)">Parallel contributors</div>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--text3)">🧠 Recursive Echo Memory System · Open Source · Node.js 18+</div>
+</div>
+
+</div><!-- /deck -->
+
+<!-- ─── NAVIGATION ─── -->
+<div id="nav">
+  <button id="nav-prev">←</button>
+  <div id="nav-ticker">
+    <div class="tick-slot" id="tick-p"></div>
+    <div class="tick-slot tick-now" id="tick-c">1</div>
+    <div class="tick-slot" id="tick-n">2</div>
+  </div>
+  <button id="nav-next">→</button>
+  <span id="slide-counter">1 / 14</span>
+</div>
+<div id="kbd-hint">← → Space</div>
+
+<script>
+/* ════════════════════════════════════════════════
+   GLOBAL JS
+════════════════════════════════════════════════ */
+const TOTAL = 14;
+let current = 1;
+let prev = null;
+
+// ─── SLIDE TRANSITION ───
+function goTo(n) {
+  n = Math.max(1, Math.min(TOTAL, n));
+  if (n === current) return;
+
+  const cur = document.getElementById('s' + current);
+  const nxt = document.getElementById('s' + n);
+  if (!cur || !nxt) return;
+
+  cur.classList.remove('active');
+  cur.classList.add('prev');
+  setTimeout(() => cur.classList.remove('prev'), 700);
+  nxt.classList.add('active');
+
+  prev = current;
+  current = n;
+  updateNav();
+  if (window._starBurst) window._starBurst();
+  onSlideEnter(n);
+}
+
+function updateNav() {
+  const tp = document.getElementById('tick-p');
+  const tc = document.getElementById('tick-c');
+  const tn = document.getElementById('tick-n');
+  if (!tp || !tc || !tn) return;
+  tp.textContent = current > 1     ? current - 1 : '';
+  tn.textContent = current < TOTAL ? current + 1 : '';
+  tc.textContent = current;
+  // Re-trigger pop animation on current indicator
+  tc.classList.remove('tick-now');
+  void tc.offsetWidth;
+  tc.classList.add('tick-now');
+  document.getElementById('slide-counter').textContent = current + ' / ' + TOTAL;
+}
+
+// ─── NAV WIRING ───
+document.getElementById('nav-prev').onclick = () => goTo(current - 1);
+document.getElementById('nav-next').onclick = () => goTo(current + 1);
+document.getElementById('tick-p').onclick    = () => { if (current > 1)     goTo(current - 1); };
+document.getElementById('tick-n').onclick    = () => { if (current < TOTAL) goTo(current + 1); };
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'Space') { e.preventDefault(); goTo(current + 1); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); goTo(current - 1); }
+  if (e.key === 'Home') goTo(1);
+  if (e.key === 'End')  goTo(TOTAL);
+});
+
+// ─── STAR FIELD v2 — drift · constellations · comet ───
+(function() {
+  const canvas = document.getElementById('stars');
+  const ctx    = canvas.getContext('2d');
+  let W, H, stars = [], cStars = [], cEdges = [], comet = null;
+  let speedMult = 1.0;
+
+  // Real constellation patterns as fractional screen coords [x, y]
+  const CDEFS = [
+    // Ursa Major — Big Dipper
+    { pts:[[0.07,0.14],[0.12,0.11],[0.17,0.10],[0.22,0.12],[0.25,0.18],[0.29,0.23],[0.34,0.19]],
+      edges:[[0,1],[1,2],[2,3],[3,0],[3,4],[4,5],[5,6]] },
+    // Orion
+    { pts:[[0.70,0.27],[0.76,0.32],[0.72,0.40],[0.730,0.405],[0.740,0.40],[0.68,0.50],[0.78,0.48],[0.72,0.23]],
+      edges:[[0,2],[1,2],[2,3],[3,4],[4,5],[4,6],[7,0],[7,1]] },
+    // Cassiopeia — W shape
+    { pts:[[0.44,0.07],[0.49,0.12],[0.54,0.08],[0.59,0.13],[0.64,0.09]],
+      edges:[[0,1],[1,2],[2,3],[3,4]] },
+    // Southern Cross
+    { pts:[[0.86,0.62],[0.86,0.74],[0.80,0.68],[0.92,0.68]],
+      edges:[[0,1],[2,3]] },
+    // Leo — sickle
+    { pts:[[0.38,0.53],[0.41,0.46],[0.45,0.43],[0.49,0.45],[0.52,0.51],[0.57,0.59],[0.45,0.60]],
+      edges:[[0,1],[1,2],[2,3],[3,4],[4,5],[4,6],[6,0]] },
+    // Scorpius
+    { pts:[[0.60,0.68],[0.63,0.63],[0.66,0.60],[0.70,0.62],[0.73,0.67],[0.76,0.72],[0.78,0.78],[0.75,0.84],[0.71,0.83]],
+      edges:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]] },
+  ];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function mkComet() {
+    const side = Math.floor(Math.random() * 4);
+    let x, y;
+    if      (side === 0) { x = Math.random() * W; y = -40; }
+    else if (side === 1) { x = W + 40;  y = Math.random() * H; }
+    else if (side === 2) { x = Math.random() * W; y = H + 40; }
+    else                 { x = -40;     y = Math.random() * H; }
+    const tx = W * 0.2 + Math.random() * W * 0.6;
+    const ty = H * 0.2 + Math.random() * H * 0.6;
+    const d  = Math.hypot(tx - x, ty - y) || 1;
+    const sp = 0.18 + Math.random() * 0.13;
+    comet = { x, y, vx:(tx-x)/d*sp, vy:(ty-y)/d*sp,
+              tailLen: 68 + Math.random() * 52, r: 2.4, alive: true };
+  }
+
+  function init() {
+    // Field stars — slow random drift
+    stars = [];
+    for (let i = 0; i < 230; i++) {
+      const vx = (Math.random()-0.5)*0.028, vy = (Math.random()-0.5)*0.016;
+      stars.push({ x:Math.random()*W, y:Math.random()*H,
+                   r:Math.random()*1.1+0.15, a:Math.random()*0.65+0.12,
+                   da:(Math.random()-0.5)*0.0038, vx, vy });
+    }
+    // Constellation stars — much slower drift (deep background parallax)
+    cStars = []; cEdges = [];
+    for (const def of CDEFS) {
+      const base = cStars.length;
+      for (const [fx, fy] of def.pts) {
+        cStars.push({ x:fx*W, y:fy*H, fx, fy,
+                      r:Math.random()*0.65+1.9, a:0.55+Math.random()*0.35,
+                      da:(Math.random()-0.5)*0.0018,
+                      vx:(Math.random()-0.5)*0.006,
+                      vy:(Math.random()-0.5)*0.004 });
+      }
+      for (const [i, j] of def.edges) cEdges.push([base+i, base+j]);
+    }
+    if (!comet) mkComet();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    // Speed burst decays back to 1× each frame
+    speedMult = Math.max(1.0, speedMult * 0.952);
+    const sm = speedMult;
+
+    // ── Background field stars ──
+    for (const s of stars) {
+      s.a += s.da;
+      if (s.a < 0.08 || s.a > 0.88) s.da *= -1;
+      s.x += s.vx * sm;  s.y += s.vy * sm;
+      if (s.x < -4) s.x = W+3; else if (s.x > W+4) s.x = -3;
+      if (s.y < -4) s.y = H+3; else if (s.y > H+4) s.y = -3;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(200,215,255,${s.a})`;
+      ctx.fill();
+    }
+
+    // ── Constellation connecting lines (very faint) ──
+    for (const [i, j] of cEdges) {
+      const a = cStars[i], b = cStars[j];
+      const alpha = Math.min(a.a, b.a) * 0.20;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = `rgba(175,210,255,${alpha})`;
+      ctx.lineWidth = 0.65;
+      ctx.stroke();
+    }
+
+    // ── Constellation stars — bigger & brighter than field stars ──
+    for (const s of cStars) {
+      s.a += s.da;
+      if (s.a < 0.28 || s.a > 0.96) s.da *= -1;
+      s.x += s.vx * sm * 0.11;  s.y += s.vy * sm * 0.11;
+      if (s.x < -20) s.x = W+19; else if (s.x > W+20) s.x = -19;
+      if (s.y < -20) s.y = H+19; else if (s.y > H+20) s.y = -19;
+      // Soft glow halo
+      const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r*3.8);
+      g.addColorStop(0, `rgba(210,228,255,${s.a*0.50})`);
+      g.addColorStop(1, 'rgba(210,228,255,0)');
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r*3.8, 0, Math.PI*2);
+      ctx.fillStyle = g; ctx.fill();
+      // Core bright dot
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(240,248,255,${s.a})`; ctx.fill();
+    }
+
+    // ── Comet ──
+    if (comet && comet.alive) {
+      comet.x += comet.vx * sm;
+      comet.y += comet.vy * sm;
+      const sp = Math.hypot(comet.vx, comet.vy) || 0.001;
+      const nx = comet.vx / sp, ny = comet.vy / sp;
+      const tl = comet.tailLen * Math.min(sm * 0.65 + 0.35, 2.8);
+      const tx = comet.x - nx * tl, ty = comet.y - ny * tl;
+      const grad = ctx.createLinearGradient(comet.x, comet.y, tx, ty);
+      grad.addColorStop(0,    'rgba(255,255,248,0.93)');
+      grad.addColorStop(0.25, 'rgba(200,228,255,0.42)');
+      grad.addColorStop(1,    'rgba(120,170,255,0)');
+      ctx.beginPath(); ctx.moveTo(comet.x, comet.y); ctx.lineTo(tx, ty);
+      ctx.strokeStyle = grad; ctx.lineWidth = 1.8; ctx.stroke();
+      // Glow halo around head
+      const cg = ctx.createRadialGradient(comet.x, comet.y, 0, comet.x, comet.y, 11);
+      cg.addColorStop(0, 'rgba(195,228,255,0.52)');
+      cg.addColorStop(1, 'rgba(195,228,255,0)');
+      ctx.beginPath(); ctx.arc(comet.x, comet.y, 11, 0, Math.PI*2);
+      ctx.fillStyle = cg; ctx.fill();
+      // Bright head
+      ctx.beginPath(); ctx.arc(comet.x, comet.y, comet.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,252,0.97)'; ctx.fill();
+      // Off-screen → schedule next comet
+      if (comet.x < -120 || comet.x > W+120 || comet.y < -120 || comet.y > H+120) {
+        comet.alive = false;
+        setTimeout(mkComet, 9000 + Math.random()*18000);
+      }
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  // Called by goTo() on every slide change
+  window._starBurst = () => { speedMult = 5.2; };
+
+  window.addEventListener('resize', () => { resize(); init(); });
+  resize(); init(); draw();
+})();
+
+// ─── TOOLTIP ───
+const TIP = document.getElementById('tip');
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest('[data-tip]');
+  if (!el) { TIP.classList.remove('show'); return; }
+  TIP.textContent = el.getAttribute('data-tip');
+  TIP.classList.add('show');
+});
+document.addEventListener('mousemove', e => {
+  TIP.style.left = (e.clientX + 14) + 'px';
+  TIP.style.top  = (e.clientY + 14) + 'px';
+});
+document.addEventListener('mouseout', e => {
+  if (!e.target.closest('[data-tip]')) TIP.classList.remove('show');
+});
+
+// ─── BRAIN LOOP RING (Slide 6) ───
+const PHASES = [
+  { icon:'🗃️', name:'Archive',        color:'#34d399', desc:'Move stale episodes → LTM disk' },
+  { icon:'📉', name:'Decay',          color:'#f87171', desc:'Tick activation weights down' },
+  { icon:'🎯', name:'Goals',          color:'#fbbf24', desc:'Generate / refresh entity goals' },
+  { icon:'🌙', name:'Dreams',         color:'#a855f7', desc:'Narrative + pixel-art GIF every N cycles' },
+  { icon:'🕸️', name:'Traces',        color:'#818cf8', desc:'Rebuild semantic co-activation graph' },
+  { icon:'🪞', name:'Identity',       color:'#22d3ee', desc:'Reflection memory, drift detection' },
+  { icon:'🔮', name:'Beliefs',        color:'#c084fc', desc:'Update belief graph, prune conflicts' },
+  { icon:'💤', name:'Deep Sleep',     color:'#60a5fa', desc:'Heavy consolidation every 150 cycles' },
+  { icon:'🧪', name:'Neurochemistry', color:'#f472b6', desc:'Balance dopamine / serotonin / cortisol' },
+  { icon:'🫀', name:'Somatic',        color:'#fb923c', desc:'Update energy, tension, body-sense' },
+  { icon:'🔗', name:'Hebbian',        color:'#2dd4bf', desc:'Strengthen co-activated memory pairs' },
+  { icon:'✂️', name:'Pruning',       color:'#f87171', desc:'Remove trace edges below weight threshold' },
+  { icon:'🔒', name:'Consolidation',  color:'#34d399', desc:'Compress high-importance STM → semantic' },
+  { icon:'😴', name:'Boredom',        color:'#a3e635', desc:'Curiosity engine fires if stagnant' },
+  { icon:'🧠', name:'ConscSTM',       color:'#22d3ee', desc:'Re-rank short-term context window' },
+];
+
+function buildBrainRing() {
+  const ring = document.getElementById('brainRing');
+  const list = document.getElementById('phaseList');
+  if (!ring || !list) return;
+  // Prevent duplication on re-entry (slide revisit)
+  [...ring.querySelectorAll('.phase-node, .phase-orbit-line')].forEach(e => e.remove());
+  list.innerHTML = '';
+
+  const cx = 260, cy = 260, R = 210;
+
+  PHASES.forEach((ph, i) => {
+    const angle = (i / PHASES.length) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + R * Math.cos(angle);
+    const y = cy + R * Math.sin(angle);
+
+    const node = document.createElement('div');
+    node.className = 'phase-node';
+    node.style.left = (x - 45) + 'px';
+    node.style.top  = (y - 30) + 'px';
+    node.style.borderColor = ph.color + '55';
+    node.innerHTML = `<div class="pi">${ph.icon}</div><div style="color:${ph.color};font-size:10px">${ph.name}</div>`;
+    node.setAttribute('data-tip', 'Phase: ' + ph.name);
+    ring.appendChild(node);
+
+    // Spoke line
+    const spoke = document.createElement('div');
+    spoke.className = 'phase-orbit-line';
+    const angleDeg = (i / PHASES.length) * 360 - 90;
+    spoke.style.transform = `rotate(${angleDeg}deg)`;
+    spoke.style.background = `linear-gradient(180deg, ${ph.color}33, transparent)`;
+    ring.appendChild(spoke);
+
+    // Side list item
+    const item = document.createElement('div');
+    item.className = 'orch-item';
+    item.style.cssText = 'font-size:11px; display:flex; flex-direction:column; gap:2px; padding:6px 8px;';
+    item.innerHTML = `<div style="display:flex;align-items:center;gap:6px"><span class="oi">${ph.icon}</span><span style="color:${ph.color};font-weight:700">${ph.name}</span></div><div style="font-size:9.5px;color:var(--text3);padding-left:22px;line-height:1.4">${ph.desc}</div>`;
+    list.appendChild(item);
+  });
+}
+
+// ─── CHAT PIPELINE ANIMATION (Slide 4) ───
+let _pipeTimer = null;
+let _pipeActive = -1;
+function animatePipelineSteps() {
+  const steps    = [...document.querySelectorAll('#pipelineSteps .pipe-step')];
+  const container = document.getElementById('pipelineSteps');
+  if (!steps.length || !container) return;
+
+  if (_pipeTimer) { clearTimeout(_pipeTimer); _pipeTimer = null; }
+  _pipeActive = -1;
+  // Reset all rolodex classes
+  steps.forEach(s => {
+    s.classList.remove('rdist-0','rdist-1','rdist-n1','rdist-2','rdist-n2','rdist-3','rdist-n3');
+    s.style.removeProperty('--dy');
+  });
+  for (let i = 1; i <= 9; i++) {
+    const d = document.getElementById('pp' + i);
+    if (d) d.classList.remove('active','passed');
+  }
+
+  setTimeout(() => {
+    _rolodexStep(steps, 0);
+  }, 300);
+}
+
+function _rolodexStep(steps, i) {
+  if (i > 0) {
+    const pd = document.getElementById('pp' + i);
+    if (pd) { pd.classList.remove('active'); pd.classList.add('passed'); }
+  }
+  if (i >= steps.length) return;
+
+  _pipeActive = i;
+  const nd = document.getElementById('pp' + (i + 1));
+  if (nd) nd.classList.add('active');
+
+  _applyRolodex(steps, i);
+  _pipeTimer = setTimeout(() => _rolodexStep(steps, i + 1), 2100);
+}
+
+function _applyRolodex(steps, center) {
+  const PITCH = 82;
+  const DIST_CLASSES = ['rdist-n3','rdist-n2','rdist-n1','rdist-0','rdist-1','rdist-2','rdist-3'];
+  steps.forEach((s, j) => {
+    // Remove all dist classes
+    s.classList.remove(...DIST_CLASSES);
+    const d = j - center; // negative = above, positive = below
+    const clamped = Math.max(-3, Math.min(3, d));
+    const cls = clamped < 0 ? 'rdist-n' + Math.abs(clamped) : 'rdist-' + clamped;
+    s.classList.add(cls);
+    // Position item relative to center of the fixed-height container
+    s.style.setProperty('--dy', (d * PITCH) + 'px');
+  });
+}
+
+// ─── MOCK 3D VIZ (Slide 11) ───
+function drawMockViz() {
+  const canvas = document.getElementById('mockViz');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const nodes = [
+    { x:170, y:140, r:14, c:'#fbbf24', label:'Core' },
+    { x:260, y:100, r:9, c:'#34d399', label:'' },
+    { x:290, y:160, r:8, c:'#34d399', label:'' },
+    { x:100, y:170, r:10, c:'#60a5fa', label:'Semantic' },
+    { x:220, y:220, r:9, c:'#2dd4bf', label:'' },
+    { x:160, y:60, r:7,  c:'#e879f9', label:'Dream' },
+    { x:300, y:220, r:7, c:'#c084fc', label:'' },
+    { x:80, y:100,  r:8, c:'#fb7185', label:'' },
+    { x:140, y:240, r:7, c:'#34d399', label:'' },
+    { x:240, y:50,  r:6, c:'#fbbf24', label:'' },
+    { x:320, y:80,  r:9, c:'#818cf8', label:'Belief' },
+  ];
+  const edges = [
+    [0,1],[0,2],[0,4],[1,2],[2,4],[0,3],[3,7],[3,8],[1,9],[9,5],[2,6],[4,8],[5,6],[0,10],[1,10]
+  ];
+
+  let t = 0;
+  const traceProgress = { progress: 0 };
+  const TRACE = [0, 1, 9, 5];
+
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Background grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    for (let gx = 0; gx < W; gx += 30) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+    for (let gy = 0; gy < H; gy += 30) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+    // Edges
+    for (const [a, b] of edges) {
+      ctx.beginPath();
+      ctx.moveTo(nodes[a].x, nodes[a].y);
+      ctx.lineTo(nodes[b].x, nodes[b].y);
+      ctx.strokeStyle = 'rgba(52,211,153,0.18)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Trace animation
+    const tp = (Math.sin(t * 0.5) + 1) / 2; // 0→1
+    for (let i = 0; i < TRACE.length - 1; i++) {
+      const fromN = nodes[TRACE[i]];
+      const toN   = nodes[TRACE[i + 1]];
+      const stepT  = Math.max(0, Math.min(1, tp * TRACE.length - i));
+      if (stepT > 0) {
+        // Highlight edge
+        ctx.beginPath();
+        ctx.moveTo(fromN.x, fromN.y);
+        ctx.lineTo(fromN.x + (toN.x - fromN.x) * stepT, fromN.y + (toN.y - fromN.y) * stepT);
+        ctx.strokeStyle = '#818cf8';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        // Particle
+        if (stepT < 1) {
+          const px = fromN.x + (toN.x - fromN.x) * stepT;
+          const py = fromN.y + (toN.y - fromN.y) * stepT;
+          ctx.beginPath();
+          ctx.arc(px, py, 5, 0, Math.PI * 2);
+          ctx.fillStyle = '#818cf8';
+          ctx.globalAlpha = 0.9;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+
+    // Nodes
+    for (const n of nodes) {
+      const pulse = 1 + 0.08 * Math.sin(t * 2 + n.x * 0.1);
+      const r = n.r * pulse;
+
+      // Glow
+      const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 3);
+      grd.addColorStop(0, n.c + '44');
+      grd.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r * 3, 0, Math.PI * 2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+
+      // Node body
+      const g = ctx.createRadialGradient(n.x - r*0.3, n.y - r*0.3, 0, n.x, n.y, r);
+      g.addColorStop(0, n.c + 'ff');
+      g.addColorStop(1, n.c + 'aa');
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+
+      // Label
+      if (n.label) {
+        ctx.fillStyle = 'rgba(230,230,230,0.85)';
+        ctx.font = '9px JetBrains Mono, monospace';
+        ctx.fillText(n.label, n.x + r + 3, n.y + 4);
+      }
+    }
+
+    t += 0.022;
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+// ─── SLIDE ENTER HOOKS ───
+function onSlideEnter(n) {
+  if (n === 4) animatePipelineSteps();
+  if (n === 6) buildBrainRing();
+  if (n === 11) requestAnimationFrame(drawMockViz);
+}
+
+// ─── INIT ───
+buildBrainRing();
+updateNav();
+onSlideEnter(1);
+</script>
+</body>
+</html>
