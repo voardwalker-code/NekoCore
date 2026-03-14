@@ -4643,6 +4643,13 @@ body.popout-mode .os-side-dash {
   height: 100%;
 }
 
+/* Specificity override — component display:flex beats .hidden at equal specificity */
+.browser-home-wrap.hidden,
+.browser-search-results.hidden,
+.browser-frames.hidden {
+  display: none;
+}
+
 /* ── Tab Strip (Chrome-style) ─────────────────────── */
 .browser-tab-strip {
   display: flex;
@@ -4840,7 +4847,6 @@ body.popout-mode .os-side-dash {
   justify-content: center;
   background: var(--surface-1);
   z-index: 5;
-  border-radius: 12px;
 }
 
 .browser-blocked-content {
