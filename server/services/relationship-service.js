@@ -72,7 +72,7 @@ function defaultRelationship(userId, userName) {
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
 function getRelationshipsDir(entityId) {
-  const entityPaths = require('../entities/entityPaths');
+  const entityPaths = require('../entityPaths');
   const dir = path.join(entityPaths.getMemoryRoot(entityId), 'relationships');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   return dir;

@@ -41,8 +41,8 @@
 const path = require('path');
 
 // Absolute path to the top-level entities/ data directory
-// (two levels up from server/entities/ → project root → entities/)
-const ENTITIES_DIR = path.join(__dirname, '..', '..', 'entities');
+// (one level up from server/ → project root → entities/)
+const ENTITIES_DIR = path.join(__dirname, '..', 'entities');
 
 // ── Normalisation ───────────────────────────────────────────
 

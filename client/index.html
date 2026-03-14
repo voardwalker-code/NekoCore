@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/ui-v2.css">
+  <link rel="stylesheet" href="themes/neko-default.css" id="themeOverrideLink">
 </head>
 <body>
 
@@ -95,6 +96,175 @@
   </div>
 </div>
 
+<!-- ===== DESKTOP HOME ===== -->
+<section class="os-home" id="desktopHome">
+  <div class="os-home-copy">
+    <div class="os-home-kicker">REM Desktop</div>
+    <h1>Run NekoCore like a workspace, not a cramped page.</h1>
+    <p>The shell gives core systems their own room, keeps navigation visible, and makes themes a first-class part of the experience.</p>
+    <div class="os-home-actions">
+      <button class="os-shortcut is-primary on" data-tab="chat" onclick="switchMainTab('chat', this)">
+        <span class="os-shortcut-icon">💬</span>
+        <span>
+          <strong>Context Chat</strong>
+          <small>Primary conversation window</small>
+        </span>
+      </button>
+      <button class="os-shortcut" data-tab="skills" onclick="switchMainTab('skills', this)">
+        <span class="os-shortcut-icon">🧰</span>
+        <span>
+          <strong>Skills Console</strong>
+          <small>Browse tools and workflows</small>
+        </span>
+      </button>
+      <button class="os-shortcut" data-tab="workspace" onclick="switchMainTab('workspace', this)">
+        <span class="os-shortcut-icon">📁</span>
+        <span>
+          <strong>Workspace Browser</strong>
+          <small>Inspect files and generated assets</small>
+        </span>
+      </button>
+      <button class="os-shortcut" data-tab="visualizer" onclick="switchMainTab('visualizer', this)">
+        <span class="os-shortcut-icon">🧠</span>
+        <span>
+          <strong>Neural Visualizer</strong>
+          <small>Watch activity as a dedicated app</small>
+        </span>
+      </button>
+    </div>
+  </div>
+  <div class="os-home-widgets">
+    <div class="os-widget">
+      <div class="os-widget-label">System Snapshot</div>
+      <div class="os-widget-title">Current Focus</div>
+      <div class="os-widget-grid">
+        <div>
+          <span>Entity</span>
+          <strong id="shellEntitySummary">No entity loaded</strong>
+        </div>
+        <div>
+          <span>Provider</span>
+          <strong id="shellProviderSummary">No provider</strong>
+        </div>
+        <div>
+          <span>Brain Loop</span>
+          <strong id="shellBrainSummary">Idle</strong>
+        </div>
+        <div>
+          <span>Theme</span>
+          <strong id="shellThemeSummary">Neko Default</strong>
+        </div>
+      </div>
+    </div>
+    <div class="os-widget">
+      <div class="os-widget-label">Quick Actions</div>
+      <div class="os-widget-title">Open core surfaces</div>
+      <div class="os-widget-actions">
+        <button class="btn bp" onclick="switchMainTab('creator')">Open Creator</button>
+        <button class="btn bg" onclick="switchMainTab('settings')">Configure Providers</button>
+        <button class="btn bg" onclick="toggleStartMenu(true)">Open Start</button>
+      </div>
+      <p class="os-widget-note">Themes live in the client/themes folder so new looks can be added without touching the shell logic.</p>
+    </div>
+  </div>
+</section>
+
+<div class="os-start-scrim" id="osStartScrim" onclick="closeStartMenu()"></div>
+
+<aside class="os-start-menu" id="osStartMenu" aria-hidden="true">
+  <div class="os-start-header">
+    <div>
+      <div class="os-start-kicker">Pinned</div>
+      <h2>NekoCore Start</h2>
+    </div>
+    <button class="os-start-close" onclick="closeStartMenu()" aria-label="Close start menu">✕</button>
+  </div>
+
+  <div class="os-start-section">
+    <div class="os-start-section-title">All Apps</div>
+    <div class="os-launcher-grid" id="osAllTabsMenu"></div>
+    <div class="os-start-inline-actions" style="margin-top:10px">
+      <button class="btn bp text-xs-c" onclick="saveWindowLayout()">Save Layout</button>
+      <button class="btn bg text-xs-c" onclick="restoreWindowLayout()">Restore Layout</button>
+      <button class="btn bg text-xs-c" onclick="resetWindowLayout()">Reset Layout</button>
+      <button class="btn br text-xs-c" onclick="shutdownServer()" title="Power off server" aria-label="Power off server" style="font-weight:700">&#x23FB; Power</button>
+    </div>
+  </div>
+
+  <div class="os-start-section os-start-two-column">
+    <div>
+      <div class="os-start-section-title">Entities</div>
+      <div id="shellEntityList" class="os-start-list">
+        <div class="placeholder-sm text-xs-c">Loading...</div>
+      </div>
+      <div class="os-start-inline-actions">
+        <button class="btn bp text-xs-c" onclick="switchMainTab('creator')">Creator</button>
+        <button class="btn bg text-xs-c" onclick="switchMainTab('entity')">Details</button>
+        <button class="btn bg text-xs-c" id="shellReleaseEntityBtn" onclick="releaseActiveEntity()" style="display:none">Release</button>
+      </div>
+    </div>
+    <div>
+      <div class="os-start-section-title">Profiles</div>
+      <div id="shellProfileChips" class="os-start-list">
+        <div class="placeholder-sm text-xs-c">No profiles yet</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="os-start-section">
+    <div class="os-start-section-title">Themes</div>
+    <div class="os-theme-picker">
+      <button class="os-theme-option" data-theme-option="system-default" onclick="applyTheme('system-default')">
+        <strong>System Default</strong>
+        <span>Auto dark/light from OS preference</span>
+      </button>
+      <button class="os-theme-option" data-theme-option="light-default" onclick="applyTheme('light-default')">
+        <strong>Light Mode</strong>
+        <span>Bright clean daytime shell</span>
+      </button>
+      <button class="os-theme-option" data-theme-option="neko-default" onclick="applyTheme('neko-default')">
+        <strong>Neko Default</strong>
+        <span>Deep-space emerald shell</span>
+      </button>
+      <button class="os-theme-option" data-theme-option="sunset-terminal" onclick="applyTheme('sunset-terminal')">
+        <strong>Sunset Terminal</strong>
+        <span>Warm amber command-center</span>
+      </button>
+      <button class="os-theme-option" data-theme-option="frosted-orbit" onclick="applyTheme('frosted-orbit')">
+        <strong>Frosted Orbit</strong>
+        <span>Cool glassy telemetry deck</span>
+      </button>
+      <button class="os-theme-option" data-theme-option="mac-sequoia" onclick="applyTheme('mac-sequoia')">
+        <strong>Mac Sequoia</strong>
+        <span>Soft glass gradients with mac-style accents</span>
+      </button>
+      <button class="os-theme-option" data-theme-option="ubuntu-dash" onclick="applyTheme('ubuntu-dash')">
+        <strong>Ubuntu Dash</strong>
+        <span>Warm Linux palette with a side launcher</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<aside class="os-side-dash" id="osSideDash">
+  <div class="os-side-dash-title">Dash</div>
+  <div class="os-side-dash-apps" id="osSideDashPinned"></div>
+</aside>
+
+<div class="wm-snap-dock" id="wmSnapDock" aria-hidden="true">
+  <div class="wm-snap-grid">
+    <button class="wm-snap-zone" data-zone="top-left" title="Top Left"></button>
+    <button class="wm-snap-zone" data-zone="top" title="Top"></button>
+    <button class="wm-snap-zone" data-zone="top-right" title="Top Right"></button>
+    <button class="wm-snap-zone" data-zone="left" title="Left"></button>
+    <button class="wm-snap-zone" data-zone="maximize" title="Maximize"></button>
+    <button class="wm-snap-zone" data-zone="right" title="Right"></button>
+    <button class="wm-snap-zone" data-zone="bottom-left" title="Bottom Left"></button>
+    <button class="wm-snap-zone" data-zone="bottom" title="Bottom"></button>
+    <button class="wm-snap-zone" data-zone="bottom-right" title="Bottom Right"></button>
+  </div>
+</div>
+
 <!-- ===== HEADER ===== -->
 <div class="hdr">
   <div class="hdr-l">
@@ -116,7 +286,7 @@
     </div>
     <button class="btn bd" onclick="resetAll()">Reset</button>
     <button class="btn bp" onclick="openVisualizer()" title="Open Neural Visualizer">◇ Visualizer</button>
-    <button class="btn br" onclick="shutdownServer()" title="Stop the server">&#x23FB; Stop Server</button>
+    <button class="btn br" onclick="shutdownServer()" title="Power off server" aria-label="Power off server" style="font-weight:700">&#x23FB;</button>
     <span id="accountBadge" style="display:none;align-items:center;gap:.4rem;font-size:.7rem;color:var(--tc);margin-left:.25rem;padding:.2rem .6rem;background:var(--bg2);border:1px solid var(--br);border-radius:.5rem;">
       <span style="color:var(--ac);">👤</span>
       <span id="accountUsername" style="font-weight:600;"></span>
@@ -139,7 +309,7 @@
     <div class="nav-section-title" id="navEntityTitle">Entities</div>
     <div id="navEntityList"></div>
     <div class="nav-entity-actions" id="navEntityActions">
-      <button class="btn bp text-xs-c" id="navNewEntityBtn" onclick="showNewEntityDialog()">+ New</button>
+      <button class="btn bp text-xs-c" id="navNewEntityBtn" onclick="switchMainTab('creator')">Creator</button>
       <button class="btn bp text-xs-c" id="navReleaseEntityBtn" onclick="releaseActiveEntity()" style="display:none;background:var(--accent-orange)">Release</button>
     </div>
   </div>
@@ -220,10 +390,17 @@
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2-.01l-.13-.07a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.13.07a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.13.07a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.13-.07a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 .01l.13.07a2 2 0 002.73-.73l.22-.38a2 2 0 00-.73-2.73l-.13-.07a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.13-.07a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.13.07a2 2 0 01-2-.01l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     <span class="nav-label">Sleep &amp; Tokens</span>
   </button>
+
+  <div class="nav-divider" style="margin-top:auto"></div>
+
+  <button class="nav-item" onclick="shutdownServer()" title="Power off server" aria-label="Power off server" style="color:var(--accent-red)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.36 5.64a9 9 0 11-12.72 0"/></svg>
+    <span class="nav-label">Power Off Server</span>
+  </button>
 </nav>
 
 <!-- ===== MAIN APP ===== -->
-<div class="app">
+<div class="app" id="windowStage">
 
   <!-- ===== MODEL/PROFILE SIDEBAR (hidden — replaced by nav-sidebar) ===== -->
   <div class="model-sidebar" id="modelSidebar">
@@ -245,7 +422,7 @@
         <div class="placeholder-sm text-xs-c">Loading...</div>
       </div>
       <div class="sidebar-actions">
-        <button class="btn bp flex-1 text-xs-c" onclick="showNewEntityDialog()">+ New</button>
+        <button class="btn bp flex-1 text-xs-c" onclick="switchMainTab('creator')">Creator</button>
       </div>
     </div>
 
@@ -337,6 +514,7 @@
           </div>
           <button class="btn bg text-xs-c" onclick="startSleep()" id="sleepBtn" title="Sleep: replay memories and update personality">&#127769; Sleep</button>
           <button class="btn bg text-xs-c" onclick="compressChat()" id="compressChatBtn" title="Save compressed chat">&#128230; Save</button>
+          <button class="btn bg text-xs-c" id="chatReleaseEntityBtn" onclick="releaseActiveEntity()" style="display:none" title="Release active entity">Release</button>
           <button class="btn bg text-xs-c" onclick="clearChat()">&#128465; Clear</button>
         </div>
       </div>
@@ -375,32 +553,6 @@
 
     </div><!-- end chat-main -->
 
-    <!-- RIGHT: Side panel (Log + Thought Process) -->
-    <div class="chat-sidebar" id="chatSidebar">
-      <!-- Pipeline Log -->
-      <div class="sidebar-section">
-        <div class="sidebar-header" style="cursor:default">
-          <span>📋 Pipeline Log</span>
-        </div>
-        <div class="sidebar-body" id="sidebarLogBody">
-          <div id="sidebarLogContent" style="max-height:40vh;overflow-y:auto;font-family:var(--font-mono);font-size:var(--text-xs)"></div>
-        </div>
-      </div>
-
-      <!-- Thought Process -->
-      <div class="sidebar-section">
-        <div class="sidebar-header" onclick="toggleThoughtProcess()">
-          <span>💭 Thought Process</span>
-          <span class="sidebar-arrow" id="thoughtProcessArrow">▼</span>
-        </div>
-        <div class="sidebar-body" id="thoughtProcessBody">
-          <div id="thoughtProcessContent" class="thought-process-panel">
-            <div class="thought-empty">Waiting for next message...</div>
-          </div>
-        </div>
-      </div>
-    </div><!-- end chat-sidebar -->
-
     </div><!-- end chat-layout -->
 
   </div><!-- end tab-chat -->
@@ -429,15 +581,100 @@
     </div>
   </div>
 
-  <!-- ===== ENTITY ACTIVITY TAB ===== -->
+  <!-- ===== TASK MANAGER TAB ===== -->
   <div class="tab-content" id="tab-activity">
-    <div style="padding:var(--space-4);max-width:900px;margin:0 auto">
+    <div style="padding:var(--space-4);max-width:1100px;margin:0 auto">
       <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
-        <h2 style="font-size:var(--text-lg);margin:0">⚡ Entity Activity</h2>
+        <h2 style="font-size:var(--text-lg);margin:0">🖥️ Task Manager</h2>
       </div>
-      <div id="activityFeed" style="max-height:70vh;overflow-y:auto">
-        <div class="placeholder-content">
-          <div class="text-sm-c mt-2">No activity yet</div>
+
+      <div class="tm-grid" id="taskManagerGrid">
+        <div class="tm-card">
+          <div class="tm-label">Provider / Model</div>
+          <div class="tm-value" id="tmProviderModel">Not connected</div>
+          <div class="tm-sub" id="tmProviderType">Provider idle</div>
+        </div>
+        <div class="tm-card">
+          <div class="tm-label">Pipeline Phase</div>
+          <div class="tm-value" id="tmPipelinePhase">Idle</div>
+          <div class="tm-sub" id="tmPipelineAge">No active orchestration</div>
+        </div>
+        <div class="tm-card">
+          <div class="tm-label">Total Tokens (Last Call)</div>
+          <div class="tm-value" id="tmTokensTotal">0</div>
+          <div class="tm-sub" id="tmTokensBreakdown">In: 0 • Out: 0</div>
+        </div>
+        <div class="tm-card">
+          <div class="tm-label">Brain Loop</div>
+          <div class="tm-value" id="tmBrainStatus">Idle</div>
+          <div class="tm-sub" id="tmBrainCycles">Cycle 0</div>
+        </div>
+      </div>
+
+      <div class="tm-split">
+        <div class="tm-panel">
+          <div class="tm-panel-title">Contributor Models</div>
+          <div id="tmModels" class="tm-list">
+            <div class="tm-list-row"><span>Subconscious</span><strong id="tmModelSub">—</strong></div>
+            <div class="tm-list-row"><span>Dream</span><strong id="tmModelDream">—</strong></div>
+            <div class="tm-list-row"><span>Conscious</span><strong id="tmModelConscious">—</strong></div>
+            <div class="tm-list-row"><span>Orchestrator</span><strong id="tmModelOrchestrator">—</strong></div>
+          </div>
+        </div>
+        <div class="tm-panel">
+          <div class="tm-panel-title">Window / Runtime</div>
+          <div class="tm-list">
+            <div class="tm-list-row"><span>Open Windows</span><strong id="tmOpenWindows">0</strong></div>
+            <div class="tm-list-row"><span>Pinned Apps</span><strong id="tmPinnedApps">0</strong></div>
+            <div class="tm-list-row"><span>Layout Save</span><strong>localStorage</strong></div>
+            <div class="tm-list-row"><span>Theme</span><strong id="tmThemeName">Neko Default</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tm-panel" style="margin-top:var(--space-4)">
+        <div class="tm-panel-title">App Performance</div>
+        <div id="tmAppMetricsGrid" class="tm-app-metrics-grid">
+          <div class="tm-metric-empty">Open or pin apps to see live app telemetry.</div>
+        </div>
+      </div>
+
+      <div class="tm-panel" style="margin-top:var(--space-4)">
+        <div class="tm-panel-title">Recent Runtime Events</div>
+        <div id="tmEventFeed" class="tm-event-feed">
+          <div class="tm-event">Waiting for pipeline events...</div>
+        </div>
+      </div>
+
+      <div id="activityFeed" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ===== OBSERVABILITY TAB ===== -->
+  <div class="tab-content" id="tab-observability">
+    <div style="padding:var(--space-4);max-width:980px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+        <h2 style="font-size:var(--text-lg);margin:0">🧪 Observability</h2>
+      </div>
+
+      <div class="sidebar-section" style="margin-bottom:var(--space-4)">
+        <div class="sidebar-header" style="cursor:default">
+          <span>📋 Pipeline Log</span>
+        </div>
+        <div class="sidebar-body" id="sidebarLogBody">
+          <div id="sidebarLogContent" style="max-height:40vh;overflow-y:auto;font-family:var(--font-mono);font-size:var(--text-xs)"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-header" onclick="toggleThoughtProcess()">
+          <span>💭 Thought Process</span>
+          <span class="sidebar-arrow" id="thoughtProcessArrow">▼</span>
+        </div>
+        <div class="sidebar-body" id="thoughtProcessBody">
+          <div id="thoughtProcessContent" class="thought-process-panel">
+            <div class="thought-empty">Waiting for next message...</div>
+          </div>
         </div>
       </div>
     </div>
@@ -664,329 +901,6 @@
         <div class="entity-display" id="entityDisplay"></div>
         <button id="deleteEntityBtn"></button>
       </div>
-
-        <!-- New Entity Creation Modal (invoked from nav sidebar + New button) -->
-        <div class="modal" id="newEntityModal" style="display:none">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3>Creator — Entity Setup</h3>
-              <button class="modal-close" onclick="closeNewEntityDialog()">&times;</button>
-            </div>
-            <div class="modal-body">
-
-              <!-- Creator Step 0: Greeting + user name -->
-              <div id="creatorWelcomeStep" style="display:block">
-                <p class="text-secondary-c mb-4"><strong>Creator:</strong> Hey, let's vibe this setup. First, what should I call you?</p>
-                <div class="form-group">
-                  <label>Your Name <span class="text-secondary-c text-xs-c">(optional)</span></label>
-                  <input type="text" id="creatorUserName" placeholder="e.g., Alex, Sam, Voard">
-                </div>
-                <div class="callout callout-info mt-4">
-                  <strong class="block mb-2">Creator:</strong>
-                  <p class="text-sm-c text-secondary-c" style="margin:0">I'll show all 4 creation options next. You can fill onboarding fields now or let the entity ask the questions later in chat.</p>
-                </div>
-                <div class="mt-4">
-                  <button class="btn bp" onclick="creatorContinueToModeSelection()">Continue</button>
-                </div>
-              </div>
-              
-              <!-- Step 1: Choose Creation Mode -->
-              <div id="entityCreationModeStep" style="display:none">
-                <p class="text-secondary-c mb-5"><strong>Creator:</strong> Pick a creation mode:</p>
-                
-                <div class="entity-mode-grid">
-                  <div class="entity-mode-card" onclick="selectEntityMode('random')">
-                    <div class="entity-mode-icon">🎲</div>
-                    <h4>Random Generation</h4>
-                    <p>Automatically generate a complete entity with name, personality, life story, and core memories</p>
-                  </div>
-                  
-                  <div class="entity-mode-card" onclick="selectEntityMode('empty')">
-                    <div class="entity-mode-icon">✏️</div>
-                    <h4>Empty Entity</h4>
-                    <p>Create a blank entity with your custom name and traits. No history - build memories through conversation</p>
-                  </div>
-                  
-                  <div class="entity-mode-card" onclick="selectEntityMode('guided')">
-                    <div class="entity-mode-icon">🎨</div>
-                    <h4>Guided Creation</h4>
-                    <p>Walk through a step-by-step process to design your entity's personality and life story</p>
-                  </div>
-                  
-                  <div class="entity-mode-card" onclick="selectEntityMode('character')">
-                    <div class="entity-mode-icon">📚</div>
-                    <h4>Character Ingestion</h4>
-                    <p>Create an entity inspired by a fictional or real character. The LLM extracts personality, speech style, and memories from your description</p>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Step 2: Empty Entity Form -->
-              <div id="entityEmptyFormStep" style="display:none">
-                <div class="mb-4">
-                  <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
-                </div>
-                <h4 class="mb-4">Empty Entity Details</h4>
-                <div class="form-group">
-                  <label>Entity Name <span class="text-accent">*</span></label>
-                  <input type="text" id="emptyEntityName" placeholder="e.g., Luna, Alex, etc.">
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Gender</label>
-                    <select id="emptyEntityGender">
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="neutral">Neutral</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label>Age/Experience <span class="text-secondary-c text-xs-c">(optional)</span></label>
-                    <input type="text" id="emptyEntityAge" placeholder="e.g., young, mature, ancient">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>Personality Traits <span class="text-accent">*</span></label>
-                  <input type="text" id="emptyEntityTraits" placeholder="e.g., curious, adventurous, creative (comma-separated)">
-                  <p class="text-xs-c text-secondary-c mt-1">Enter at least 3-5 traits that define this entity's character</p>
-                </div>
-                <div class="form-group">
-                  <label>Brief Introduction <span class="text-secondary-c text-xs-c">(optional)</span></label>
-                  <textarea id="emptyEntityIntro" placeholder="How should this entity introduce itself?" rows="3"></textarea>
-                </div>
-              </div>
-              
-              <!-- Step 3: Random Entity Options -->
-              <div id="entityRandomFormStep" style="display:none">
-                <div class="mb-4">
-                  <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
-                </div>
-                <h4 class="mb-4">Random Generation Options</h4>
-                <div class="form-group">
-                  <label>Gender Preference</label>
-                  <select id="randomEntityGender">
-                    <option value="random">Random</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="neutral">Neutral</option>
-                  </select>
-                  <p class="text-xs-c text-secondary-c mt-1">All other attributes (name, traits, life story) will be automatically generated</p>
-                </div>
-                <div class="callout callout-info mt-4">
-                  <strong class="block mb-2">What gets generated:</strong>
-                  <ul class="text-sm-c text-secondary-c" style="margin:.5rem 0;padding-left:1.5rem">
-                    <li>Random name from name database</li>
-                    <li>5 personality traits</li>
-                    <li>Short life story (2-4 paragraphs)</li>
-                    <li>5-10 core memories extracted from the story</li>
-                    <li>Initial goals and exploration themes</li>
-                  </ul>
-                </div>
-              </div>
-              
-              <!-- Step 4: Character Ingestion -->
-              <div id="entityCharacterFormStep" style="display:none">
-                <div class="mb-4">
-                  <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
-                </div>
-                <h4 class="mb-4">Character Ingestion</h4>
-                <p class="text-secondary-c text-sm-c mb-4">Tell us who the character is and where they're from. The LLM handles the rest — personality, speech style, traits, memories, everything.</p>
-                
-                <div class="form-group">
-                  <label>Character Name <span class="text-accent">*</span></label>
-                  <input type="text" id="charEntityName" placeholder="e.g., Mad Hatter, Sherlock Holmes, Nikola Tesla">
-                </div>
-                <div class="form-group">
-                  <label>Source / Origin <span class="text-accent">*</span></label>
-                  <input type="text" id="charEntitySource" placeholder="e.g., Alice in Wonderland, BBC Sherlock, historical figure">
-                  <p class="text-xs-c text-secondary-c mt-1">Book, movie, game, TV show, mythology, real person — whatever the source is.</p>
-                </div>
-                <div class="form-group">
-                  <label>Additional Notes <span class="text-secondary-c text-xs-c">(optional)</span></label>
-                  <textarea id="charEntityNotes" placeholder="Add anything extra: custom backstory twists, crossover adventures, specific traits you want emphasized, AU details, etc. Leave blank to use pure canon." rows="4"></textarea>
-                  <p class="text-xs-c text-secondary-c mt-1">This is where you make it yours. Want the Mad Hatter to have gone on an adventure with Superman? Put it here.</p>
-                </div>
-
-                <div class="callout callout-info mt-4">
-                  <strong class="block mb-2">What the LLM will figure out for you:</strong>
-                  <ul class="text-sm-c text-secondary-c" style="margin:.5rem 0;padding-left:1.5rem">
-                    <li>Personality traits, gender, archetype</li>
-                    <li>Speech style, mannerisms, catchphrases</li>
-                    <li>Beliefs, motivations, relationships</li>
-                    <li>8-20 core memories from canonical lore</li>
-                    <li>In-character greeting &amp; voice calibration</li>
-                    <li>Behavioral rules &amp; tone drift protection</li>
-                  </ul>
-                  <p class="text-xs-c text-tertiary-c mt-2" style="margin-bottom:0">Entity will be created as "inspired by" the source character.</p>
-                </div>
-              </div>
-              
-              <!-- Step 5: Guided Creation -->
-              <div id="entityGuidedFormStep" style="display:none">
-                <div class="mb-4">
-                  <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
-                </div>
-                <h4 class="mb-4">Guided Entity Creation</h4>
-                <p class="text-secondary-c text-sm-c mb-4">Define your entity's identity and backstory. The LLM will generate a rich life history and core memories from your description.</p>
-                
-                <div class="form-group">
-                  <label>Entity Name <span class="text-accent">*</span></label>
-                  <input type="text" id="guidedEntityName" placeholder="e.g., Neko, Luna, Marcus">
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Gender</label>
-                    <select id="guidedEntityGender">
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="neutral">Neutral</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label>Age/Era <span class="text-secondary-c text-xs-c">(optional)</span></label>
-                    <input type="text" id="guidedEntityAge" placeholder="e.g., young adult, ancient, 25">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>Personality Traits <span class="text-accent">*</span></label>
-                  <input type="text" id="guidedEntityTraits" placeholder="e.g., sarcastic, brilliant, secretly caring (comma-separated)">
-                  <p class="text-xs-c text-secondary-c mt-1">3-7 traits that define the entity's character. Be specific!</p>
-                </div>
-                <div class="form-group">
-                  <label>Backstory / Description <span class="text-secondary-c text-xs-c">(recommended)</span></label>
-                  <textarea id="guidedEntityBackstory" placeholder="Describe who this entity is, their history, relationships, skills, quirks, speaking style, and anything that makes them unique. The more detail you provide, the richer the generated life will be." rows="6"></textarea>
-                  <p class="text-xs-c text-secondary-c mt-1">You can leave this lighter if you use intent presets + knowledge seed docs below.</p>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Primary Intent</label>
-                    <select id="guidedEntityIntent">
-                      <option value="programming">Programming Partner</option>
-                      <option value="companion">Companion</option>
-                      <option value="assistant">General Assistant</option>
-                      <option value="custom">Custom Hybrid</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label>Interaction Style</label>
-                    <select id="guidedEntityInteractionStyle">
-                      <option value="balanced">Balanced</option>
-                      <option value="supportive">Supportive / Gentle</option>
-                      <option value="blunt">Direct / Blunt</option>
-                      <option value="mentor">Mentor / Coach</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>Speaking Style <span class="text-secondary-c text-xs-c">(optional)</span></label>
-                  <input type="text" id="guidedEntityStyle" placeholder="e.g., formal, witty, blunt, poetic, uses lots of sarcasm">
-                </div>
-                <div class="form-group">
-                  <label>Knowledge Seed Notes / Documents <span class="text-secondary-c text-xs-c">(optional but powerful)</span></label>
-                  <textarea id="guidedEntityKnowledgeSeed" placeholder="Paste notes, coding standards, personal preferences, or domain docs here. Content is automatically chunked and ingested through the full document pipeline — no separators needed." rows="6"></textarea>
-                  <p class="text-xs-c text-secondary-c mt-1">These are converted into initial knowledge memories at creation time.</p>
-                </div>
-                <div class="form-group">
-                  <label>Introduction Message <span class="text-secondary-c text-xs-c">(optional)</span></label>
-                  <textarea id="guidedEntityIntro" placeholder="How should this entity introduce themselves? Leave blank to auto-generate." rows="3"></textarea>
-                </div>
-
-                <!-- Identity Mode -->  
-                <div class="form-group mt-4">
-                  <label style="display:flex;align-items:center;gap:.7rem;cursor:pointer;user-select:none">
-                    <input type="checkbox" id="guidedEntityUnbreakable" style="width:1.1rem;height:1.1rem;cursor:pointer;accent-color:var(--accent)">
-                    <span>
-                      <strong>🔒 Unbreakable Identity</strong>
-                      <span class="text-xs-c text-secondary-c" style="display:block;margin-top:.15rem">Locks this entity to its origin story — backstory and traits are permanently authoritative. Great for NPCs and fixed characters that must never drift. Leave unchecked for companions and entities meant to evolve.</span>
-                    </span>
-                  </label>
-                </div>
-
-                <div class="callout callout-info mt-4">
-                  <strong class="block mb-2">What the LLM will generate:</strong>
-                  <ul class="text-sm-c text-secondary-c" style="margin:.5rem 0;padding-left:1.5rem">
-                    <li>Life story based on your description</li>
-                    <li>Core memories extracted from the story</li>
-                    <li>Custom system prompt with personality</li>
-                    <li>Emotional baseline matching the character</li>
-                    <li>Initial goals and exploration themes</li>
-                  </ul>
-                </div>
-              </div>
-
-              <!-- Creator onboarding block (shared across all creation modes) -->
-              <div id="creatorOnboardingBlock" class="callout callout-info mt-4" style="display:none">
-                <strong class="block mb-2">Creator Onboarding</strong>
-                <p class="text-xs-c text-secondary-c mb-3">Optional: fill any fields now to pre-seed context. Leave blank to have the entity ask these as onboarding questions in chat.</p>
-                <div class="form-group">
-                  <label>What should the entity call you? <span class="text-secondary-c text-xs-c">(optional)</span></label>
-                  <input type="text" id="creatorOnboardName" placeholder="Your preferred name">
-                </div>
-                <div class="form-group">
-                  <label>Your interests</label>
-                  <input type="text" id="creatorOnboardInterests" placeholder="e.g., coding, art, robotics, storytelling">
-                </div>
-                <div class="form-group">
-                  <label>What do you do?</label>
-                  <input type="text" id="creatorOnboardOccupation" placeholder="e.g., developer, student, founder">
-                </div>
-                <div class="form-group" style="margin-bottom:0">
-                  <label>What are you hoping to do together?</label>
-                  <input type="text" id="creatorOnboardIntent" placeholder="e.g., build tools, explore ideas, stay focused">
-                </div>
-              </div>
-              
-            </div>
-            <div class="modal-footer">
-              <button class="btn bg" onclick="closeNewEntityDialog()">Cancel</button>
-              <button class="btn bp" id="createEntityBtn" style="display:none" onclick="executeEntityCreation()">Create Entity</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Entity Creation Progress Modal -->
-        <div class="modal" id="hatchProgressModal" style="display:none;z-index:10000">
-          <div class="modal-content" style="width:90%;max-width:500px;text-align:center">
-            <div class="modal-header" style="border-bottom:none">
-              <h3>Creating Entity...</h3>
-            </div>
-            <div class="modal-body" style="padding:2rem">
-              <div class="mb-5 text-center">
-                <div style="font-size:3rem;margin-bottom:.5rem">🧬</div>
-                <p class="text-secondary-c text-sm-c">Hatching entity with generated history...</p>
-              </div>
-              <div id="hatchProgressSteps" style="text-align:left;margin:1.5rem 0">
-                <div class="hatch-step" style="opacity:0.6">
-                  <span class="hatch-step-icon">⏳</span>
-                  <span class="hatch-step-text">Generating identity and personality</span>
-                </div>
-                <div class="hatch-step" style="opacity:0.4">
-                  <span class="hatch-step-icon">⏳</span>
-                  <span class="hatch-step-text">Creating life chapters</span>
-                </div>
-                <div class="hatch-step" style="opacity:0.4">
-                  <span class="hatch-step-icon">⏳</span>
-                  <span class="hatch-step-text">Generating memories</span>
-                </div>
-                <div class="hatch-step" style="opacity:0.4">
-                  <span class="hatch-step-icon">⏳</span>
-                  <span class="hatch-step-text">Building memory connections</span>
-                </div>
-                <div class="hatch-step" style="opacity:0.4">
-                  <span class="hatch-step-icon">⏳</span>
-                  <span class="hatch-step-text">Generating goals and finalizing</span>
-                </div>
-                <div class="hatch-step" id="hatchStepSeed" style="display:none;opacity:0.4">
-                  <span class="hatch-step-icon">⏳</span>
-                  <span class="hatch-step-text">Ingesting knowledge seed documents</span>
-                </div>
-              </div>
-              <div class="text-xs-c text-secondary-c mt-4">
-                This may take 10-30 seconds depending on system load...
-              </div>
-            </div>
-          </div>
-        </div>
 
       <!-- LLM Provider Section -->
       <div class="settings-section">
@@ -1412,6 +1326,24 @@
     </div>
   </div>
 
+  <!-- ===== BROWSER TAB ===== -->
+  <div class="tab-content" id="tab-browser">
+    <div class="browser-shell">
+      <div class="browser-toolbar">
+        <button class="btn bg text-xs-c" onclick="browserGoBack()">←</button>
+        <button class="btn bg text-xs-c" onclick="browserGoForward()">→</button>
+        <button class="btn bg text-xs-c" onclick="browserReload()">⟳</button>
+        <input id="browserUrlInput" class="browser-url-input" type="text" value="https://example.com" placeholder="https://..." onkeydown="if(event.key==='Enter')navigateBrowserToInput()">
+        <button class="btn bp text-xs-c" onclick="navigateBrowserToInput()">Go</button>
+        <button class="btn bg text-xs-c" onclick="openBrowserExternal()">Open External</button>
+      </div>
+      <div class="browser-frame-wrap">
+        <iframe id="browserFrame" class="browser-frame" src="https://example.com" loading="lazy" referrerpolicy="no-referrer"></iframe>
+      </div>
+      <div class="browser-note">Some websites block embedding via iframe. Use "Open External" for those sites.</div>
+    </div>
+  </div>
+
   <!-- ===== ADVANCED TAB (was dropdown, now a regular tab panel) ===== -->
   <div class="tab-content" id="tab-advanced">
     <div style="max-width:1100px">
@@ -1553,12 +1485,76 @@
     </div>
   </div>
 
+  <!-- ===== CREATOR TAB ===== -->
+  <div class="tab-content" id="tab-creator">
+    <div style="height:100%;padding:var(--space-3)">
+      <iframe id="creatorAppFrame" src="create.html?embed=1" title="Entity Creator" style="display:block;width:100%;height:100%;border:1px solid var(--border-default);border-radius:var(--radius-lg);background:var(--surface-1)"></iframe>
+    </div>
+  </div>
+
+  <!-- ===== USERS TAB ===== -->
+  <div class="tab-content" id="tab-users">
+    <div style="padding:var(--space-4);max-width:760px;margin:0 auto">
+      <div class="settings-section" style="padding:var(--space-4)">
+        <div class="settings-section-header" style="margin-bottom:var(--space-4)">
+          <h2>User Profiles</h2>
+          <p>Manage chat users for the currently active entity.</p>
+        </div>
+
+        <div class="config-card" style="margin-bottom:var(--space-4)">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Name</label>
+              <input type="text" id="usersAppNewName" placeholder="e.g., Alex">
+            </div>
+            <div class="form-group">
+              <label>About <span class="text-secondary-c text-xs-c">(optional)</span></label>
+              <input type="text" id="usersAppNewInfo" placeholder="e.g., Full-stack dev, likes robotics">
+            </div>
+          </div>
+          <div class="flex gap-2" style="justify-content:flex-end">
+            <button class="btn bp" onclick="usersAppCreateUser()">Add User</button>
+            <button class="btn bg" onclick="usersAppRefresh()">Refresh</button>
+            <button class="btn bg" onclick="usersAppClearActive()">Clear Active</button>
+          </div>
+        </div>
+
+        <div id="usersAppStatus" class="text-sm-c text-secondary-c" style="margin-bottom:var(--space-3)">Loading...</div>
+        <div id="usersAppList" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== ENTITY PROFILE TAB ===== -->
   <div class="tab-content" id="tab-entity">
     <div style="padding:var(--space-4);max-width:720px;margin:0 auto">
       <div id="entityInfoPanel"></div>
     </div>
   </div>
+
+  <!-- ===== TASKBAR ===== -->
+  <footer class="os-taskbar">
+    <div class="os-taskbar-inner">
+      <div class="os-taskbar-center" id="osTaskbarCenter">
+        <button class="os-start-button" id="osStartButton" onclick="toggleStartMenu()" aria-expanded="false">
+          <span>◧</span>
+          <span>Apps</span>
+        </button>
+        <div class="os-taskbar-pinned" id="osTaskbarPinned"></div>
+        <div class="os-taskbar-overflow" id="osTaskbarOverflowWrap" style="display:none">
+          <button class="os-overflow-button" id="osTaskbarOverflowButton" aria-expanded="false" title="More pinned apps">⋯</button>
+          <div class="os-taskbar-overflow-menu" id="osTaskbarOverflowMenu"></div>
+        </div>
+      </div>
+      <div class="os-taskbar-tray">
+        <div class="os-taskbar-status" id="shellTaskbarStatus">No windows open</div>
+        <div class="os-clock-wrap">
+          <div class="os-clock" id="shellClock">00:00</div>
+          <div class="os-date" id="shellDate">---</div>
+        </div>
+      </div>
+    </div>
+  </footer>
 
         <!-- User Name Collection Modal -->
         <div class="modal" id="userNameModal" style="display:none;z-index:10001">
@@ -1944,3 +1940,4 @@
 
 </body>
 </html>
+

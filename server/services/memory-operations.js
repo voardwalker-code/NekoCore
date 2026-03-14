@@ -41,7 +41,7 @@ function createMemoryOperations({ getCurrentEntityId, getMemoryStorage, getMemor
       return { ok: false, error: 'No active entity' };
     }
 
-    const entityPathsMod = require('../entities/entityPaths');
+    const entityPathsMod = require('../entityPaths');
     const episodicPath = entityPathsMod.getEpisodicMemoryPath(currentEntityId);
     const normalizedSemantic = (semantic || '').toLowerCase().replace(/\s+/g, ' ').trim();
 
@@ -157,7 +157,7 @@ function createMemoryOperations({ getCurrentEntityId, getMemoryStorage, getMemor
       return { ok: false, error: 'No active entity' };
     }
 
-    const entityPathsMod = require('../entities/entityPaths');
+    const entityPathsMod = require('../entityPaths');
     const semanticPath = entityPathsMod.getSemanticMemoryPath(currentEntityId);
     const normalizedKnowledge = (knowledge || '').toLowerCase().replace(/\s+/g, ' ').trim();
 

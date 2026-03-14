@@ -178,7 +178,7 @@ function createDocumentRoutes(ctx) {
       // Mirror document chunks into ltm/ so they can be reconstructed exactly
       // like compressed chatlogs in visualizer and recall pipelines.
       try {
-        const entityPathsMod = require('../entities/entityPaths');
+        const entityPathsMod = require('../entityPaths');
         const memoryRoot = entityPathsMod.getMemoryRoot(ctx.currentEntityId);
         const ltmDir = path.join(memoryRoot, 'ltm');
         const ltmPath = path.join(ltmDir, chunkId);

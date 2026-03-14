@@ -204,7 +204,7 @@ function createMemoryRetrieval({
       || /\b(mood|feeling|how are you)\b/i.test(userMessage);
 
     if (memoryStorage && memoryStorage.indexCache && currentEntityId) {
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const memoryRoot = entityPaths.getMemoryRoot(currentEntityId);
       const scoreMap = new Map();
 
@@ -320,7 +320,7 @@ function createMemoryRetrieval({
         }) || [];
 
         if (pulseHints.length > 0) {
-          const entityPaths = require('../entities/entityPaths');
+          const entityPaths = require('../entityPaths');
           const memoryRoot = currentEntityId ? entityPaths.getMemoryRoot(currentEntityId) : null;
           const existingById = new Map();
           connections.forEach((c, idx) => existingById.set(c.id, idx));
@@ -435,7 +435,7 @@ function createMemoryRetrieval({
     let chatlogContext = [];
     if (currentEntityId && topConnections.length > 0) {
       try {
-        const entityPathsMod = require('../entities/entityPaths');
+        const entityPathsMod = require('../entityPaths');
         const memoryRoot = entityPathsMod.getMemoryRoot(currentEntityId);
         const ltmDir = path.join(memoryRoot, 'ltm');
 

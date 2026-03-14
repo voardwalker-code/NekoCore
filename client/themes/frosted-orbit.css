@@ -1,0 +1,30 @@
+:root {
+  --surface-0: #07111c;
+  --surface-1: #0c1828;
+  --surface-2: #11243a;
+  --surface-3: #18314a;
+  --border-default: rgba(125, 211, 252, 0.16);
+  --border-emphasis: rgba(125, 211, 252, 0.36);
+  --text-primary: #edf7ff;
+  --text-secondary: #bdd7ef;
+  --text-tertiary: #7da7c6;
+  --text-quaternary: #56728b;
+  --accent: #7dd3fc;
+  --accent-strong: #38bdf8;
+  --accent-subtle: rgba(125, 211, 252, 0.12);
+  --cyan: #67e8f9;
+  --indigo: #60a5fa;
+  --info: #60a5fa;
+  --info-strong: #3b82f6;
+  --desktop-wallpaper:
+    radial-gradient(circle at top left, rgba(103, 232, 249, 0.2), transparent 24%),
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.2), transparent 28%),
+    radial-gradient(circle at bottom center, rgba(191, 219, 254, 0.15), transparent 36%),
+    linear-gradient(180deg, #06111d 0%, #0b1726 46%, #050c15 100%);
+  --desktop-overlay: linear-gradient(135deg, rgba(7, 17, 28, 0.18), rgba(12, 24, 40, 0.66));
+  --taskbar-bg: rgba(12, 24, 40, 0.78);
+  --window-bg: rgba(12, 24, 40, 0.76);
+  --start-surface: rgba(12, 24, 40, 0.88);
+  --shortcut-bg: rgba(24, 49, 74, 0.68);
+  --shortcut-bg-hover: rgba(31, 62, 92, 0.9);
+}

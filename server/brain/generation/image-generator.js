@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const entityPaths = require('../../entities/entityPaths');
+const entityPaths = require('../../entityPaths');
 
 class ImageGenerator {
   constructor(options = {}) {

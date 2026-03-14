@@ -68,6 +68,7 @@ function initBrainSSE() {
 
     brainEventSource.addEventListener('phase_start', (e) => {
       const d = JSON.parse(e.data);
+      try { if (typeof reportPipelinePhase === 'function') reportPipelinePhase(d.phase || 'phase_start', 'start', d.phase || 'phase start'); } catch (_) {}
       if (activeThinkingEl) {
         const labels = { subconscious: '🧠 Subconscious', 'dream+compress': '🌙 Dream + Compress', conscious: '💭 Conscious', orchestrator: '⚡ Orchestrator' };
         appendThinkingLine(activeThinkingEl, d.phase, (labels[d.phase] || d.phase) + ' — processing...');
@@ -84,6 +85,7 @@ function initBrainSSE() {
 
     brainEventSource.addEventListener('phase_detail', (e) => {
       const d = JSON.parse(e.data);
+      try { if (typeof reportPipelinePhase === 'function') reportPipelinePhase(d.phase || 'phase_detail', 'detail', d.detail || 'phase detail'); } catch (_) {}
       if (activeThinkingEl) {
         appendThinkingLine(activeThinkingEl, d.phase, d.detail);
       }
@@ -94,6 +96,7 @@ function initBrainSSE() {
 
     brainEventSource.addEventListener('phase_complete', (e) => {
       const d = JSON.parse(e.data);
+      try { if (typeof reportPipelinePhase === 'function') reportPipelinePhase(d.phase || 'phase_complete', 'complete', (d.phase || 'phase') + ' complete'); } catch (_) {}
       if (activeThinkingEl) {
         const labels = { subconscious: '🧠 Subconscious', 'dream+compress': '🌙 Dream + Compress', conscious: '💭 Conscious', orchestrator: '⚡ Orchestrator' };
         appendThinkingLine(activeThinkingEl, d.phase + ' done', (labels[d.phase] || d.phase) + ' ✓ ' + (d.duration ? d.duration + 'ms' : ''));
@@ -110,6 +113,7 @@ function initBrainSSE() {
 
     brainEventSource.addEventListener('orchestration_complete', (e) => {
       const d = JSON.parse(e.data);
+      try { if (typeof reportOrchestrationMetrics === 'function') reportOrchestrationMetrics(d); } catch (_) {}
       if (d.models && d.models.orchestrator) {
         lastOrchestratorModel = d.models.orchestrator.split('/').pop();
         document.getElementById('chatModelLabel').textContent = lastOrchestratorModel;
@@ -139,6 +143,7 @@ function initBrainSSE() {
 
     brainEventSource.addEventListener('brain_phase', (e) => {
       const d = JSON.parse(e.data);
+      try { if (typeof reportPipelinePhase === 'function') reportPipelinePhase(d.name || 'brain_phase', d.status || 'brain', d.name || 'brain phase'); } catch (_) {}
       if (d.status === 'running') {
         const phaseLabels = {
           deep_sleep: '💤 DeepSleep',

@@ -1,7 +1,7 @@
 # WORKLOG
 
 Status: active architecture refactor tracking.
-Last updated: 2026-03-13
+Last updated: 2026-03-14
 
 ## Documentation Checkout Policy
 
@@ -1070,3 +1070,139 @@ Stop/Resume: Phase D complete. All D1–D6 delivered. See Implementation Ledger 
 5. `Documents/current/OPEN-ITEMS-AUDIT.md`
 6. `CHANGELOG.md`
 7. `package.json`
+
+## Implementation Ledger (2026-03-14)
+
+### UI Shell - Creator Extraction and Window App Integration
+
+Status: `Done`
+
+Scope:
+1. Move entity creation flow out of inline modal into a dedicated creator app surface.
+2. Make Creator a first-class window app in the desktop shell.
+3. Remove `+ New` creation actions from Entity app surfaces.
+
+Landed slices:
+1. Added standalone creator app files:
+   - `client/create.html`
+   - `client/js/create.js`
+2. Added shell app integration for Creator:
+   - Added `creator` entry to `WINDOW_APPS` in `client/js/app.js`.
+   - Added `tab-creator` iframe pane in `client/index.html`.
+3. Rewired creation entry points to Creator app:
+   - `showNewEntityDialog()` now routes to Creator window.
+   - setup hatch route now routes to Creator window.
+4. Removed inline entity-creation modal/progress markup from `client/index.html`.
+
+Exit criteria:
+1. Creator runs as its own resizable app window.
+2. Entity app no longer owns `+ New` creation controls.
+
+### UI Shell - Release/Checkout Controls Hardening
+
+Status: `Done`
+
+Scope:
+1. Ensure entities can always be released after checkout.
+2. Surface release controls in all key user paths.
+
+Landed slices:
+1. Release visibility now uses server-synced active entity state in `refreshSidebarEntities()`.
+2. `releaseActiveEntity()` now resolves active entity from `/api/entities/current` if local state is stale.
+3. Release controls added/wired in:
+   - nav entity actions
+   - start menu entity actions
+   - chat toolbar
+   - entity profile view action row
+
+Exit criteria:
+1. User can check out and release/check-in without UI dead-end.
+
+### UI Shell - Users App + Power Controls
+
+Status: `Done`
+
+Scope:
+1. Add first-class Users app window for profile management.
+2. Add visible server power controls in requested locations.
+
+Landed slices:
+1. Added `users` app to shell window registry and new `tab-users` view in `client/index.html`.
+2. Added users app handlers in `client/js/app.js`:
+   - `usersAppRefresh`
+   - `usersAppCreateUser`
+   - `usersAppSetActive`
+   - `usersAppClearActive`
+   - `usersAppDelete`
+3. Power control placement:
+   - Start/Apps menu quick actions (`⏻ Power`)
+   - left-bottom nav sidebar (`Power Off Server`)
+
+Exit criteria:
+1. Users app is launchable and functional against existing `/api/users*` routes.
+2. Power button visible in both requested locations.
+
+## Stop/Resume Snapshot
+
+- Current phase: `UI Shell Consolidation`
+- Current slice: `Post-integration UX verification`
+- Last completed slice: `Users app + release control hardening + power controls`
+- In-progress item: `none`
+- Next action on resume: `Run browser validation pass for Creator/Users/Release/Power controls and update CHANGELOG if missing entries`
+
+## Documentation Audit Note (2026-03-14)
+
+Status: `Done`
+
+1. Requested git comparison could not be executed in this workspace because `c:\Users\voard\Desktop\NekoCore-main` has no `.git` metadata.
+2. Fallback used: reconcile docs against concrete in-workspace file changes and live implemented features.
+3. Changelog updated under `Unreleased` to capture Creator extraction, release/check-in controls, Users app, and power-control placement.
+4. If repository metadata is restored, run a follow-up true git diff audit and append any missing deltas.
+
+## Session Stop Checkpoint (2026-03-14)
+
+Status: `Paused`
+
+1. Attempted to pull missing `Documents/` from `https://github.com/voardwalker-code/NekoCore.git`.
+2. Remote clone succeeded, but no `Documents/` (or `docs/`) directory exists on `origin/main`.
+3. User confirmed newer docs are available on another laptop/git source; docs import deferred.
+4. Resume action: import docs from alternate source, then run a docs truth-sync pass against current Creator/Users/Release/Power changes.
+
+### 2026-03-14 - entityPaths Module Relocation (Path-Hygiene-1)
+
+Status: `Done`
+
+Scope delivered:
+1. Moved canonical path module from `server/entities/entityPaths.js` to `server/entityPaths.js` to avoid confusion with top-level runtime data folder.
+2. Updated server and tests imports to the new module location.
+3. Removed obsolete `server/entities/` directory after migration.
+4. Kept root runtime data folder (`entities/`) as the canonical per-entity storage target.
+
+Validation:
+1. `node --test tests/unit/entity-paths.test.js` => 12 pass, 0 fail.
+
+## Manual Test Notes Queue (2026-03-14)
+
+Status: `Queued`
+
+1. Dream memory regression check:
+   - Symptom to verify: `Dream Memory not found` appears unexpectedly.
+2. Physical self UI verification:
+   - Symptom to verify: `Physical Self` display/layout appears visually off.
+
+### 2026-03-14 - Personal Data Sweep (Pre-Push)
+
+Status: `Done`
+
+Scope delivered:
+1. Cleared runtime auth/user state files to empty objects:
+   - `server/data/accounts.json`
+   - `server/data/sessions.json`
+   - `server/data/checkouts.json`
+2. Cleared system timeline log file:
+   - `memories/logs/timeline-system.ndjson`
+3. Ensured root runtime folder exists as required:
+   - `entities/`
+
+Push status:
+1. Push could not be executed from this workspace: no `.git` metadata is present (`fatal: not a git repository`).

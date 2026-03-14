@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const entityPaths = require('../../entities/entityPaths');
+const entityPaths = require('../../entityPaths');
 
 const ONBOARDING_QUESTIONS = [
   { round: 1, question: "Before we dive in — what's your name?" },

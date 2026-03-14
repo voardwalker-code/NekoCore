@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const entityPaths = require('../../entities/entityPaths');
+const entityPaths = require('../../entityPaths');
 const MemoryIndexCache = require('../memory/memory-index-cache');
 
 class HatchEntity {

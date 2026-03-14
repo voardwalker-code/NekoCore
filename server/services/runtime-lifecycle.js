@@ -137,7 +137,7 @@ function createRuntimeLifecycle(deps = {}) {
 
       if (currentEntityId) {
         try {
-          const entityPaths = require('../entities/entityPaths');
+          const entityPaths = require('../entityPaths');
           deps.contextConsolidator.buildConsolidatedContext(currentEntityId, entityPaths);
           console.log('  ✓ Shutdown sleep-cycle: context rebuilt');
         } catch (e) {

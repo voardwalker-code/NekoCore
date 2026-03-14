@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const entityPaths = require('../../entities/entityPaths');
+const entityPaths = require('../../entityPaths');
 const MemoryIndexCache = require('./memory-index-cache');
 const { normalizeMemoryRecord } = require('../../contracts/memory-schema');
 

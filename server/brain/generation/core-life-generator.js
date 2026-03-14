@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const crypto = require('crypto');
-const { getEpisodicMemoryPath } = require('../../entities/entityPaths');
+const { getEpisodicMemoryPath } = require('../../entityPaths');
 
 // Helper to generate unique memory id
 function genMemoryId() {

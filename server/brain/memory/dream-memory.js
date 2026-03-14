@@ -24,7 +24,7 @@
 const fs   = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const entityPaths = require('../../entities/entityPaths');
+const entityPaths = require('../../entityPaths');
 
 const SIGNIFICANCE_THRESHOLD = 0.60; // Dreams above this are flagged as CoreDreamMemories
 

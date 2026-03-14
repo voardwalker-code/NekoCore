@@ -40,6 +40,84 @@ let setupActive = false;
 let setupStep = 0;
 let setupData = {};
 
+const THEME_STORAGE_KEY = 'rem-ui-theme';
+const SHELL_THEMES = {
+  'system-default': { id: 'system-default', label: 'System Default', href: '' },
+  'light-default': { id: 'light-default', label: 'Light Mode', href: 'themes/light-default.css' },
+  'neko-default': { id: 'neko-default', label: 'Neko Default', href: 'themes/neko-default.css' },
+  'sunset-terminal': { id: 'sunset-terminal', label: 'Sunset Terminal', href: 'themes/sunset-terminal.css' },
+  'frosted-orbit': { id: 'frosted-orbit', label: 'Frosted Orbit', href: 'themes/frosted-orbit.css' },
+  'mac-sequoia': { id: 'mac-sequoia', label: 'Mac Sequoia', href: 'themes/mac-sequoia.css' },
+  'ubuntu-dash': { id: 'ubuntu-dash', label: 'Ubuntu Dash', href: 'themes/ubuntu-dash.css' }
+};
+
+let desktopShellInitialized = false;
+let shellClockTimer = null;
+let shellStatusTimer = null;
+let taskbarOverflowRaf = 0;
+const WINDOW_LAYOUT_STORAGE_KEY = 'rem-window-layout-v2';
+const PINNED_APPS_STORAGE_KEY = 'rem-pinned-apps-v1';
+const DEFAULT_PINNED_APPS = ['chat', 'skills', 'activity', 'browser'];
+
+const WINDOW_APPS = [
+  { tab: 'chat', label: 'Chat', icon: '💬', w: 980, h: 680 },
+  { tab: 'skills', label: 'Skills', icon: '🧰', w: 980, h: 680 },
+  { tab: 'settings', label: 'Settings', icon: '⚙️', w: 980, h: 700 },
+  { tab: 'visualizer', label: 'Visualizer', icon: '🧠', w: 1020, h: 700 },
+  { tab: 'physical', label: 'Physical Body', icon: '❤️', w: 900, h: 640 },
+  { tab: 'dreamgallery', label: 'Dream Gallery', icon: '🌙', w: 980, h: 680 },
+  { tab: 'lifediary', label: 'Life Diary', icon: '📘', w: 900, h: 640 },
+  { tab: 'dreamdiary', label: 'Dream Diary', icon: '🌘', w: 900, h: 640 },
+  { tab: 'documents', label: 'Documents', icon: '📄', w: 980, h: 680 },
+  { tab: 'workspace', label: 'Workspace', icon: '📁', w: 980, h: 680 },
+  { tab: 'activity', label: 'Task Manager', icon: '🖥️', w: 980, h: 680 },
+  { tab: 'observability', label: 'Observability', icon: '🧪', w: 980, h: 680 },
+  { tab: 'advanced', label: 'Advanced', icon: '🔧', w: 980, h: 680 },
+  { tab: 'entity', label: 'Entity', icon: '🧬', w: 820, h: 620 },
+  { tab: 'creator', label: 'Creator', icon: '✨', w: 980, h: 760 },
+  { tab: 'users', label: 'Users', icon: '👥', w: 900, h: 660 },
+  { tab: 'browser', label: 'Web Browser', icon: '🌐', w: 1080, h: 720 }
+];
+
+const windowManager = {
+  stage: null,
+  windows: new Map(),
+  z: 20,
+  initialized: false,
+  popoutTab: null,
+  dock: {
+    overlay: null,
+    active: false,
+    selectedZone: null,
+    tab: null
+  }
+};
+let pinnedApps = [];
+let systemThemeMediaQuery = null;
+const pinnedDragState = {
+  tab: null,
+  source: null,
+  hoveringTab: null
+};
+
+const runtimeTelemetry = {
+  activePhase: 'Idle',
+  phaseSince: 0,
+  tokenUsage: null,
+  models: {},
+  totalDurationMs: 0,
+  brainCycleCount: 0,
+  brainRunning: false,
+  eventFeed: [],
+  somatic: {
+    cpu: 0,
+    ram: 0
+  },
+  appStats: {},
+  activeWindowTab: 'chat',
+  lastRequestByTab: {}
+};
+
 // ============================================================
 // LOGGING
 // ============================================================
@@ -73,6 +151,1267 @@ function updateProviderUI(type, connected, label) {
   if (connected) {
     try { if (typeof flushPendingSystemPrompt === 'function') flushPendingSystemPrompt(); } catch (e) { /* ignore */ }
   }
+  syncShellStatusWidgets();
+}
+
+function getStoredThemeId() {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) || 'system-default';
+  } catch (_) {
+    return 'system-default';
+  }
+}
+
+function updateShellThemeSummary(themeId) {
+  const resolvedThemeId = themeId === 'system-default'
+    ? ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'neko-default' : 'light-default')
+    : themeId;
+  const theme = SHELL_THEMES[resolvedThemeId] || SHELL_THEMES['neko-default'];
+  const summary = document.getElementById('shellThemeSummary');
+  if (summary) summary.textContent = themeId === 'system-default' ? 'System (' + theme.label + ')' : theme.label;
+  const tmTheme = document.getElementById('tmThemeName');
+  if (tmTheme) tmTheme.textContent = themeId === 'system-default' ? 'System (' + theme.label + ')' : theme.label;
+}
+
+function syncThemeSelectorUI(themeId) {
+  document.querySelectorAll('[data-theme-option]').forEach((button) => {
+    button.classList.toggle('is-active', button.getAttribute('data-theme-option') === themeId);
+  });
+  updateShellThemeSummary(themeId);
+}
+
+function applyTheme(themeId) {
+  const selected = SHELL_THEMES[themeId] ? themeId : 'neko-default';
+  const theme = SHELL_THEMES[selected];
+  const themeLink = document.getElementById('themeOverrideLink');
+
+  if (systemThemeMediaQuery && systemThemeMediaQuery.__remListener) {
+    systemThemeMediaQuery.removeEventListener('change', systemThemeMediaQuery.__remListener);
+    systemThemeMediaQuery.__remListener = null;
+  }
+
+  const applyResolvedTheme = (resolvedId) => {
+    const resolvedTheme = SHELL_THEMES[resolvedId] || SHELL_THEMES['neko-default'];
+    if (themeLink) {
+      themeLink.setAttribute('href', resolvedTheme.href);
+    }
+    document.documentElement.setAttribute('data-theme', selected);
+    if (document.body) {
+      document.body.classList.toggle('theme-ubuntu-dash', resolvedTheme.id === 'ubuntu-dash');
+      document.body.classList.toggle('theme-mac-sequoia', resolvedTheme.id === 'mac-sequoia');
+      document.body.classList.toggle('theme-light-mode', resolvedTheme.id === 'light-default');
+    }
+    updateShellThemeSummary(selected);
+  };
+
+  if (selected === 'system-default') {
+    systemThemeMediaQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    const resolveSystemTheme = () => (systemThemeMediaQuery && systemThemeMediaQuery.matches) ? 'neko-default' : 'light-default';
+    applyResolvedTheme(resolveSystemTheme());
+    if (systemThemeMediaQuery) {
+      const listener = () => applyResolvedTheme(resolveSystemTheme());
+      systemThemeMediaQuery.addEventListener('change', listener);
+      systemThemeMediaQuery.__remListener = listener;
+    }
+  } else {
+    applyResolvedTheme(selected);
+  }
+
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, selected);
+  } catch (_) {
+    // Ignore storage failures and continue with in-memory theme.
+  }
+  syncThemeSelectorUI(selected);
+}
+
+function formatTelemetryModel(model) {
+  if (!model) return '—';
+  return String(model).split('/').pop();
+}
+
+function pushTelemetryEvent(line) {
+  runtimeTelemetry.eventFeed.unshift({ ts: Date.now(), line });
+  runtimeTelemetry.eventFeed = runtimeTelemetry.eventFeed.slice(0, 30);
+}
+
+function normalizePercent(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  if (n <= 1) return Math.max(0, Math.min(100, n * 100));
+  return Math.max(0, Math.min(100, n));
+}
+
+function getFocusedWindowTab() {
+  const openWindows = Array.from(windowManager.windows.values()).filter((meta) => meta.open);
+  if (!openWindows.length) return 'chat';
+  openWindows.sort((a, b) => (parseInt(b.el.style.zIndex || '1', 10) - parseInt(a.el.style.zIndex || '1', 10)));
+  return openWindows[0].tab;
+}
+
+function getOrCreateAppStats(tabName) {
+  if (!runtimeTelemetry.appStats[tabName]) {
+    runtimeTelemetry.appStats[tabName] = {
+      cpu: [],
+      memory: [],
+      requestMs: [],
+      label: getWindowApp(tabName).label,
+      icon: getWindowApp(tabName).icon
+    };
+  }
+  return runtimeTelemetry.appStats[tabName];
+}
+
+function pushSeriesPoint(series, value) {
+  series.push(Math.round(value));
+  if (series.length > 28) series.shift();
+}
+
+function estimateHeapPercent() {
+  const mem = (typeof performance !== 'undefined' && performance.memory) ? performance.memory : null;
+  if (!mem || !mem.totalJSHeapSize) return 0;
+  return normalizePercent(mem.usedJSHeapSize / mem.totalJSHeapSize);
+}
+
+function updateAppStatsSeries() {
+  const activeTab = runtimeTelemetry.activeWindowTab || getFocusedWindowTab();
+  const openTabs = Array.from(windowManager.windows.values()).filter((meta) => meta.open).map((meta) => meta.tab);
+  const candidateTabs = Array.from(new Set([...pinnedApps, ...openTabs, activeTab])).slice(0, 9);
+  if (!candidateTabs.length) return;
+
+  const cpuBase = normalizePercent(runtimeTelemetry.somatic.cpu) || 7;
+  const ramBase = normalizePercent(runtimeTelemetry.somatic.ram) || estimateHeapPercent() || 22;
+  const lastRequest = runtimeTelemetry.totalDurationMs || 0;
+
+  candidateTabs.forEach((tabName) => {
+    const stats = getOrCreateAppStats(tabName);
+    const isOpen = openTabs.includes(tabName);
+    const isActive = tabName === activeTab;
+    const activityWeight = isActive ? 1 : (isOpen ? 0.6 : 0.28);
+    const jitter = (Math.random() * 10) - 5;
+    const cpuPoint = Math.max(1, Math.min(100, (cpuBase * activityWeight) + (isOpen ? 10 : 2) + jitter));
+    const memPoint = Math.max(2, Math.min(100, (ramBase * (isActive ? 0.82 : 0.55)) + (isOpen ? 9 : 3) + (jitter * 0.4)));
+    const reqSample = runtimeTelemetry.lastRequestByTab[tabName] || (tabName === activeTab ? lastRequest : Math.round(lastRequest * 0.38));
+
+    pushSeriesPoint(stats.cpu, cpuPoint);
+    pushSeriesPoint(stats.memory, memPoint);
+    pushSeriesPoint(stats.requestMs, Math.max(0, Math.min(120000, Number(reqSample) || 0)));
+  });
+}
+
+function sparklinePath(values, width, height, maxValue) {
+  if (!values.length) return '';
+  const max = Math.max(1, maxValue || Math.max.apply(null, values));
+  const step = values.length === 1 ? width : width / (values.length - 1);
+  return values.map((v, idx) => {
+    const x = (idx * step).toFixed(1);
+    const y = (height - ((Math.max(0, v) / max) * height)).toFixed(1);
+    return (idx === 0 ? 'M' : 'L') + x + ' ' + y;
+  }).join(' ');
+}
+
+function renderAppMetrics() {
+  const host = document.getElementById('tmAppMetricsGrid');
+  if (!host) return;
+
+  updateAppStatsSeries();
+
+  const keys = Object.keys(runtimeTelemetry.appStats)
+    .filter((key) => pinnedApps.includes(key) || windowManager.windows.get(key)?.open)
+    .slice(0, 9);
+
+  if (!keys.length) {
+    host.innerHTML = '<div class="tm-metric-empty">Open or pin apps to see live app telemetry.</div>';
+    return;
+  }
+
+  host.innerHTML = keys.map((tabName) => {
+    const stats = runtimeTelemetry.appStats[tabName];
+    const app = getWindowApp(tabName);
+    const cpuNow = stats.cpu.length ? stats.cpu[stats.cpu.length - 1] : 0;
+    const memNow = stats.memory.length ? stats.memory[stats.memory.length - 1] : 0;
+    const reqNow = stats.requestMs.length ? stats.requestMs[stats.requestMs.length - 1] : 0;
+    const reqMax = Math.max(1000, Math.max.apply(null, stats.requestMs.concat([1000])));
+    const cpuPath = sparklinePath(stats.cpu, 112, 28, 100);
+    const memPath = sparklinePath(stats.memory, 112, 28, 100);
+    const reqPath = sparklinePath(stats.requestMs, 112, 28, reqMax);
+    const isOpen = windowManager.windows.get(tabName)?.open;
+
+    return '<div class="tm-metric-card' + (isOpen ? ' is-open' : '') + '">' +
+      '<div class="tm-metric-head"><span>' + app.icon + ' ' + app.label + '</span><span class="tm-metric-pill">' + (isOpen ? 'Open' : 'Pinned') + '</span></div>' +
+      '<div class="tm-spark-row"><span>CPU ' + cpuNow + '%</span><svg viewBox="0 0 112 28" aria-hidden="true"><path d="' + cpuPath + '"></path></svg></div>' +
+      '<div class="tm-spark-row"><span>MEM ' + memNow + '%</span><svg viewBox="0 0 112 28" aria-hidden="true"><path d="' + memPath + '"></path></svg></div>' +
+      '<div class="tm-spark-row"><span>REQ ' + reqNow + 'ms</span><svg viewBox="0 0 112 28" aria-hidden="true"><path d="' + reqPath + '"></path></svg></div>' +
+    '</div>';
+  }).join('');
+}
+
+function reportPipelinePhase(phase, status, detail) {
+  runtimeTelemetry.activePhase = phase || 'Idle';
+  runtimeTelemetry.phaseSince = Date.now();
+  if (detail) pushTelemetryEvent((status ? status + ': ' : '') + detail);
+}
+
+function reportOrchestrationMetrics(data) {
+  runtimeTelemetry.tokenUsage = data?.tokenUsage?.total || null;
+  runtimeTelemetry.models = data?.models || runtimeTelemetry.models;
+  runtimeTelemetry.totalDurationMs = data?.totalDuration || data?.timing?.total_ms || 0;
+  const activeTab = runtimeTelemetry.activeWindowTab || getFocusedWindowTab();
+  if (runtimeTelemetry.totalDurationMs > 0 && activeTab) {
+    runtimeTelemetry.lastRequestByTab[activeTab] = runtimeTelemetry.totalDurationMs;
+  }
+  runtimeTelemetry.activePhase = 'Idle';
+  runtimeTelemetry.phaseSince = Date.now();
+  pushTelemetryEvent('Orchestration complete' + (runtimeTelemetry.totalDurationMs ? ' in ' + runtimeTelemetry.totalDurationMs + 'ms' : ''));
+}
+
+function updateShellClock() {
+  const clock = document.getElementById('shellClock');
+  const date = document.getElementById('shellDate');
+  if (!clock && !date) return;
+  const now = new Date();
+  if (clock) clock.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (date) date.textContent = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+function syncShellStatusWidgets() {
+  const entitySummary = document.getElementById('shellEntitySummary');
+  const providerSummary = document.getElementById('shellProviderSummary');
+  const brainSummary = document.getElementById('shellBrainSummary');
+  const taskbarStatus = document.getElementById('shellTaskbarStatus');
+
+  const entityText = (currentEntityName && currentEntityName.trim())
+    || document.getElementById('entityName')?.textContent?.trim()
+    || document.getElementById('entityTraits')?.textContent?.trim()
+    || 'No entity loaded';
+  const providerText = document.getElementById('providerName')?.textContent?.trim() || 'No provider';
+  const brainText = document.getElementById('brainLabel')?.textContent?.trim() || 'Idle';
+  const openCount = Array.from(windowManager.windows.values()).filter((meta) => meta.open).length;
+
+  if (entitySummary) entitySummary.textContent = entityText;
+  if (providerSummary) providerSummary.textContent = providerText;
+  if (brainSummary) brainSummary.textContent = brainText;
+  if (taskbarStatus) {
+    taskbarStatus.textContent = openCount > 0
+      ? openCount + ' window' + (openCount === 1 ? '' : 's') + ' open'
+      : 'No windows open';
+  }
+
+  const tmOpen = document.getElementById('tmOpenWindows');
+  if (tmOpen) tmOpen.textContent = String(openCount);
+  const tmPinned = document.getElementById('tmPinnedApps');
+  if (tmPinned) tmPinned.textContent = String(pinnedApps.length);
+}
+
+function updateTaskManagerView() {
+  const providerType = activeConfig?.type || 'none';
+  const providerModel = activeConfig?.model || 'Not connected';
+  const providerModelEl = document.getElementById('tmProviderModel');
+  const providerTypeEl = document.getElementById('tmProviderType');
+  if (providerModelEl) providerModelEl.textContent = providerModel;
+  if (providerTypeEl) providerTypeEl.textContent = providerType;
+
+  const phaseEl = document.getElementById('tmPipelinePhase');
+  const ageEl = document.getElementById('tmPipelineAge');
+  if (phaseEl) phaseEl.textContent = runtimeTelemetry.activePhase || 'Idle';
+  if (ageEl) {
+    const ageMs = runtimeTelemetry.phaseSince ? Date.now() - runtimeTelemetry.phaseSince : 0;
+    ageEl.textContent = runtimeTelemetry.activePhase === 'Idle'
+      ? 'No active orchestration'
+      : 'Active for ' + Math.max(0, Math.round(ageMs / 1000)) + 's';
+  }
+
+  const tokens = runtimeTelemetry.tokenUsage;
+  const tokenTotalEl = document.getElementById('tmTokensTotal');
+  const tokenBreakEl = document.getElementById('tmTokensBreakdown');
+  if (tokenTotalEl) tokenTotalEl.textContent = tokens ? String(tokens.total_tokens || 0) : '0';
+  if (tokenBreakEl) tokenBreakEl.textContent = tokens
+    ? 'In: ' + (tokens.prompt_tokens || 0) + ' • Out: ' + (tokens.completion_tokens || 0)
+    : 'In: 0 • Out: 0';
+
+  const brainStatusEl = document.getElementById('tmBrainStatus');
+  const brainCycleEl = document.getElementById('tmBrainCycles');
+  if (brainStatusEl) brainStatusEl.textContent = runtimeTelemetry.brainRunning ? 'Running' : 'Idle';
+  if (brainCycleEl) {
+    brainCycleEl.textContent = 'Cycle ' + (runtimeTelemetry.brainCycleCount || 0)
+      + (runtimeTelemetry.totalDurationMs ? ' • Last run ' + runtimeTelemetry.totalDurationMs + 'ms' : '');
+  }
+
+  const models = runtimeTelemetry.models || {};
+  const setModel = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = formatTelemetryModel(value);
+  };
+  setModel('tmModelSub', models.subconscious);
+  setModel('tmModelDream', models.dream);
+  setModel('tmModelConscious', models.conscious);
+  setModel('tmModelOrchestrator', models.orchestrator);
+
+  const feedEl = document.getElementById('tmEventFeed');
+  if (feedEl) {
+    if (!runtimeTelemetry.eventFeed.length) {
+      feedEl.innerHTML = '<div class="tm-event">Waiting for pipeline events...</div>';
+    } else {
+      feedEl.innerHTML = runtimeTelemetry.eventFeed.slice(0, 12).map((item) => {
+        const time = new Date(item.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        return '<div class="tm-event"><span class="tm-event-ts">' + time + '</span><span>' + item.line + '</span></div>';
+      }).join('');
+    }
+  }
+
+  renderAppMetrics();
+}
+
+window.reportPipelinePhase = reportPipelinePhase;
+window.reportOrchestrationMetrics = reportOrchestrationMetrics;
+
+function closeStartMenu() {
+  const menu = document.getElementById('osStartMenu');
+  const scrim = document.getElementById('osStartScrim');
+  const button = document.getElementById('osStartButton');
+  if (menu) {
+    menu.classList.remove('open');
+    menu.setAttribute('aria-hidden', 'true');
+  }
+  if (scrim) scrim.classList.remove('open');
+  if (button) button.setAttribute('aria-expanded', 'false');
+}
+
+function toggleStartMenu(forceOpen) {
+  const menu = document.getElementById('osStartMenu');
+  const scrim = document.getElementById('osStartScrim');
+  const button = document.getElementById('osStartButton');
+  if (!menu || !scrim) return;
+
+  const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !menu.classList.contains('open');
+  menu.classList.toggle('open', shouldOpen);
+  menu.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+  scrim.classList.toggle('open', shouldOpen);
+  if (button) button.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+}
+
+function initDesktopShell() {
+  if (desktopShellInitialized) return;
+  desktopShellInitialized = true;
+
+  applyTheme(getStoredThemeId());
+  initWindowManager();
+  loadPinnedApps();
+  buildLauncherMenu();
+  renderPinnedApps();
+  updateShellClock();
+  syncShellStatusWidgets();
+  updateTaskManagerView();
+  syncNavSidebarEntities();
+  syncNavSidebarProfiles();
+
+  if (!windowManager.popoutTab) {
+    const restored = restoreWindowLayout();
+    if (!restored) {
+      switchMainTab('chat');
+    }
+  }
+
+  shellClockTimer = window.setInterval(updateShellClock, 30000);
+  shellStatusTimer = window.setInterval(syncShellStatusWidgets, 4000);
+  window.setInterval(updateTaskManagerView, 1200);
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeStartMenu();
+  });
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('#osStartMenu') || target.closest('#osStartButton')) return;
+    closeStartMenu();
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (!windowManager.popoutTab) saveWindowLayout();
+  });
+}
+
+function getWindowApp(tabName) {
+  return WINDOW_APPS.find((app) => app.tab === tabName)
+    || { tab: tabName, label: tabName, icon: '🪟', w: 900, h: 640 };
+}
+
+function loadPinnedApps() {
+  try {
+    const raw = localStorage.getItem(PINNED_APPS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        pinnedApps = parsed.filter((tab) => WINDOW_APPS.some((app) => app.tab === tab));
+      }
+    }
+  } catch (_) {
+    pinnedApps = [];
+  }
+  if (!pinnedApps.length) pinnedApps = [...DEFAULT_PINNED_APPS];
+}
+
+function savePinnedApps() {
+  try {
+    localStorage.setItem(PINNED_APPS_STORAGE_KEY, JSON.stringify(pinnedApps));
+  } catch (_) {
+    // Ignore storage failures.
+  }
+}
+
+function isPinnedApp(tabName) {
+  return pinnedApps.includes(tabName);
+}
+
+function togglePinnedApp(tabName) {
+  if (isPinnedApp(tabName)) {
+    pinnedApps = pinnedApps.filter((tab) => tab !== tabName);
+  } else {
+    pinnedApps.push(tabName);
+  }
+  savePinnedApps();
+  buildLauncherMenu();
+  renderPinnedApps();
+}
+
+function reorderPinnedApps(dragTab, beforeTab) {
+  if (!dragTab || !pinnedApps.includes(dragTab)) return;
+  const next = pinnedApps.filter((tab) => tab !== dragTab);
+  const insertAt = beforeTab && next.includes(beforeTab) ? next.indexOf(beforeTab) : next.length;
+  next.splice(insertAt, 0, dragTab);
+  pinnedApps = next;
+  savePinnedApps();
+  renderPinnedApps();
+}
+
+function clearPinnedDropTargets() {
+  document.querySelectorAll('.os-pinned-app.drop-target, .os-dash-app.drop-target').forEach((el) => {
+    el.classList.remove('drop-target');
+  });
+}
+
+function onPinnedDragStart(event) {
+  const el = event.currentTarget;
+  if (!(el instanceof Element)) return;
+  const tab = el.getAttribute('data-tab');
+  if (!tab) return;
+  pinnedDragState.tab = tab;
+  pinnedDragState.source = el.classList.contains('os-dash-app') ? 'dash' : 'taskbar';
+  el.classList.add('is-dragging');
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', tab);
+  }
+}
+
+function onPinnedDragEnd(event) {
+  const el = event.currentTarget;
+  if (el instanceof Element) el.classList.remove('is-dragging');
+  pinnedDragState.tab = null;
+  pinnedDragState.source = null;
+  pinnedDragState.hoveringTab = null;
+  clearPinnedDropTargets();
+}
+
+function onPinnedDragOver(event) {
+  if (!pinnedDragState.tab) return;
+  event.preventDefault();
+  const el = event.currentTarget;
+  if (!(el instanceof Element)) return;
+  const targetTab = el.getAttribute('data-tab');
+  if (!targetTab || targetTab === pinnedDragState.tab) return;
+  clearPinnedDropTargets();
+  el.classList.add('drop-target');
+  pinnedDragState.hoveringTab = targetTab;
+}
+
+function onPinnedDrop(event) {
+  if (!pinnedDragState.tab) return;
+  event.preventDefault();
+  const el = event.currentTarget;
+  const targetTab = el instanceof Element ? el.getAttribute('data-tab') : null;
+  reorderPinnedApps(pinnedDragState.tab, targetTab || pinnedDragState.hoveringTab || null);
+  clearPinnedDropTargets();
+}
+
+function onPinnedContainerDragOver(event) {
+  if (!pinnedDragState.tab) return;
+  event.preventDefault();
+}
+
+function onPinnedContainerDrop(event) {
+  if (!pinnedDragState.tab) return;
+  event.preventDefault();
+  if (pinnedDragState.hoveringTab) {
+    reorderPinnedApps(pinnedDragState.tab, pinnedDragState.hoveringTab);
+  } else {
+    reorderPinnedApps(pinnedDragState.tab, null);
+  }
+  clearPinnedDropTargets();
+}
+
+function createPinnedButton(app, className) {
+  const button = document.createElement('button');
+  button.className = className;
+  button.setAttribute('data-tab', app.tab);
+  button.title = app.label;
+  button.textContent = app.icon + ' ' + app.label;
+  button.onclick = function() { switchMainTab(app.tab, button); };
+  button.draggable = true;
+  button.addEventListener('dragstart', onPinnedDragStart);
+  button.addEventListener('dragend', onPinnedDragEnd);
+  button.addEventListener('dragover', onPinnedDragOver);
+  button.addEventListener('drop', onPinnedDrop);
+  return button;
+}
+
+function updateTaskbarOverflow() {
+  if (taskbarOverflowRaf) {
+    cancelAnimationFrame(taskbarOverflowRaf);
+    taskbarOverflowRaf = 0;
+  }
+
+  taskbarOverflowRaf = requestAnimationFrame(() => {
+    taskbarOverflowRaf = 0;
+    const center = document.getElementById('osTaskbarCenter');
+    const startBtn = document.getElementById('osStartButton');
+    const taskbarHost = document.getElementById('osTaskbarPinned');
+    const overflowWrap = document.getElementById('osTaskbarOverflowWrap');
+    const overflowMenu = document.getElementById('osTaskbarOverflowMenu');
+    const overflowButton = document.getElementById('osTaskbarOverflowButton');
+    if (!center || !startBtn || !taskbarHost || !overflowWrap || !overflowMenu || !overflowButton) return;
+
+    overflowMenu.innerHTML = '';
+    overflowWrap.classList.remove('open');
+    overflowWrap.style.display = 'none';
+    overflowButton.setAttribute('aria-expanded', 'false');
+
+    const allButtons = Array.from(taskbarHost.querySelectorAll('.os-pinned-app'));
+    if (!allButtons.length) return;
+
+    allButtons.forEach((btn) => {
+      btn.style.display = '';
+    });
+
+    const available = Math.max(120, center.clientWidth - startBtn.offsetWidth - 14);
+    let used = 0;
+    let visibleCount = allButtons.length;
+
+    for (let i = 0; i < allButtons.length; i += 1) {
+      const width = allButtons[i].offsetWidth + 8;
+      if (used + width > available) {
+        visibleCount = i;
+        break;
+      }
+      used += width;
+    }
+
+    if (visibleCount >= allButtons.length) return;
+
+    overflowWrap.style.display = 'inline-flex';
+    overflowWrap.classList.remove('open');
+    const reserve = overflowButton.offsetWidth + 8;
+    while (visibleCount > 0 && used + reserve > available) {
+      visibleCount -= 1;
+      used -= (allButtons[visibleCount].offsetWidth + 8);
+    }
+
+    allButtons.forEach((btn, index) => {
+      if (index < visibleCount) {
+        btn.style.display = '';
+        return;
+      }
+      btn.style.display = 'none';
+      const clone = btn.cloneNode(true);
+      clone.classList.add('os-overflow-app');
+      clone.style.display = '';
+      clone.onclick = function() {
+        switchMainTab(clone.getAttribute('data-tab'), clone);
+        overflowWrap.classList.remove('open');
+        overflowButton.setAttribute('aria-expanded', 'false');
+      };
+      overflowMenu.appendChild(clone);
+    });
+
+    if (!overflowMenu.children.length) {
+      overflowWrap.style.display = 'none';
+    }
+  });
+}
+
+function bindTaskbarOverflowControls() {
+  const overflowWrap = document.getElementById('osTaskbarOverflowWrap');
+  const overflowButton = document.getElementById('osTaskbarOverflowButton');
+  if (!overflowWrap || !overflowButton || overflowButton.dataset.bound === '1') return;
+
+  overflowButton.dataset.bound = '1';
+  overflowButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const shouldOpen = !overflowWrap.classList.contains('open');
+    overflowWrap.classList.toggle('open', shouldOpen);
+    overflowButton.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('#osTaskbarOverflowWrap')) return;
+    overflowWrap.classList.remove('open');
+    overflowButton.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function renderPinnedApps() {
+  const taskbarHost = document.getElementById('osTaskbarPinned');
+  const dashHost = document.getElementById('osSideDashPinned');
+  const overflowWrap = document.getElementById('osTaskbarOverflowWrap');
+  const overflowMenu = document.getElementById('osTaskbarOverflowMenu');
+  if (taskbarHost) taskbarHost.innerHTML = '';
+  if (dashHost) dashHost.innerHTML = '';
+  if (overflowMenu) overflowMenu.innerHTML = '';
+  if (overflowWrap) overflowWrap.classList.remove('open');
+
+  if (taskbarHost) {
+    if (taskbarHost.dataset.dropBound !== '1') {
+      taskbarHost.addEventListener('dragover', onPinnedContainerDragOver);
+      taskbarHost.addEventListener('drop', onPinnedContainerDrop);
+      taskbarHost.dataset.dropBound = '1';
+    }
+  }
+  if (dashHost) {
+    if (dashHost.dataset.dropBound !== '1') {
+      dashHost.addEventListener('dragover', onPinnedContainerDragOver);
+      dashHost.addEventListener('drop', onPinnedContainerDrop);
+      dashHost.dataset.dropBound = '1';
+    }
+  }
+
+  pinnedApps.forEach((tabName) => {
+    const app = getWindowApp(tabName);
+    if (!windowManager.windows.has(tabName)) return;
+    if (taskbarHost) taskbarHost.appendChild(createPinnedButton(app, 'os-pinned-app'));
+    if (dashHost) {
+      const dashBtn = document.createElement('button');
+      dashBtn.className = 'os-dash-app';
+      dashBtn.setAttribute('data-tab', app.tab);
+      dashBtn.title = app.label;
+      dashBtn.textContent = app.icon;
+      dashBtn.onclick = function() { switchMainTab(app.tab, dashBtn); };
+      dashBtn.draggable = true;
+      dashBtn.addEventListener('dragstart', onPinnedDragStart);
+      dashBtn.addEventListener('dragend', onPinnedDragEnd);
+      dashBtn.addEventListener('dragover', onPinnedDragOver);
+      dashBtn.addEventListener('drop', onPinnedDrop);
+      dashHost.appendChild(dashBtn);
+    }
+  });
+
+  bindTaskbarOverflowControls();
+  updateTaskbarOverflow();
+  updateTaskManagerView();
+}
+
+function getStageRect() {
+  if (!windowManager.stage) {
+    return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight - 72 };
+  }
+  return windowManager.stage.getBoundingClientRect();
+}
+
+function clampWindowRect(rect, minWidth = 460, minHeight = 320) {
+  const stage = getStageRect();
+  const width = Math.max(minWidth, Math.min(rect.width, stage.width));
+  const height = Math.max(minHeight, Math.min(rect.height, stage.height));
+  const maxLeft = Math.max(0, stage.width - width);
+  const maxTop = Math.max(0, stage.height - height);
+  const left = Math.max(0, Math.min(rect.left, maxLeft));
+  const top = Math.max(0, Math.min(rect.top, maxTop));
+  return { left, top, width, height };
+}
+
+function setWindowRect(meta, rect) {
+  const clamped = clampWindowRect(rect);
+  meta.el.style.left = clamped.left + 'px';
+  meta.el.style.top = clamped.top + 'px';
+  meta.el.style.width = clamped.width + 'px';
+  meta.el.style.height = clamped.height + 'px';
+}
+
+function captureWindowRect(meta) {
+  return {
+    left: parseFloat(meta.el.style.left) || 0,
+    top: parseFloat(meta.el.style.top) || 0,
+    width: parseFloat(meta.el.style.width) || 900,
+    height: parseFloat(meta.el.style.height) || 640
+  };
+}
+
+function rememberWindowRestoreRect(meta) {
+  if (meta.maximized || meta.snapState) return;
+  meta.restoreRect = captureWindowRect(meta);
+}
+
+function clearWindowDockState(meta) {
+  meta.maximized = false;
+  meta.snapState = null;
+  meta.el.classList.remove('maximized');
+}
+
+function restoreWindowForDrag(meta, pointerEvent) {
+  if (!meta.maximized && !meta.snapState) {
+    return captureWindowRect(meta);
+  }
+
+  const stage = getStageRect();
+  const currentBounds = meta.el.getBoundingClientRect();
+  const fallback = getWindowApp(meta.tab);
+  const restoreRect = meta.restoreRect || {
+    left: Math.round((stage.width - fallback.w) / 2),
+    top: Math.round((stage.height - fallback.h) / 2),
+    width: fallback.w,
+    height: fallback.h
+  };
+  const pointerRatioX = currentBounds.width > 0
+    ? (pointerEvent.clientX - currentBounds.left) / currentBounds.width
+    : 0.5;
+  const anchorX = Math.max(0.18, Math.min(0.82, pointerRatioX));
+  const targetRect = {
+    left: (pointerEvent.clientX - stage.left) - (restoreRect.width * anchorX),
+    top: Math.max(0, (pointerEvent.clientY - stage.top) - 24),
+    width: restoreRect.width,
+    height: restoreRect.height
+  };
+
+  clearWindowDockState(meta);
+  setWindowRect(meta, targetRect);
+  return captureWindowRect(meta);
+}
+
+function focusWindow(tabName) {
+  const meta = windowManager.windows.get(tabName);
+  if (!meta || !meta.open) return;
+  windowManager.z += 1;
+  meta.el.style.zIndex = String(windowManager.z);
+  windowManager.windows.forEach((item) => item.el.classList.remove('focused'));
+  meta.el.classList.add('focused');
+  runtimeTelemetry.activeWindowTab = tabName;
+}
+
+function applyWindowActivationEffects(tabName) {
+  if (tabName === 'physical') {
+    initPhysicalTab();
+  }
+  if (tabName === 'entity') {
+    ensureEntityWindowContent(false);
+  }
+  if (tabName === 'users') {
+    usersAppRefresh();
+  }
+  if (tabName === 'lifediary' && typeof loadLifeDiary === 'function') {
+    loadLifeDiary();
+  }
+  if (tabName === 'dreamdiary' && typeof loadDreamDiary === 'function') {
+    loadDreamDiary();
+  }
+}
+
+function openWindow(tabName, options = {}) {
+  const meta = windowManager.windows.get(tabName);
+  if (!meta) return;
+
+  const needsCenter = options.center === true || !meta.open;
+  meta.open = true;
+  meta.el.style.display = 'flex';
+  meta.el.classList.add('open', 'opening');
+  window.setTimeout(() => meta.el.classList.remove('opening'), 220);
+
+  if (needsCenter && !meta.maximized) {
+    const stage = getStageRect();
+    const app = getWindowApp(tabName);
+    setWindowRect(meta, {
+      left: Math.round((stage.width - app.w) / 2),
+      top: Math.round((stage.height - app.h) / 2),
+      width: app.w,
+      height: app.h
+    });
+  }
+
+  if (options.maximize) {
+    toggleMaximizeWindow(tabName, true);
+  }
+
+  focusWindow(tabName);
+  applyWindowActivationEffects(tabName);
+  syncShellStatusWidgets();
+}
+
+function closeWindow(tabName) {
+  const meta = windowManager.windows.get(tabName);
+  if (!meta) return;
+  meta.open = false;
+  meta.el.classList.remove('open', 'focused');
+  meta.el.style.display = 'none';
+  runtimeTelemetry.activeWindowTab = getFocusedWindowTab();
+  syncShellStatusWidgets();
+}
+
+function toggleMaximizeWindow(tabName, force) {
+  const meta = windowManager.windows.get(tabName);
+  if (!meta) return;
+  const shouldMaximize = typeof force === 'boolean' ? force : !meta.maximized;
+  const stage = getStageRect();
+
+  if (shouldMaximize && !meta.maximized) {
+    rememberWindowRestoreRect(meta);
+    meta.maximized = true;
+    meta.snapState = null;
+    meta.el.classList.add('maximized');
+    setWindowRect(meta, { left: 0, top: 0, width: stage.width, height: stage.height });
+  } else if (!shouldMaximize && meta.maximized) {
+    clearWindowDockState(meta);
+    if (meta.restoreRect) setWindowRect(meta, meta.restoreRect);
+  }
+}
+
+function snapWindow(tabName, side) {
+  const meta = windowManager.windows.get(tabName);
+  if (!meta) return;
+  const stage = getStageRect();
+  rememberWindowRestoreRect(meta);
+  clearWindowDockState(meta);
+  if (side === 'left') {
+    meta.snapState = 'left';
+    setWindowRect(meta, { left: 0, top: 0, width: stage.width / 2, height: stage.height });
+  } else if (side === 'right') {
+    meta.snapState = 'right';
+    setWindowRect(meta, { left: stage.width / 2, top: 0, width: stage.width / 2, height: stage.height });
+  } else if (side === 'top') {
+    meta.snapState = 'top';
+    setWindowRect(meta, { left: 0, top: 0, width: stage.width, height: stage.height / 2 });
+  } else if (side === 'bottom') {
+    meta.snapState = 'bottom';
+    setWindowRect(meta, { left: 0, top: stage.height / 2, width: stage.width, height: stage.height / 2 });
+  } else if (side === 'top-left') {
+    meta.snapState = 'top-left';
+    setWindowRect(meta, { left: 0, top: 0, width: stage.width / 2, height: stage.height / 2 });
+  } else if (side === 'top-right') {
+    meta.snapState = 'top-right';
+    setWindowRect(meta, { left: stage.width / 2, top: 0, width: stage.width / 2, height: stage.height / 2 });
+  } else if (side === 'bottom-left') {
+    meta.snapState = 'bottom-left';
+    setWindowRect(meta, { left: 0, top: stage.height / 2, width: stage.width / 2, height: stage.height / 2 });
+  } else if (side === 'bottom-right') {
+    meta.snapState = 'bottom-right';
+    setWindowRect(meta, { left: stage.width / 2, top: stage.height / 2, width: stage.width / 2, height: stage.height / 2 });
+  } else if (side === 'maximize') {
+    toggleMaximizeWindow(tabName, true);
+    return;
+  }
+  focusWindow(tabName);
+}
+
+function showSnapDock(tabName) {
+  const overlay = windowManager.dock.overlay;
+  if (!overlay || windowManager.popoutTab) return;
+  windowManager.dock.active = true;
+  windowManager.dock.tab = tabName;
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+}
+
+function hideSnapDock() {
+  const overlay = windowManager.dock.overlay;
+  if (!overlay) return;
+  windowManager.dock.active = false;
+  windowManager.dock.selectedZone = null;
+  windowManager.dock.tab = null;
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+  overlay.querySelectorAll('.wm-snap-zone').forEach((zone) => zone.classList.remove('is-active'));
+}
+
+function updateSnapDockPointer(clientX, clientY) {
+  if (!windowManager.dock.active || !windowManager.dock.overlay) return;
+  const hovered = document.elementFromPoint(clientX, clientY);
+  const zoneEl = hovered && hovered.closest ? hovered.closest('.wm-snap-zone') : null;
+  windowManager.dock.overlay.querySelectorAll('.wm-snap-zone').forEach((zone) => {
+    zone.classList.toggle('is-active', zone === zoneEl);
+  });
+  windowManager.dock.selectedZone = zoneEl ? zoneEl.getAttribute('data-zone') : null;
+}
+
+function resolveEdgeSnap(clientX, clientY) {
+  const stage = getStageRect();
+  const x = clientX - stage.left;
+  const y = clientY - stage.top;
+  const threshold = 26;
+
+  const left = x <= threshold;
+  const right = x >= stage.width - threshold;
+  const top = y <= threshold;
+  const bottom = y >= stage.height - threshold;
+
+  if (top && left) return 'top-left';
+  if (top && right) return 'top-right';
+  if (bottom && left) return 'bottom-left';
+  if (bottom && right) return 'bottom-right';
+  if (top) return 'maximize';
+  if (left) return 'left';
+  if (right) return 'right';
+  if (bottom) return 'bottom';
+  return null;
+}
+
+function startDrag(meta, event) {
+  event.preventDefault();
+  const startX = event.clientX;
+  const startY = event.clientY;
+  const rect = restoreWindowForDrag(meta, event);
+
+  const move = (moveEvent) => {
+    const stage = getStageRect();
+    const relativeY = moveEvent.clientY - stage.top;
+    if (relativeY <= 30) {
+      showSnapDock(meta.tab);
+    } else if (windowManager.dock.active && relativeY > 86) {
+      hideSnapDock();
+    }
+    updateSnapDockPointer(moveEvent.clientX, moveEvent.clientY);
+
+    setWindowRect(meta, {
+      left: rect.left + (moveEvent.clientX - startX),
+      top: rect.top + (moveEvent.clientY - startY),
+      width: rect.width,
+      height: rect.height
+    });
+  };
+  const up = (upEvent) => {
+    const selectedZone = windowManager.dock.selectedZone || resolveEdgeSnap(upEvent.clientX, upEvent.clientY);
+    if (selectedZone) {
+      snapWindow(meta.tab, selectedZone);
+    }
+    hideSnapDock();
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', up);
+  };
+
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', up);
+}
+
+function startResize(meta, direction, event) {
+  if (meta.maximized) return;
+  event.preventDefault();
+  event.stopPropagation();
+
+  const startX = event.clientX;
+  const startY = event.clientY;
+  const initial = {
+    left: parseFloat(meta.el.style.left) || 0,
+    top: parseFloat(meta.el.style.top) || 0,
+    width: parseFloat(meta.el.style.width) || 900,
+    height: parseFloat(meta.el.style.height) || 640
+  };
+
+  const move = (moveEvent) => {
+    const dx = moveEvent.clientX - startX;
+    const dy = moveEvent.clientY - startY;
+    const next = { ...initial };
+
+    if (direction.includes('e')) next.width = initial.width + dx;
+    if (direction.includes('s')) next.height = initial.height + dy;
+    if (direction.includes('w')) {
+      next.width = initial.width - dx;
+      next.left = initial.left + dx;
+    }
+    if (direction.includes('n')) {
+      next.height = initial.height - dy;
+      next.top = initial.top + dy;
+    }
+
+    setWindowRect(meta, next);
+  };
+  const up = () => {
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', up);
+  };
+
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', up);
+}
+
+function popOutWindow(tabName) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('popout', tabName);
+  window.open(url.toString(), '_blank', 'popup=yes,width=1400,height=900,resizable=yes,scrollbars=yes');
+}
+
+function createWindowShell(tabName, tabElement) {
+  const app = getWindowApp(tabName);
+  const shell = document.createElement('section');
+  shell.className = 'wm-window';
+  shell.dataset.tab = tabName;
+  shell.style.display = 'none';
+
+  shell.innerHTML = `
+    <header class="wm-titlebar">
+      <div class="wm-title">${app.icon} ${app.label}</div>
+      <div class="wm-controls">
+        <button class="wm-btn" data-action="pin" title="Pin/Unpin to taskbar">★</button>
+        <button class="wm-btn" data-action="snap-left" title="Snap left">◧</button>
+        <button class="wm-btn" data-action="snap-right" title="Snap right">◨</button>
+        <button class="wm-btn" data-action="popout" title="Pop out window">↗</button>
+        <button class="wm-btn" data-action="maximize" title="Maximize">▢</button>
+        <button class="wm-btn wm-btn-close" data-action="close" title="Close">✕</button>
+      </div>
+    </header>
+    <div class="wm-content"></div>
+  `;
+
+  ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].forEach((direction) => {
+    const handle = document.createElement('div');
+    handle.className = 'wm-resize wm-resize-' + direction;
+    handle.addEventListener('pointerdown', (event) => startResize(windowManager.windows.get(tabName), direction, event));
+    shell.appendChild(handle);
+  });
+
+  const content = shell.querySelector('.wm-content');
+  tabElement.classList.remove('on');
+  tabElement.classList.add('wm-tab-pane');
+  content.appendChild(tabElement);
+
+  const meta = {
+    tab: tabName,
+    el: shell,
+    open: false,
+    maximized: false,
+    restoreRect: null,
+    snapState: null
+  };
+  windowManager.windows.set(tabName, meta);
+
+  shell.addEventListener('pointerdown', () => focusWindow(tabName));
+  shell.querySelector('.wm-titlebar').addEventListener('pointerdown', (event) => {
+    if (event.target.closest('.wm-controls')) return;
+    focusWindow(tabName);
+    startDrag(meta, event);
+  });
+
+  shell.querySelector('.wm-controls').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-action]');
+    if (!button) return;
+    const action = button.getAttribute('data-action');
+    if (action === 'close') closeWindow(tabName);
+    if (action === 'maximize') toggleMaximizeWindow(tabName);
+    if (action === 'popout') popOutWindow(tabName);
+    if (action === 'snap-left') snapWindow(tabName, 'left');
+    if (action === 'snap-right') snapWindow(tabName, 'right');
+    if (action === 'pin') togglePinnedApp(tabName);
+  });
+
+  windowManager.stage.appendChild(shell);
+  setWindowRect(meta, { left: 24, top: 24, width: app.w, height: app.h });
+}
+
+function buildLauncherMenu() {
+  const host = document.getElementById('osAllTabsMenu');
+  if (!host) return;
+  host.innerHTML = '';
+
+  WINDOW_APPS.forEach((app) => {
+    if (!windowManager.windows.has(app.tab)) return;
+    const button = document.createElement('button');
+    button.className = 'os-launcher-item';
+    button.setAttribute('data-tab', app.tab);
+    button.innerHTML = '<span class="launcher-app-label">' + app.icon + ' ' + app.label + '</span>';
+    const pin = document.createElement('span');
+    pin.className = 'launcher-pin-btn';
+    pin.setAttribute('role', 'button');
+    pin.setAttribute('tabindex', '0');
+    pin.textContent = isPinnedApp(app.tab) ? 'Unpin' : 'Pin';
+    pin.onclick = function(event) {
+      event.stopPropagation();
+      togglePinnedApp(app.tab);
+    };
+    pin.onkeydown = function(event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      event.stopPropagation();
+      togglePinnedApp(app.tab);
+    };
+    button.appendChild(pin);
+    button.onclick = function() { switchMainTab(app.tab, button); };
+    host.appendChild(button);
+  });
+}
+
+function serializeWindow(meta) {
+  return {
+    open: meta.open,
+    maximized: meta.maximized,
+    left: parseFloat(meta.el.style.left) || 0,
+    top: parseFloat(meta.el.style.top) || 0,
+    width: parseFloat(meta.el.style.width) || 900,
+    height: parseFloat(meta.el.style.height) || 640,
+    z: parseInt(meta.el.style.zIndex || '1', 10)
+  };
+}
+
+function saveWindowLayout() {
+  const layout = {};
+  windowManager.windows.forEach((meta, tabName) => {
+    layout[tabName] = serializeWindow(meta);
+  });
+  try {
+    localStorage.setItem(WINDOW_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
+    lg('ok', 'Window layout saved');
+  } catch (err) {
+    lg('warn', 'Could not save window layout: ' + err.message);
+  }
+}
+
+function restoreWindowLayout() {
+  let raw = null;
+  try {
+    raw = localStorage.getItem(WINDOW_LAYOUT_STORAGE_KEY);
+  } catch (_) {
+    raw = null;
+  }
+  if (!raw) return false;
+
+  let layout = null;
+  try {
+    layout = JSON.parse(raw);
+  } catch (_) {
+    return false;
+  }
+  if (!layout || typeof layout !== 'object') return false;
+
+  windowManager.windows.forEach((meta, tabName) => {
+    const item = layout[tabName];
+    if (!item) {
+      closeWindow(tabName);
+      return;
+    }
+    setWindowRect(meta, {
+      left: Number(item.left) || 0,
+      top: Number(item.top) || 0,
+      width: Number(item.width) || 900,
+      height: Number(item.height) || 640
+    });
+    meta.el.style.zIndex = String(Number(item.z) || 10);
+    if (item.open) {
+      openWindow(tabName, { center: false });
+      toggleMaximizeWindow(tabName, !!item.maximized);
+    } else {
+      closeWindow(tabName);
+    }
+  });
+
+  const topWindow = Array.from(windowManager.windows.values())
+    .filter((meta) => meta.open)
+    .sort((a, b) => (parseInt(b.el.style.zIndex || '1', 10) - parseInt(a.el.style.zIndex || '1', 10)))[0];
+  if (topWindow) focusWindow(topWindow.tab);
+  syncShellStatusWidgets();
+  return true;
+}
+
+function resetWindowLayout() {
+  try {
+    localStorage.removeItem(WINDOW_LAYOUT_STORAGE_KEY);
+  } catch (_) {
+    // ignore
+  }
+  windowManager.windows.forEach((_, tabName) => closeWindow(tabName));
+  switchMainTab('chat');
+}
+
+function initWindowManager() {
+  if (windowManager.initialized) return;
+  const stage = document.getElementById('windowStage');
+  if (!stage) return;
+
+  windowManager.stage = stage;
+  windowManager.popoutTab = new URLSearchParams(window.location.search).get('popout');
+  windowManager.dock.overlay = document.getElementById('wmSnapDock');
+
+  stage.querySelectorAll('.tab-content').forEach((tabElement) => {
+    const id = tabElement.id || '';
+    const tabName = id.replace(/^tab-/, '');
+    if (!tabName) return;
+    createWindowShell(tabName, tabElement);
+  });
+
+  windowManager.initialized = true;
+
+  if (windowManager.popoutTab && !windowManager.windows.has(windowManager.popoutTab)) {
+    windowManager.popoutTab = null;
+  }
+
+  if (windowManager.popoutTab && windowManager.windows.has(windowManager.popoutTab)) {
+    document.body.classList.add('popout-mode');
+    windowManager.windows.forEach((_, tabName) => closeWindow(tabName));
+    openWindow(windowManager.popoutTab, { maximize: true, center: false });
+  }
+
+  window.addEventListener('resize', () => {
+    windowManager.windows.forEach((meta) => {
+      if (meta.maximized) {
+        toggleMaximizeWindow(meta.tab, true);
+      } else {
+        setWindowRect(meta, {
+          left: parseFloat(meta.el.style.left) || 0,
+          top: parseFloat(meta.el.style.top) || 0,
+          width: parseFloat(meta.el.style.width) || 900,
+          height: parseFloat(meta.el.style.height) || 640
+        });
+      }
+    });
+    updateTaskbarOverflow();
+  });
+}
+
+function normalizeBrowserUrl(raw) {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return 'https://' + trimmed;
+}
+
+function navigateBrowserToInput() {
+  const input = document.getElementById('browserUrlInput');
+  const frame = document.getElementById('browserFrame');
+  if (!input || !frame) return;
+  const url = normalizeBrowserUrl(input.value);
+  if (!url) return;
+  input.value = url;
+  frame.src = url;
+}
+
+function browserGoBack() {
+  const frame = document.getElementById('browserFrame');
+  if (!frame || !frame.contentWindow) return;
+  try { frame.contentWindow.history.back(); } catch (_) { /* ignore cross-origin block */ }
+}
+
+function browserGoForward() {
+  const frame = document.getElementById('browserFrame');
+  if (!frame || !frame.contentWindow) return;
+  try { frame.contentWindow.history.forward(); } catch (_) { /* ignore cross-origin block */ }
+}
+
+function browserReload() {
+  const frame = document.getElementById('browserFrame');
+  if (!frame) return;
+  try { frame.contentWindow.location.reload(); } catch (_) { frame.src = frame.src; }
+}
+
+function openBrowserExternal() {
+  const input = document.getElementById('browserUrlInput');
+  const url = normalizeBrowserUrl(input ? input.value : '');
+  if (!url) return;
+  window.open(url, '_blank', 'noopener');
 }
 
 function switchTab(name, el) {
@@ -201,6 +1540,7 @@ function guardEntityOperation(operationName) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function() {
+  initDesktopShell();
   initSettingsModelSuggestions();
 
   // Initialize thoughts-in-chat toggle visual state
@@ -211,6 +1551,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   try {
     await loadSavedConfig();
     lg('ok', 'Saved configuration loaded');
+    syncShellStatusWidgets();
   } catch (err) {
     lg('warn', 'Could not load saved config: ' + err.message);
   }
@@ -1513,61 +2854,7 @@ async function setupFinish() {
 }
 
 function showHatchScreen() {
-  const container = document.getElementById('chatMessages');
-  const emptyEl = container.querySelector('.chat-empty');
-  if (emptyEl) emptyEl.remove();
-
-  addChatBubble('system', 'Welcome! No entity found. Choose how to create one, or skip for now.');
-
-  const choiceWrap = document.createElement('div');
-  choiceWrap.id = 'hatchChoicePanel';
-  choiceWrap.style.cssText = 'padding:1.5rem 0;';
-  choiceWrap.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin-bottom:1rem">
-      <button class="btn bg hatch-choice-btn" data-mode="random" style="padding:1rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.4rem">
-        <span style="font-size:1.5rem">🎲</span>
-        <strong>Random</strong>
-        <span style="font-size:.7rem;color:var(--bd)">Auto-generate everything</span>
-      </button>
-      <button class="btn bg hatch-choice-btn" data-mode="empty" style="padding:1rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.4rem">
-        <span style="font-size:1.5rem">✏️</span>
-        <strong>Blank</strong>
-        <span style="font-size:.7rem;color:var(--bd)">Custom name &amp; traits, no history</span>
-      </button>
-      <button class="btn bg hatch-choice-btn" data-mode="guided" style="padding:1rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.4rem">
-        <span style="font-size:1.5rem">🎨</span>
-        <strong>Guided</strong>
-        <span style="font-size:.7rem;color:var(--bd)">Step-by-step with backstory</span>
-      </button>
-      <button class="btn bg hatch-choice-btn" data-mode="character" style="padding:1rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.4rem">
-        <span style="font-size:1.5rem">📚</span>
-        <strong>Character</strong>
-        <span style="font-size:.7rem;color:var(--bd)">Ingest a real/fictional character</span>
-      </button>
-    </div>
-    <div style="text-align:center">
-      <button class="btn" id="hatchSkipBtn" style="font-size:.8rem;padding:.5rem 1.5rem;color:var(--bd)">Skip for now — set up later in Settings</button>
-    </div>
-  `;
-  container.appendChild(choiceWrap);
-  scrollChatBottom();
-
-  // Wire up mode buttons → open new entity dialog at the chosen mode
-  choiceWrap.querySelectorAll('.hatch-choice-btn').forEach(btn => {
-    btn.onclick = () => {
-      choiceWrap.remove();
-      showNewEntityDialog();
-      // Jump straight to the selected mode inside the modal
-      selectEntityMode(btn.dataset.mode);
-    };
-  });
-
-  // Wire skip button
-  document.getElementById('hatchSkipBtn').onclick = () => {
-    choiceWrap.remove();
-    addChatBubble('system', 'Skipped entity creation. You can create one from the Entities tab in the sidebar.');
-    lg('info', 'User skipped entity creation');
-  };
+  switchMainTab('creator');
 }
 
 // ============================================================
@@ -1683,6 +2970,7 @@ function deriveEntityAvatar(gender, traits, name) {
 function setEntityDisplay(name, gender, traits) {
   currentEntityName = name || 'Entity';
   currentEntityAvatar = deriveEntityAvatar(gender, traits, name);
+  syncShellStatusWidgets();
 }
 
 // ============================================================
@@ -1690,34 +2978,23 @@ function setEntityDisplay(name, gender, traits) {
 // ============================================================
 
 function switchMainTab(tabName, el) {
-  // Hide all tabs
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('on'));
-  // Clear active state from both old tab-btn and new nav-item
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('on'));
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('on'));
-
-  // Show selected tab
-  const tab = document.getElementById('tab-' + tabName);
-  if (tab) {
-    tab.classList.add('on');
-    if (el) el.classList.add('on');
+  if (!windowManager.initialized) {
+    const tab = document.getElementById('tab-' + tabName);
+    document.querySelectorAll('.tab-content').forEach((node) => node.classList.remove('on'));
+    if (tab) tab.classList.add('on');
+    return;
   }
 
-  // Initialize Neural Viz when switching to visualizer tab (no-op — iframe loads itself)
-  // Legacy neural init removed — visualizer.html handles its own initialization
+  document.querySelectorAll('.tab-btn, .nav-item, .os-shortcut, .os-launcher-item, .os-pinned-app, .os-dash-app, .os-overflow-app').forEach((button) => {
+    button.classList.remove('on');
+  });
 
-  // Initialize Physical Body tab
-  if (tabName === 'physical') {
-    initPhysicalTab();
-  }
+  if (el) el.classList.add('on');
+  document.querySelectorAll('[data-tab="' + tabName + '"]').forEach((button) => button.classList.add('on'));
 
-  // Load diaries on first visit
-  if (tabName === 'lifediary' && typeof loadLifeDiary === 'function') {
-    loadLifeDiary();
-  }
-  if (tabName === 'dreamdiary' && typeof loadDreamDiary === 'function') {
-    loadDreamDiary();
-  }
+  openWindow(tabName);
+  runtimeTelemetry.activeWindowTab = tabName;
+  closeStartMenu();
 }
 
 // ── Nav Sidebar ──────────────────────────────────
@@ -1738,11 +3015,15 @@ function syncNavSidebarEntities() {
   const src = document.getElementById('sidebarEntityList');
   const dst = document.getElementById('navEntityList');
   if (src && dst) dst.innerHTML = src.innerHTML;
+  const shellDst = document.getElementById('shellEntityList');
+  if (src && shellDst) shellDst.innerHTML = src.innerHTML;
 }
 function syncNavSidebarProfiles() {
   const src = document.getElementById('profileChips');
   const dst = document.getElementById('navProfileChips');
   if (src && dst) dst.innerHTML = src.innerHTML;
+  const shellDst = document.getElementById('shellProfileChips');
+  if (src && shellDst) shellDst.innerHTML = src.innerHTML;
 }
 
 // ── Physical Body Tab ──────────────────────────────────
@@ -1869,6 +3150,9 @@ function updatePhysicalUI(data) {
   if (narrativeEl) narrativeEl.textContent = data.bodyNarrative || 'No body awareness data yet.';
   if (overallBar) { overallBar.style.width = (overallStress * 100) + '%'; overallBar.style.background = overallColor; }
   if (overallCard) overallCard.style.borderLeftColor = overallColor;
+
+  runtimeTelemetry.somatic.cpu = normalizePercent((data?.metrics?.cpu_usage ?? data?.sensations?.cpu_usage?.stress ?? 0));
+  runtimeTelemetry.somatic.ram = normalizePercent((data?.metrics?.ram_usage ?? data?.sensations?.ram_usage?.stress ?? 0));
 
   // Update toggles
   if (data.toggles) {
@@ -2321,106 +3605,198 @@ function inheritMainConfigToAspect(panel) {
 // ENTITY MANAGEMENT
 // ============================================================
 
+function buildEntityChip(entity) {
+  const chip = document.createElement('div');
+  chip.className = 'entity-chip' + (entity.id === currentEntityId ? ' active' : '');
+  const avatar = deriveEntityAvatar(entity.gender, entity.traits || entity.personality_traits, entity.name);
+  const traits = (entity.traits || entity.personality_traits || []).slice(0, 2).join(', ');
+  const isOwner = entity.isOwner !== false;
+  const showVisibilityBtn = entity.ownerId && isOwner && !currentEntityId;
+  const visibilityHtml = showVisibilityBtn
+    ? `<span class="entity-chip-vis" title="${entity.isPublic ? 'Shared — click to make private' : 'Private — click to share'}" style="font-size:.65rem;cursor:pointer;opacity:.6;margin-right:.15rem;">${entity.isPublic ? '🌐' : '🔒'}</span>`
+    : (entity.ownerId && !isOwner && !currentEntityId ? '<span style="font-size:.62rem;opacity:.4;margin-right:.15rem;" title="Shared by another user">🌐</span>' : '');
+
+  chip.innerHTML = `
+    <span class="entity-chip-avatar">${avatar}</span>
+    <div class="entity-chip-info">
+      <div class="entity-chip-name">${entity.name || 'Unnamed'}</div>
+      <div class="entity-chip-meta">${traits || entity.gender || ''}</div>
+    </div>
+    ${visibilityHtml}
+    ${isOwner && !currentEntityId ? `<span class="entity-chip-del" title="Delete ${entity.name || 'entity'}">&times;</span>` : ''}
+  `;
+
+  chip.addEventListener('click', (e) => {
+    if (e.target.closest('.entity-chip-del')) return;
+    if (e.target.closest('.entity-chip-vis')) return;
+    if (entity.id === currentEntityId) {
+      toggleEntityInfoPanel();
+    } else {
+      sidebarSelectEntity(entity.id);
+    }
+  });
+
+  const delBtn = chip.querySelector('.entity-chip-del');
+  if (delBtn) {
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sidebarDeleteEntity(entity.id, entity.name);
+    });
+  }
+
+  const visBtn = chip.querySelector('.entity-chip-vis');
+  if (visBtn) {
+    visBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        const vResp = await fetch('/api/entities/visibility', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entityId: entity.id })
+        });
+        const data2 = await vResp.json();
+        if (data2.ok) refreshSidebarEntities();
+      } catch (_) {}
+    });
+  }
+
+  return chip;
+}
+
+function renderEntityBrowser(entities) {
+  const panel = document.getElementById('entityInfoPanel');
+  if (!panel) return;
+
+  if (!entities || !entities.length) {
+    panel.innerHTML = '<div class="eip-card"><div class="eip-header"><div class="eip-header-info"><div class="eip-name">Entity Browser</div><div class="eip-meta">No entities available yet</div></div></div><div class="eip-section"><div class="eip-intro-text">No entities found. Open the Creator app to make one.</div></div></div>';
+    return;
+  }
+
+  const cards = entities.map((entity) => {
+    const avatar = deriveEntityAvatar(entity.gender, entity.traits || entity.personality_traits, entity.name);
+    const traits = (entity.traits || entity.personality_traits || []).slice(0, 3).join(', ');
+    const memCount = entity.memory_count ?? entity.memoryCount ?? 0;
+    const status = entity.id === currentEntityId ? 'Active now' : (entity.isPublic ? 'Shared' : 'Available');
+    return '<button class="entity-list-item" type="button" onclick="sidebarSelectEntity(\'' + String(entity.id).replace(/'/g, "\\'") + '\')">'
+      + '<div style="display:flex;align-items:center;gap:12px">'
+      + '<div class="entity-avatar" style="width:42px;height:42px;font-size:1.2rem">' + avatar + '</div>'
+      + '<div style="flex:1;text-align:left">'
+      + '<div class="entity-list-item-name">' + (entity.name || 'Unnamed') + '</div>'
+      + '<div class="entity-list-item-traits">' + (traits || entity.gender || 'Unknown') + '</div>'
+      + '<div class="entity-list-item-traits">' + memCount + ' memories • ' + status + '</div>'
+      + '</div>'
+      + '<div style="font-size:var(--text-xs);color:var(--text-secondary)">Preview</div>'
+      + '</div>'
+      + '</button>';
+  }).join('');
+
+  panel.innerHTML = '<div class="eip-card">'
+    + '<div class="eip-header">'
+    + '<div class="eip-header-info"><div class="eip-name">Entity Browser</div><div class="eip-meta">Select an entity to preview or check it out</div></div>'
+    + '</div>'
+    + '<div class="eip-section"><div class="eip-label">Available Entities</div><div style="display:grid;gap:10px">' + cards + '</div></div>'
+    + '</div>';
+}
+
+async function ensureEntityWindowContent(forceRefresh) {
+  const panel = document.getElementById('entityInfoPanel');
+  if (!panel) return;
+  const hasContent = panel.textContent && panel.textContent.trim().length > 0;
+  if (!forceRefresh && hasContent) return;
+
+  panel.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-tertiary)">Loading entities...</div>';
+
+  if (currentEntityId) {
+    try {
+      const resp = await fetch('/api/entity/profile');
+      if (!resp.ok) throw new Error('Failed to fetch active profile');
+      const data = await resp.json();
+      if (!data.ok) throw new Error(data.error || 'No active profile');
+      renderEntityInfoPanel(data.profile, 'active');
+      return;
+    } catch (_) {
+      // Fall through to the entity browser so the window is still useful.
+    }
+  }
+
+  try {
+    const resp = await fetch('/api/entities');
+    if (!resp.ok) throw new Error('Failed to fetch entities');
+    const data = await resp.json();
+    renderEntityBrowser(data.entities || []);
+  } catch (e) {
+    panel.innerHTML = '<div class="eip-card"><div class="eip-section"><div style="color:var(--danger)">Failed to load entities: ' + e.message + '</div></div></div>';
+  }
+}
+
 // --- Sidebar entity list ---
 async function refreshSidebarEntities() {
-  const listEl = document.getElementById('navEntityList');
-  if (!listEl) return;
+  const listEls = ['sidebarEntityList', 'navEntityList', 'shellEntityList']
+    .map((id) => document.getElementById(id))
+    .filter(Boolean);
+  if (!listEls.length) return;
 
   const titleEl = document.getElementById('navEntityTitle');
   const newBtn = document.getElementById('navNewEntityBtn');
-  const releaseBtn = document.getElementById('navReleaseEntityBtn');
-  const infoPanel = document.getElementById('entityInfoPanel');
+  const releaseBtns = ['navReleaseEntityBtn', 'shellReleaseEntityBtn', 'chatReleaseEntityBtn']
+    .map((id) => document.getElementById(id))
+    .filter(Boolean);
 
   try {
+    // Sync active entity from server so release controls remain accurate
+    // even if local currentEntityId gets out of sync after reloads.
+    let activeEntityId = currentEntityId;
+    try {
+      const stateResp = await fetch('/api/entities/current');
+      if (stateResp.ok) {
+        const stateData = await stateResp.json();
+        if (stateData?.loaded && stateData?.entity?.id) {
+          activeEntityId = stateData.entity.id;
+          currentEntityId = stateData.entity.id;
+        }
+      }
+    } catch (_) {}
+
     const resp = await fetch('/api/entities');
     if (!resp.ok) throw new Error('Failed to fetch');
     const data = await resp.json();
 
     // Update nav header and button states based on active entity
-    if (currentEntityId) {
+    if (activeEntityId) {
       if (titleEl) titleEl.textContent = 'Active Entity';
-      if (newBtn) newBtn.style.display = 'none';
-      if (releaseBtn) releaseBtn.style.display = '';
+      if (newBtn) newBtn.style.display = '';
+      releaseBtns.forEach((btn) => { btn.style.display = ''; });
     } else {
       if (titleEl) titleEl.textContent = 'Entities';
       if (newBtn) newBtn.style.display = '';
-      if (releaseBtn) releaseBtn.style.display = 'none';
+      releaseBtns.forEach((btn) => { btn.style.display = 'none'; });
     }
 
     if (!data.entities || data.entities.length === 0) {
-      listEl.innerHTML = '<div style="color:var(--td);text-align:center;padding:.75rem .25rem;font-size:.65rem;">No entities yet</div>';
+      listEls.forEach((listEl) => {
+        listEl.innerHTML = '<div style="color:var(--td);text-align:center;padding:.75rem .25rem;font-size:.65rem;">No entities yet</div>';
+      });
       return;
     }
 
     // If an entity is active, only show that one
-    const entitiesToShow = currentEntityId
-      ? data.entities.filter(e => e.id === currentEntityId)
+    const entitiesToShow = activeEntityId
+      ? data.entities.filter(e => e.id === activeEntityId)
       : data.entities;
 
-    listEl.innerHTML = '';
+    listEls.forEach((listEl) => {
+      listEl.innerHTML = '';
+    });
+
     entitiesToShow.forEach(entity => {
-      const chip = document.createElement('div');
-      chip.className = 'entity-chip' + (entity.id === currentEntityId ? ' active' : '');
-      const avatar = deriveEntityAvatar(entity.gender, entity.traits || entity.personality_traits, entity.name);
-      const traits = (entity.traits || entity.personality_traits || []).slice(0, 2).join(', ');
-      const isOwner = entity.isOwner !== false;
-
-      // Visibility badge (only for owned entities with an ownerId set)
-      const showVisibilityBtn = entity.ownerId && isOwner && !currentEntityId;
-      const visibilityHtml = showVisibilityBtn
-        ? `<span class="entity-chip-vis" title="${entity.isPublic ? 'Shared — click to make private' : 'Private — click to share'}" style="font-size:.65rem;cursor:pointer;opacity:.6;margin-right:.15rem;">${entity.isPublic ? '🌐' : '🔒'}</span>`
-        : (entity.ownerId && !isOwner && !currentEntityId ? '<span style="font-size:.62rem;opacity:.4;margin-right:.15rem;" title="Shared by another user">🌐</span>' : '');
-
-      chip.innerHTML = `
-        <span class="entity-chip-avatar">${avatar}</span>
-        <div class="entity-chip-info">
-          <div class="entity-chip-name">${entity.name || 'Unnamed'}</div>
-          <div class="entity-chip-meta">${traits || entity.gender || ''}</div>
-        </div>
-        ${visibilityHtml}
-        ${isOwner && !currentEntityId ? `<span class="entity-chip-del" title="Delete ${entity.name || 'entity'}">&times;</span>` : ''}
-      `;
-
-      // Click behavior depends on whether it's the active entity
-      chip.addEventListener('click', (e) => {
-        if (e.target.closest('.entity-chip-del')) return;
-        if (e.target.closest('.entity-chip-vis')) return;
-        if (entity.id === currentEntityId) {
-          // Active entity click → toggle info panel
-          toggleEntityInfoPanel();
-        } else {
-          sidebarSelectEntity(entity.id);
-        }
+      listEls.forEach((listEl) => {
+        listEl.appendChild(buildEntityChip(entity));
       });
-
-      // Delete button (owners only, not when entity is active)
-      const delBtn = chip.querySelector('.entity-chip-del');
-      if (delBtn) {
-        delBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          sidebarDeleteEntity(entity.id, entity.name);
-        });
-      }
-      // Visibility toggle (owners only)
-      const visBtn = chip.querySelector('.entity-chip-vis');
-      if (visBtn) {
-        visBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          try {
-            const vResp = await fetch('/api/entities/visibility', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ entityId: entity.id })
-            });
-            const data2 = await vResp.json();
-            if (data2.ok) refreshSidebarEntities();
-          } catch (_) {}
-        });
-      }
-      listEl.appendChild(chip);
     });
   } catch (e) {
-    listEl.innerHTML = '<div style="color:var(--dn);text-align:center;padding:.5rem;font-size:.6rem;">' + e.message + '</div>';
+    listEls.forEach((listEl) => {
+      listEl.innerHTML = '<div style="color:var(--dn);text-align:center;padding:.5rem;font-size:.6rem;">' + e.message + '</div>';
+    });
   }
 }
 
@@ -2467,6 +3843,7 @@ async function checkoutEntity(entityId) {
 
     const delBtn = document.getElementById('deleteEntityBtn');
     if (delBtn) delBtn.style.display = 'inline-block';
+    ensureEntityWindowContent(true);
     switchMainTab('chat');
     refreshSidebarEntities();
   } catch (e) {
@@ -2614,6 +3991,13 @@ function renderEntityInfoPanel(p, mode, previewEntityId) {
     html += '</div>';
   }
 
+  // Release button for active entity view
+  if (mode === 'active') {
+    html += '<div class="eip-checkout-row">';
+    html += '<button class="eip-checkout-btn" onclick="releaseActiveEntity()">Release Entity</button>';
+    html += '</div>';
+  }
+
   html += '</div>'; // end eip-card
   panel.innerHTML = html;
   panel.querySelectorAll('.eip-rel[data-uid]').forEach(el => {
@@ -2678,13 +4062,29 @@ function _toggleRelDetail(uid) {
 
 // --- Release active entity ---
 async function releaseActiveEntity() {
-  if (!currentEntityId) return;
+  let entityId = currentEntityId;
+  if (!entityId) {
+    try {
+      const currentResp = await fetch('/api/entities/current');
+      if (currentResp.ok) {
+        const currentData = await currentResp.json();
+        if (currentData?.loaded && currentData?.entity?.id) {
+          entityId = currentData.entity.id;
+          currentEntityId = entityId;
+        }
+      }
+    } catch (_) {}
+  }
+  if (!entityId) {
+    lg('warn', 'No active entity to release');
+    return;
+  }
   if (!confirm('Release this entity? Other users will be able to check it out.')) return;
   try {
     const resp = await fetch('/api/entities/release', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ entityId: currentEntityId })
+      body: JSON.stringify({ entityId })
     });
     if (!resp.ok) throw new Error('Failed to release');
 
@@ -2705,6 +4105,8 @@ async function releaseActiveEntity() {
     if (typeof clearChat === 'function') clearChat();
     chatHistory = [];
     loadedArchives = [];
+    await usersAppRefresh();
+    ensureEntityWindowContent(true);
     switchMainTab('chat');
     refreshSidebarEntities();
   } catch (e) {
@@ -2742,6 +4144,7 @@ async function sidebarDeleteEntity(entityId, entityName) {
       loadedArchives = [];
     }
 
+    ensureEntityWindowContent(true);
     refreshSidebarEntities();
   } catch (e) {
     lg('err', 'Failed to delete entity: ' + e.message);
@@ -2926,589 +4329,22 @@ function resetChatForEntitySwitch(entityName, introText, memoryCount) {
 // ====================================
 // Entity Creation State
 // ====================================
-
-let entityCreationMode = null; // 'random', 'empty', or 'guided'
-let creatorOnboardingPayload = null;
+// ============================================================
+// Entity Creation — moved to client/create.html + client/js/create.js
+// The functions below are minimal stubs so any surviving references
+// don't throw ReferenceErrors.
+// ============================================================
 
 function showNewEntityDialog() {
-  if (!guardEntityOperation('Create Entity')) return;
-  entityCreationMode = null;
-  creatorOnboardingPayload = null;
-  document.getElementById('newEntityModal').style.display = 'flex';
-  document.getElementById('newEntityModal').classList.add('open');
-  
-  // Show Creator greeting first.
-  document.getElementById('creatorWelcomeStep').style.display = 'block';
-  document.getElementById('entityCreationModeStep').style.display = 'none';
-  document.getElementById('entityEmptyFormStep').style.display = 'none';
-  document.getElementById('entityRandomFormStep').style.display = 'none';
-  document.getElementById('entityGuidedFormStep').style.display = 'none';
-  document.getElementById('entityCharacterFormStep').style.display = 'none';
-  document.getElementById('creatorOnboardingBlock').style.display = 'none';
-  document.getElementById('createEntityBtn').style.display = 'none';
+  switchMainTab('creator');
 }
-
-function creatorContinueToModeSelection() {
-  const creatorName = document.getElementById('creatorUserName').value.trim();
-  if (creatorName && !document.getElementById('creatorOnboardName').value.trim()) {
-    document.getElementById('creatorOnboardName').value = creatorName;
-  }
-  document.getElementById('creatorWelcomeStep').style.display = 'none';
-  document.getElementById('entityCreationModeStep').style.display = 'block';
-}
-
-function closeNewEntityDialog() {
-  const modal = document.getElementById('newEntityModal');
-  modal.classList.remove('open');
-  setTimeout(() => modal.style.display = 'none', 200);
-  
-  // Reset all forms
-  entityCreationMode = null;
-  document.getElementById('emptyEntityName').value = '';
-  document.getElementById('emptyEntityAge').value = '';
-  document.getElementById('emptyEntityGender').value = 'male';
-  document.getElementById('emptyEntityTraits').value = '';
-  document.getElementById('emptyEntityIntro').value = '';
-  document.getElementById('randomEntityGender').value = 'random';
-  document.getElementById('creatorUserName').value = '';
-  document.getElementById('creatorOnboardName').value = '';
-  document.getElementById('creatorOnboardInterests').value = '';
-  document.getElementById('creatorOnboardOccupation').value = '';
-  document.getElementById('creatorOnboardIntent').value = '';
-  document.getElementById('guidedEntityName').value = '';
-  document.getElementById('guidedEntityGender').value = 'male';
-  document.getElementById('guidedEntityAge').value = '';
-  document.getElementById('guidedEntityTraits').value = '';
-  document.getElementById('guidedEntityBackstory').value = '';
-  document.getElementById('guidedEntityIntent').value = 'programming';
-  document.getElementById('guidedEntityInteractionStyle').value = 'balanced';
-  document.getElementById('guidedEntityStyle').value = '';
-  document.getElementById('guidedEntityKnowledgeSeed').value = '';
-  document.getElementById('guidedEntityIntro').value = '';
-  document.getElementById('guidedEntityUnbreakable').checked = false;
-}
-
-function selectEntityMode(mode) {
-  entityCreationMode = mode;
-  
-  // Hide mode selection
-  document.getElementById('entityCreationModeStep').style.display = 'none';
-  document.getElementById('creatorOnboardingBlock').style.display = 'block';
-  
-  // Show appropriate form
-  if (mode === 'empty') {
-    document.getElementById('entityEmptyFormStep').style.display = 'block';
-    document.getElementById('createEntityBtn').style.display = 'inline-flex';
-    document.getElementById('createEntityBtn').textContent = 'Create Empty Entity';
-  } else if (mode === 'random') {
-    document.getElementById('entityRandomFormStep').style.display = 'block';
-    document.getElementById('createEntityBtn').style.display = 'inline-flex';
-    document.getElementById('createEntityBtn').textContent = 'Generate Random Entity';
-  } else if (mode === 'guided') {
-    document.getElementById('entityGuidedFormStep').style.display = 'block';
-    document.getElementById('createEntityBtn').style.display = 'inline-flex';
-    document.getElementById('createEntityBtn').textContent = 'Generate Guided Entity';
-  } else if (mode === 'character') {
-    document.getElementById('entityCharacterFormStep').style.display = 'block';
-    document.getElementById('createEntityBtn').style.display = 'inline-flex';
-    document.getElementById('createEntityBtn').textContent = 'Ingest Character';
-  }
-}
-
-function backToModeSelection() {
-  document.getElementById('creatorWelcomeStep').style.display = 'none';
-  document.getElementById('entityCreationModeStep').style.display = 'block';
-  document.getElementById('entityEmptyFormStep').style.display = 'none';
-  document.getElementById('entityRandomFormStep').style.display = 'none';
-  document.getElementById('entityGuidedFormStep').style.display = 'none';
-  document.getElementById('entityCharacterFormStep').style.display = 'none';
-  document.getElementById('creatorOnboardingBlock').style.display = 'none';
-  document.getElementById('createEntityBtn').style.display = 'none';
-  entityCreationMode = null;
-}
-
-function getCreatorOnboardingPayload() {
-  const preferredName = document.getElementById('creatorOnboardName').value.trim();
-  const interests = document.getElementById('creatorOnboardInterests').value.trim();
-  const occupation = document.getElementById('creatorOnboardOccupation').value.trim();
-  const intent = document.getElementById('creatorOnboardIntent').value.trim();
-  return {
-    preferredName,
-    interests,
-    occupation,
-    intent,
-    hasSeedInput: Boolean(preferredName || interests || occupation || intent)
-  };
-}
-
-async function applyCreatorOnboarding(entityId) {
-  if (!creatorOnboardingPayload) return;
-  if (!creatorOnboardingPayload.hasSeedInput) {
-    lg('info', 'Creator onboarding skipped — entity will ask onboarding questions in chat.');
-    return;
-  }
-
-  const preferredName = String(creatorOnboardingPayload.preferredName || '').trim();
-
-  try {
-    await fetch('/api/entities/onboarding-seed', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        entityId,
-        preferredName,
-        interests: String(creatorOnboardingPayload.interests || '').trim(),
-        occupation: String(creatorOnboardingPayload.occupation || '').trim(),
-        intent: String(creatorOnboardingPayload.intent || '').trim()
-      })
-    });
-    lg('ok', 'Creator onboarding seeded for the new entity');
-  } catch (err) {
-    lg('warn', 'Creator onboarding seed failed: ' + err.message);
-  }
-}
-
-function toggleTestHatch() {
-  const checkbox = document.getElementById('newEntityUseHatch');
-  const nameField = document.getElementById('newEntityName');
-  const autoGenNote = document.getElementById('autoGenNote');
-  
-  checkbox.checked = !checkbox.checked;
-  
-  // When test hatch is enabled, disable the name field and show the auto-generated note
-  if (checkbox.checked) {
-    nameField.disabled = true;
-    nameField.value = '';
-    nameField.style.opacity = '0.6';
-    nameField.style.cursor = 'not-allowed';
-    autoGenNote.style.display = 'inline';
-  } else {
-    nameField.disabled = false;
-    nameField.style.opacity = '1';
-    nameField.style.cursor = 'auto';
-    autoGenNote.style.display = 'none';
-  }
-}
-
-function showHatchProgress() {
-  const modal = document.getElementById('hatchProgressModal');
-  modal.style.display = 'flex';
-  modal.classList.add('open');
-}
-
-function closeHatchProgress() {
-  const modal = document.getElementById('hatchProgressModal');
-  modal.classList.remove('open');
-  setTimeout(() => modal.style.display = 'none', 200);
-}
-
-function updateHatchStep(stepIndex, status) {
-  // status: 'pending', 'active', 'complete'
-  const stepsContainer = document.getElementById('hatchProgressSteps');
-  const steps = stepsContainer.querySelectorAll('.hatch-step');
-  if (steps[stepIndex]) {
-    steps[stepIndex].classList.remove('pending', 'active', 'complete');
-    steps[stepIndex].classList.add(status);
-    
-    // Update icon based on status
-    const icon = steps[stepIndex].querySelector('.hatch-step-icon');
-    if (status === 'active') {
-      icon.textContent = '⏳';
-    } else if (status === 'complete') {
-      icon.textContent = '✓';
-    }
-  }
-}
-
-async function executeEntityCreation() {
-  if (!entityCreationMode) {
-    lg('err', 'No entity creation mode selected');
-    return;
-  }
-
-  creatorOnboardingPayload = getCreatorOnboardingPayload();
-  
-  try {
-    if (entityCreationMode === 'empty') {
-      await createEmptyEntity();
-    } else if (entityCreationMode === 'random') {
-      await createRandomEntity();
-    } else if (entityCreationMode === 'guided') {
-      await createGuidedEntity();
-    } else if (entityCreationMode === 'character') {
-      await createCharacterEntity();
-    }
-  } catch (err) {
-    lg('err', 'Entity creation failed: ' + err.message);
-  }
-}
-
-async function createEmptyEntity() {
-  const name = document.getElementById('emptyEntityName').value.trim();
-  const gender = document.getElementById('emptyEntityGender').value;
-  const age = document.getElementById('emptyEntityAge').value.trim();
-  const traitsStr = document.getElementById('emptyEntityTraits').value.trim();
-  const intro = document.getElementById('emptyEntityIntro').value.trim();
-  
-  // Validation
-  if (!name) {
-    lg('err', 'Entity name is required');
-    return;
-  }
-  
-  if (!traitsStr) {
-    lg('err', 'At least 3 personality traits are required');
-    return;
-  }
-  
-  const traits = traitsStr.split(',').map(t => t.trim()).filter(t => t);
-  if (traits.length < 3) {
-    lg('err', 'Please provide at least 3 personality traits');
-    return;
-  }
-  
-  lg('info', `Creating empty entity: ${name}...`);
-  
-  const entityId = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
-  const resp = await fetch('/api/entities/create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      entityId, 
-      name, 
-      gender, 
-      traits, 
-      introduction: intro || `Hello, I'm ${name}.`,
-      age
-    })
-  });
-  
-  if (!resp.ok) throw new Error('Failed to create entity');
-  const data = await resp.json();
-  
-  closeNewEntityDialog();
-  
-  // Update display
-  updateEntityDisplay(data.entity);
-  document.getElementById('entityName').textContent = ' — ' + data.entity.name;
-  document.getElementById('entityTraits').textContent = traits.join(', ');
-  document.getElementById('deleteEntityBtn').style.display = 'inline-block';
-  
-  currentEntityId = data.entityId;
-  resetChatForEntitySwitch(data.entity.name, data.entity.introduction, 0);
-  await applyCreatorOnboarding(data.entityId);
-  
-  lg('ok', `Created empty entity: ${name}. Start chatting to build their memories!`);
-  addChatBubble('system', `✨ ${name} has been created! This is an empty entity with no history. Their memories will be formed through your conversations together.`);
-  refreshSidebarEntities();
-  switchMainTab('chat');
-}
-
-async function createRandomEntity() {
-  const gender = document.getElementById('randomEntityGender').value;
-  
-  lg('info', 'Generating random entity with life story...');
-  
-  // Show progress modal
-  showHatchProgress();
-  closeNewEntityDialog();
-  
-  // Update step statuses as we go
-  updateHatchStep(0, 'active');
-  await new Promise(r => setTimeout(r, 300));
-  
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout for LLM generation
-  
-  try {
-    const resp = await fetch('/api/entities/create-hatch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gender: gender === 'random' ? undefined : gender }),
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!resp.ok) {
-      const errorData = await resp.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to generate entity');
-    }
-    
-    // Mark steps complete as generation finishes
-    updateHatchStep(0, 'complete');
-    updateHatchStep(1, 'complete');
-    updateHatchStep(2, 'complete');
-    updateHatchStep(3, 'complete');
-    updateHatchStep(4, 'active');
-    
-    const data = await resp.json();
-    
-    updateHatchStep(4, 'complete');
-    await new Promise(r => setTimeout(r, 500));
-    closeHatchProgress();
-    
-    // Update display
-    updateEntityDisplay(data.entity);
-    document.getElementById('entityName').textContent = ' — ' + data.entity.name;
-    document.getElementById('entityTraits').textContent = (data.entity.personality_traits || []).join(', ');
-    document.getElementById('deleteEntityBtn').style.display = 'inline-block';
-    
-    currentEntityId = data.entityId;
-    resetChatForEntitySwitch(data.entity.name, data.entity.introduction, data.entity.memory_count || 0);
-    await applyCreatorOnboarding(data.entityId);
-    
-    // Load subconscious introduction message
-    if (data.subconsciousIntro) {
-      setTimeout(() => {
-        const chatMessages = document.getElementById('chatMessages');
-        const emptyState = chatMessages.querySelector('.chat-empty');
-        if (emptyState) emptyState.remove();
-        
-        addChatBubble('system', data.subconsciousIntro);
-        lg('info', `${data.entity.name} has awakened with their life story and memories`);
-      }, 300);
-    }
-    
-    lg('ok', `Generated random entity: ${data.entity.name}`);
-    refreshSidebarEntities();
-    switchMainTab('chat');
-  } catch (err) {
-    closeHatchProgress();
-    if (err.name === 'AbortError') {
-      throw new Error('Entity generation timed out. Please try again.');
-    }
-    throw err;
-  }
-}
-
-async function createCharacterEntity() {
-  const name = document.getElementById('charEntityName').value.trim();
-  const source = document.getElementById('charEntitySource').value.trim();
-  const notes = document.getElementById('charEntityNotes').value.trim();
-
-  if (!name) { lg('err', 'Character name is required'); return; }
-  if (!source) { lg('err', 'Source / origin is required (book, movie, real person, etc.)'); return; }
-
-  lg('info', 'Running character ingestion pipeline for: ' + name + ' (' + source + ')...');
-
-  showHatchProgress();
-  closeNewEntityDialog();
-
-  updateHatchStep(0, 'active');
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 300000);
-
-  try {
-    const resp = await fetch('/api/entities/create-character', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, source, notes }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!resp.ok) {
-      const errorData = await resp.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Character ingestion failed');
-    }
-
-    updateHatchStep(0, 'complete');
-    updateHatchStep(1, 'complete');
-    updateHatchStep(2, 'complete');
-    updateHatchStep(3, 'complete');
-    updateHatchStep(4, 'active');
-
-    const data = await resp.json();
-
-    updateHatchStep(4, 'complete');
-    await new Promise(r => setTimeout(r, 500));
-    closeHatchProgress();
-
-    updateEntityDisplay(data.entity);
-    document.getElementById('entityName').textContent = ' — ' + data.entity.name;
-    document.getElementById('entityTraits').textContent = (data.entity.personality_traits || []).join(', ');
-    document.getElementById('deleteEntityBtn').style.display = 'inline-block';
-
-    currentEntityId = data.entityId;
-    resetChatForEntitySwitch(data.entity.name, data.entity.introduction, data.entity.memory_count || 0);
-    await applyCreatorOnboarding(data.entityId);
-
-    if (data.subconsciousIntro) {
-      setTimeout(() => {
-        const chatMessages = document.getElementById('chatMessages');
-        const emptyState = chatMessages.querySelector('.chat-empty');
-        if (emptyState) emptyState.remove();
-        addChatBubble('system', data.subconsciousIntro);
-        lg('info', name + ' has been ingested and awakened with seeded memories');
-      }, 300);
-    }
-
-    lg('ok', 'Character ingestion complete: ' + data.entity.name + ' (' + (data.entity.memory_count || 0) + ' memories seeded)');
-    refreshSidebarEntities();
-    switchMainTab('chat');
-  } catch (err) {
-    closeHatchProgress();
-    if (err.name === 'AbortError') {
-      throw new Error('Character ingestion timed out. Please try again.');
-    }
-    throw err;
-  }
-}
-
-async function createGuidedEntity() {
-  const name = document.getElementById('guidedEntityName').value.trim();
-  const gender = document.getElementById('guidedEntityGender').value;
-  const age = document.getElementById('guidedEntityAge').value.trim();
-  const traitsStr = document.getElementById('guidedEntityTraits').value.trim();
-  const backstory = document.getElementById('guidedEntityBackstory').value.trim();
-  const intent = document.getElementById('guidedEntityIntent').value;
-  const interactionStyle = document.getElementById('guidedEntityInteractionStyle').value;
-  const style = document.getElementById('guidedEntityStyle').value.trim();
-  const knowledgeSeed = document.getElementById('guidedEntityKnowledgeSeed').value.trim();
-  const intro = document.getElementById('guidedEntityIntro').value.trim();
-  const unbreakable = document.getElementById('guidedEntityUnbreakable').checked;
-
-  if (!name) { lg('err', 'Entity name is required'); return; }
-  if (!traitsStr) { lg('err', 'At least 3 personality traits are required'); return; }
-  if (!backstory && !knowledgeSeed) {
-    lg('err', 'Provide either a backstory or knowledge seed notes for guided creation');
-    return;
-  }
-
-  const traits = traitsStr.split(',').map(t => t.trim()).filter(t => t);
-  if (traits.length < 3) { lg('err', 'Please provide at least 3 personality traits'); return; }
-
-  lg('info', 'Generating guided entity: ' + name + ' (' + intent + ')...');
-
-  showHatchProgress();
-  closeNewEntityDialog();
-
-  updateHatchStep(0, 'active');
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 180000);
-
-  try {
-    const resp = await fetch('/api/entities/create-guided', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name,
-        gender,
-        age,
-        traits,
-        backstory,
-        intent,
-        interactionStyle,
-        style,
-        knowledgeSeed,
-        introduction: intro,
-        unbreakable
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!resp.ok) {
-      const errorData = await resp.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Guided entity creation failed');
-    }
-
-    updateHatchStep(0, 'complete');
-    updateHatchStep(1, 'complete');
-    updateHatchStep(2, 'complete');
-    updateHatchStep(3, 'complete');
-    updateHatchStep(4, 'active');
-
-    const data = await resp.json();
-
-    updateHatchStep(4, 'complete');
-
-    // ── Knowledge seed: run through the full document ingest pipeline ──
-    let seedChunkCount = 0;
-    if (knowledgeSeed && data.hasSeed) {
-      try {
-        const seedChunks = chunkDocument(knowledgeSeed, name + ' - Knowledge Seed');
-        if (seedChunks.length > 0) {
-          const seedStep = document.getElementById('hatchStepSeed');
-          if (seedStep) seedStep.style.display = '';
-          updateHatchStep(5, 'active');
-          let prevChunkId = null;
-          for (let i = 0; i < seedChunks.length; i++) {
-            const chunk = seedChunks[i];
-            try {
-              const seedResp = await fetch('/api/document/ingest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  content: chunk.content,
-                  filename: chunk.filename,
-                  chunkIndex: chunk.index,
-                  totalChunks: chunk.totalChunks,
-                  previousChunkId: prevChunkId
-                })
-              });
-              if (seedResp.ok) {
-                const seedData = await seedResp.json();
-                prevChunkId = seedData.chunkId || null;
-                seedChunkCount++;
-              }
-            } catch (_) {}
-            await new Promise(r => setTimeout(r, 80));
-          }
-          updateHatchStep(5, 'complete');
-          lg('ok', `Knowledge seed ingested: ${seedChunkCount}/${seedChunks.length} chunks via document pipeline`);
-        }
-      } catch (seedErr) {
-        lg('warn', 'Knowledge seed ingestion partial or failed: ' + seedErr.message);
-      }
-    }
-
-    await new Promise(r => setTimeout(r, 500));
-    closeHatchProgress();
-
-    updateEntityDisplay(data.entity);
-    document.getElementById('entityName').textContent = ' — ' + data.entity.name;
-    document.getElementById('entityTraits').textContent = (data.entity.personality_traits || []).join(', ');
-    document.getElementById('deleteEntityBtn').style.display = 'inline-block';
-
-    currentEntityId = data.entityId;
-    resetChatForEntitySwitch(data.entity.name, data.entity.introduction, (data.entity.memory_count || 0) + seedChunkCount);
-    await applyCreatorOnboarding(data.entityId);
-
-    if (data.subconsciousIntro) {
-      setTimeout(() => {
-        const chatMessages = document.getElementById('chatMessages');
-        const emptyState = chatMessages.querySelector('.chat-empty');
-        if (emptyState) emptyState.remove();
-        const seedNote = seedChunkCount > 0 ? `\n\nKnowledge seed: ${seedChunkCount} document chunks ingested.` : '';
-        addChatBubble('system', data.subconsciousIntro + seedNote);
-        lg('info', name + ' has awakened with their guided life story and memories');
-      }, 300);
-    }
-
-    lg('ok', 'Generated guided entity: ' + data.entity.name);
-    refreshSidebarEntities();
-    switchMainTab('chat');
-  } catch (err) {
-    closeHatchProgress();
-    if (err.name === 'AbortError') {
-      throw new Error('Guided entity generation timed out. Please try again.');
-    }
-    throw err;
-  }
-}
-
-async function createNewEntity() {
-  // Legacy function - redirects to new flow
-  showNewEntityDialog();
-}
-
 // ====================================
+function closeNewEntityDialog() { /* no-op: modal removed */ }
+function selectEntityMode() {}
+function creatorContinueToModeSelection() {}
+function backToModeSelection() {}
+function executeEntityCreation() {}
+async function createNewEntity() { showNewEntityDialog(); }
 // User Name Collection
 // ====================================
 
@@ -3936,6 +4772,8 @@ async function pollBrainStatus() {
     const resp = await fetch('/api/brain/status');
     if (!resp.ok) return;
     const data = await resp.json();
+    runtimeTelemetry.brainRunning = !!data.running;
+    runtimeTelemetry.brainCycleCount = Number(data.cycleCount || 0);
     const el = document.getElementById('brainStatus');
     const label = document.getElementById('brainLabel');
     if (data.running) {
@@ -4188,6 +5026,7 @@ async function initUserSwitcher() {
     }
   } catch (_) {}
   btn.style.display = 'inline-flex';
+  await usersAppRefresh();
 }
 
 function resetUserSwitcher() {
@@ -4196,6 +5035,151 @@ function resetUserSwitcher() {
   const label = document.getElementById('activeUserLabel');
   if (label) label.textContent = 'User';
   closeUserPanel();
+}
+
+// ============================================================
+// USERS APP — Windowed user profile management
+// ============================================================
+
+function _usersAppSetStatus(text, type) {
+  const el = document.getElementById('usersAppStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = type === 'err' ? 'var(--dn)' : (type === 'ok' ? 'var(--em)' : 'var(--text-secondary)');
+}
+
+async function usersAppRefresh() {
+  const listEl = document.getElementById('usersAppList');
+  if (!listEl) return;
+
+  if (!currentEntityId) {
+    listEl.innerHTML = '<div class="text-secondary-c text-sm-c">No active entity loaded. Check out an entity first.</div>';
+    _usersAppSetStatus('No active entity', 'info');
+    return;
+  }
+
+  try {
+    const [usersResp, activeResp] = await Promise.all([
+      fetch('/api/users'),
+      fetch('/api/users/active')
+    ]);
+    if (!usersResp.ok) throw new Error('Failed to load users');
+
+    const usersData = await usersResp.json();
+    const activeData = activeResp.ok ? await activeResp.json() : {};
+    const users = usersData.users || [];
+    const activeId = usersData.activeUserId || activeData.user?.id || null;
+
+    if (!users.length) {
+      listEl.innerHTML = '<div class="text-secondary-c text-sm-c">No users yet. Add one above.</div>';
+      _usersAppSetStatus('No users found', 'info');
+      return;
+    }
+
+    listEl.innerHTML = users.map((u) => {
+      const isActive = u.id === activeId;
+      const safeName = escapeHtmlInner(u.name || 'User');
+      const safeInfo = escapeHtmlInner(u.info || '');
+      return ''
+        + '<div class="config-card" style="padding:10px;display:flex;align-items:center;gap:10px">'
+        +   '<div style="width:30px;height:30px;border-radius:50%;background:#6d28d9;display:flex;align-items:center;justify-content:center;font-weight:600;color:#fff">' + safeName.charAt(0).toUpperCase() + '</div>'
+        +   '<div style="flex:1;min-width:0">'
+        +     '<div style="font-size:.82rem;font-weight:600">' + safeName + (isActive ? ' <span style="color:var(--em);font-weight:400">● active</span>' : '') + '</div>'
+        +     '<div class="text-xs-c text-secondary-c" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (safeInfo || 'No details') + '</div>'
+        +   '</div>'
+        +   (isActive
+              ? '<button class="btn bg text-xs-c" onclick="usersAppClearActive()">Clear</button>'
+              : '<button class="btn bp text-xs-c" onclick="usersAppSetActive(\'' + u.id.replace(/'/g, "\\'") + '\')">Set Active</button>')
+        +   '<button class="btn br text-xs-c" onclick="usersAppDelete(\'' + u.id.replace(/'/g, "\\'") + '\', \'' + safeName.replace(/'/g, "\\'") + '\')">Delete</button>'
+        + '</div>';
+    }).join('');
+
+    _usersAppSetStatus('Loaded ' + users.length + ' user profile' + (users.length === 1 ? '' : 's'), 'ok');
+  } catch (err) {
+    listEl.innerHTML = '<div class="text-sm-c" style="color:var(--dn)">' + err.message + '</div>';
+    _usersAppSetStatus('Failed to load users', 'err');
+  }
+}
+
+async function usersAppCreateUser() {
+  if (!currentEntityId) {
+    _usersAppSetStatus('Load an entity first', 'err');
+    return;
+  }
+  const nameEl = document.getElementById('usersAppNewName');
+  const infoEl = document.getElementById('usersAppNewInfo');
+  const name = (nameEl?.value || '').trim();
+  const info = (infoEl?.value || '').trim();
+  if (!name) {
+    _usersAppSetStatus('User name is required', 'err');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, info })
+    });
+    if (!resp.ok) throw new Error('Failed to create user');
+    const data = await resp.json();
+    if (!data.ok || !data.user?.id) throw new Error(data.error || 'Invalid create response');
+
+    if (nameEl) nameEl.value = '';
+    if (infoEl) infoEl.value = '';
+    _usersAppSetStatus('User created: ' + name, 'ok');
+    await usersAppSetActive(data.user.id);
+    await renderUserPanelList();
+  } catch (err) {
+    _usersAppSetStatus(err.message, 'err');
+  }
+}
+
+async function usersAppSetActive(userId) {
+  try {
+    const resp = await fetch('/api/users/active', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+    if (!resp.ok) throw new Error('Failed to set active user');
+    const data = await resp.json();
+    const name = data.user?.name || 'User';
+    const label = document.getElementById('activeUserLabel');
+    if (label) label.textContent = name;
+    _usersAppSetStatus('Active user: ' + name, 'ok');
+    await usersAppRefresh();
+    await renderUserPanelList();
+  } catch (err) {
+    _usersAppSetStatus(err.message, 'err');
+  }
+}
+
+async function usersAppClearActive() {
+  try {
+    const resp = await fetch('/api/users/active', { method: 'DELETE' });
+    if (!resp.ok) throw new Error('Failed to clear active user');
+    const label = document.getElementById('activeUserLabel');
+    if (label) label.textContent = (typeof getDisplayName === 'function' && getDisplayName()) || 'User';
+    _usersAppSetStatus('Active user cleared', 'ok');
+    await usersAppRefresh();
+    await renderUserPanelList();
+  } catch (err) {
+    _usersAppSetStatus(err.message, 'err');
+  }
+}
+
+async function usersAppDelete(userId, name) {
+  if (!confirm('Delete user "' + (name || userId) + '"?')) return;
+  try {
+    const resp = await fetch('/api/users/' + encodeURIComponent(userId), { method: 'DELETE' });
+    if (!resp.ok) throw new Error('Failed to delete user');
+    _usersAppSetStatus('Deleted user: ' + (name || userId), 'ok');
+    await usersAppRefresh();
+    await renderUserPanelList();
+  } catch (err) {
+    _usersAppSetStatus(err.message, 'err');
+  }
 }
 
 

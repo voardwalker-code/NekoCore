@@ -6,7 +6,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
-const { normalizeEntityId, getEntityRoot, getMemoryRoot, getNeurochemistryPath } = require('../../server/entities/entityPaths');
+const { normalizeEntityId, getEntityRoot, getMemoryRoot, getNeurochemistryPath } = require('../../server/entityPaths');
 
 // Use a dedicated test entity id to avoid polluting real entity dirs
 const TEST_ENTITY = '_unit-test-paths-abc';

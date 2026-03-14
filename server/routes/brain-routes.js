@@ -87,7 +87,7 @@ function createBrainRoutes(ctx) {
       const body = JSON.parse(await readBody(req));
       const { userMessage, assistantResponse } = body;
       if (ctx.currentEntityId && userMessage) {
-        const entityPaths = require('../entities/entityPaths');
+        const entityPaths = require('../entityPaths');
         const archiveDir = path.join(entityPaths.getMemoryRoot(ctx.currentEntityId), 'archives');
         if (!fs.existsSync(archiveDir)) fs.mkdirSync(archiveDir, { recursive: true });
         const archiveFile = path.join(archiveDir, `archive_${Date.now()}.json`);
@@ -116,7 +116,7 @@ function createBrainRoutes(ctx) {
       if (!ctx.currentEntityId) { res.writeHead(200, apiHeaders); res.end(JSON.stringify({ ok: false, error: 'No active entity' })); return; }
       if (!compressedText) { res.writeHead(200, apiHeaders); res.end(JSON.stringify({ ok: false, error: 'No compressed text provided' })); return; }
 
-      const entityPathsMod = require('../entities/entityPaths');
+      const entityPathsMod = require('../entityPaths');
       const memRoot = entityPathsMod.getMemoryRoot(ctx.currentEntityId);
       const ltmDir = path.join(memRoot, 'ltm');
       if (!fs.existsSync(ltmDir)) fs.mkdirSync(ltmDir, { recursive: true });
@@ -301,7 +301,7 @@ function createBrainRoutes(ctx) {
       const dreams = [];
       let analysis = null;
       if (ctx.currentEntityId) {
-        const entityPaths = require('../entities/entityPaths');
+        const entityPaths = require('../entityPaths');
         const dreamsDir = path.join(entityPaths.getMemoryRoot(ctx.currentEntityId), 'dreams');
         if (fs.existsSync(dreamsDir)) {
           const files = fs.readdirSync(dreamsDir).filter(f => f.endsWith('.json')).sort().reverse().slice(0, 10);
@@ -331,7 +331,7 @@ function createBrainRoutes(ctx) {
     try {
       const cycles = [];
       if (ctx.currentEntityId) {
-        const entityPaths = require('../entities/entityPaths');
+        const entityPaths = require('../entityPaths');
         const pixelArtDir = entityPaths.getPixelArtPath(ctx.currentEntityId);
         if (fs.existsSync(pixelArtDir)) {
           const dirs = fs.readdirSync(pixelArtDir).filter(d => fs.statSync(path.join(pixelArtDir, d)).isDirectory()).sort().reverse().slice(0, 20);
@@ -358,7 +358,7 @@ function createBrainRoutes(ctx) {
       if (parts.length === 2 && ctx.currentEntityId) {
         const cycleId = parts[0].replace(/[^a-zA-Z0-9_-]/g, '');
         const filename = parts[1].replace(/[^a-zA-Z0-9_.\-]/g, '');
-        const entityPaths = require('../entities/entityPaths');
+        const entityPaths = require('../entityPaths');
         const pixelArtRoot = entityPaths.getPixelArtPath(ctx.currentEntityId);
         const filePath = path.join(pixelArtRoot, cycleId, filename);
         const resolved = path.resolve(filePath);
@@ -420,7 +420,7 @@ function createBrainRoutes(ctx) {
       }
 
       if (ctx.currentEntityId) {
-        const entityPaths = require('../entities/entityPaths');
+        const entityPaths = require('../entityPaths');
         const pixelArtDir = entityPaths.getPixelArtPath(ctx.currentEntityId);
         const artId = `art_${Date.now()}`;
         const artDir = path.join(pixelArtDir, artId);
@@ -475,7 +475,7 @@ function createBrainRoutes(ctx) {
       }
       if (ctx.goalsManager) { ctx.goalsManager.decayGoals(2); results.goalsUpdated = true; }
       if (ctx.currentEntityId) {
-        try { ctx.contextConsolidator.buildConsolidatedContext(ctx.currentEntityId, require('../entities/entityPaths')); } catch (e2) { console.error('Context rebuild after sleep failed:', e2.message); }
+        try { ctx.contextConsolidator.buildConsolidatedContext(ctx.currentEntityId, require('../entityPaths')); } catch (e2) { console.error('Context rebuild after sleep failed:', e2.message); }
       }
       res.writeHead(200, apiHeaders);
       res.end(JSON.stringify({ ok: true, ...results }));

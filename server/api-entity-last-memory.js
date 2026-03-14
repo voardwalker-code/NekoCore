@@ -3,7 +3,7 @@
 // NOTE: Expects `currentEntityId` and `currentEntityName` to be passed in via closure/bind from server.js
 const fs = require('fs');
 const path = require('path');
-const entityPaths = require('./entities/entityPaths');
+const entityPaths = require('./entityPaths');
 
 module.exports = function createEntityLastMemoryHandler(getEntityContext) {
   return async function entityLastMemoryHandler(req, res) {

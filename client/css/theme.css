@@ -100,6 +100,26 @@
   --shadow-glow-accent: 0 0 20px rgba(52,211,153,0.18);
   --shadow-glow-info:   0 0 20px rgba(129,140,248,0.1);
 
+  /* ── Desktop Shell ── */
+  --desktop-wallpaper:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.22), transparent 26%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.24), transparent 24%),
+    radial-gradient(circle at bottom center, rgba(129, 140, 248, 0.18), transparent 32%),
+    linear-gradient(180deg, #030712 0%, #08101d 46%, #04060d 100%);
+  --desktop-overlay: linear-gradient(135deg, rgba(4, 6, 13, 0.25), rgba(8, 16, 29, 0.72));
+  --desktop-grid-line: rgba(255, 255, 255, 0.05);
+  --taskbar-bg: rgba(8, 13, 24, 0.72);
+  --taskbar-border: rgba(255, 255, 255, 0.08);
+  --window-bg: rgba(8, 13, 24, 0.74);
+  --window-border: rgba(255, 255, 255, 0.08);
+  --window-shadow: 0 32px 80px rgba(0, 0, 0, 0.42);
+  --start-surface: rgba(8, 13, 24, 0.82);
+  --start-border: rgba(255, 255, 255, 0.08);
+  --shortcut-bg: rgba(17, 30, 51, 0.72);
+  --shortcut-bg-hover: rgba(23, 39, 64, 0.84);
+  --shortcut-border: rgba(255, 255, 255, 0.08);
+  --shortcut-shadow: 0 18px 38px rgba(0, 0, 0, 0.2);
+
   /* ── Transitions ── */
   --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);

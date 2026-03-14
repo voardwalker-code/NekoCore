@@ -161,7 +161,7 @@ timelineLogger.setEntityResolver(() => {
     return { entityId: null, rootDir: null };
   }
   try {
-    const entityPaths = require('./entities/entityPaths');
+    const entityPaths = require('./entityPaths');
     return {
       entityId: currentEntityId,
       rootDir: entityPaths.getMemoryRoot(currentEntityId)
@@ -181,8 +181,8 @@ function logTimeline(type, payload = {}, options = {}) {
 }
 
 function setActiveEntity(entityId) {
-  const entityDir = require('./entities/entityPaths').getEntityRoot(entityId);
-  const entityMemDir = require('./entities/entityPaths').getMemoryRoot(entityId);
+  const entityDir = require('./entityPaths').getEntityRoot(entityId);
+  const entityMemDir = require('./entityPaths').getMemoryRoot(entityId);
   currentEntityId = entityId;
   logTimeline('entity.activated', { entityId });
   currentEntityPath = entityDir;
@@ -215,10 +215,10 @@ function setActiveEntity(entityId) {
   // Build memory graph for this entity
   try {
     memoryGraphBuilder = new MemoryGraphBuilder({ 
-      memDir: require('./entities/entityPaths').getEpisodicMemoryPath(entityId),
-      semanticDir: require('./entities/entityPaths').getSemanticMemoryPath(entityId),
-      ltmDir: require('./entities/entityPaths').getLtmPath(entityId),
-      dreamsDir: require('./entities/entityPaths').getDreamMemoryPath(entityId),
+      memDir: require('./entityPaths').getEpisodicMemoryPath(entityId),
+      semanticDir: require('./entityPaths').getSemanticMemoryPath(entityId),
+      ltmDir: require('./entityPaths').getLtmPath(entityId),
+      dreamsDir: require('./entityPaths').getDreamMemoryPath(entityId),
       cognitiveBus 
     });
     memoryGraph = memoryGraphBuilder.buildGraph();
@@ -303,7 +303,7 @@ function clearActiveEntity() {
 function getEntityMemoryRootIfActive() {
   if (!currentEntityId) return null;
   try {
-    const entityPaths = require('./entities/entityPaths');
+    const entityPaths = require('./entityPaths');
     return entityPaths.getMemoryRoot(currentEntityId);
   } catch {
     return null;
@@ -788,7 +788,7 @@ async function processChatMessage(userMessage, chatHistory = []) {
   // Enrich entity with system prompt and persona
   if (entity && currentEntityId) {
     try {
-      const entityPaths = require('./entities/entityPaths');
+      const entityPaths = require('./entityPaths');
       const entityMemRoot = entityPaths.getMemoryRoot(currentEntityId);
 
       // Load consolidated context (prompt + persona + memories in one file)
@@ -983,7 +983,7 @@ async function processChatMessage(userMessage, chatHistory = []) {
   const profileUpdateFn = async (params) => {
     if (!currentEntityId) return { ok: false, error: 'No entity loaded — profile update unavailable' };
     try {
-      const entityPaths = require('./entities/entityPaths');
+      const entityPaths = require('./entityPaths');
       const entityFile = path.join(entityPaths.getEntityRoot(currentEntityId), 'entity.json');
       if (!fs.existsSync(entityFile)) return { ok: false, error: 'Entity profile file not found' };
 
@@ -1433,7 +1433,7 @@ server.listen(PORT, () => {
   // Build consolidated context on startup for current entity
   if (currentEntityId) {
     try {
-      const entityPaths = require('./entities/entityPaths');
+      const entityPaths = require('./entityPaths');
       contextConsolidator.buildConsolidatedContext(currentEntityId, entityPaths);
     } catch (err) {
       console.warn('  \u26A0 Context consolidation failed:', err.message);

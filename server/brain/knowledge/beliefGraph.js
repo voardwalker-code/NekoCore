@@ -35,7 +35,7 @@ class BeliefGraph {
     if (options.beliefsDir) {
       this.beliefsDir = options.beliefsDir;
     } else if (this.entityId) {
-      const entityPaths = require('../../entities/entityPaths');
+      const entityPaths = require('../../entityPaths');
       const entityRoot = entityPaths.getEntityRoot(this.entityId);
       this.beliefsDir = path.join(entityRoot, 'beliefs');
     } else {

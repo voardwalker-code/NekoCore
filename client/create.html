@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entity Creator — REM System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/ui-v2.css">
+  <link rel="stylesheet" href="themes/neko-default.css">
+  <style>
+    html, body {
+      height: 100%;
+      background: var(--bg, #0d0d12);
+      color: var(--text-primary, #e4e4e7);
+      font-family: 'Outfit', sans-serif;
+      overflow: hidden;
+    }
+
+    .creator-shell {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .creator-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .75rem 1.5rem;
+      border-bottom: 1px solid var(--border-default, #2a2a3a);
+      background: var(--surface-1, #13131a);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .creator-topbar-brand {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent, #7c6aff);
+      letter-spacing: -.02em;
+    }
+
+    .creator-topbar-back {
+      font-size: .8rem;
+      color: var(--text-secondary, #888);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .creator-topbar-back:hover {
+      color: var(--text-primary);
+    }
+
+    .creator-main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 1rem;
+      overflow: hidden;
+    }
+
+    .creator-card {
+      width: min(640px, 100%);
+      background: var(--surface-1, #13131a);
+      border: 1px solid var(--border-default, #2a2a3a);
+      border-radius: 1rem;
+      display: flex;
+      flex-direction: column;
+      max-height: 100%;
+      overflow: hidden;
+    }
+
+    .creator-card-header {
+      padding: 1rem 1.25rem .85rem;
+      border-bottom: 1px solid var(--border-default);
+      flex: 0 0 auto;
+    }
+
+    .creator-card-header h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 0 0 .25rem;
+    }
+
+    .creator-card-header p {
+      font-size: .76rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .creator-card-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      padding: 1rem 1.25rem;
+    }
+
+    .creator-card-footer {
+      padding: .8rem 1.25rem 1rem;
+      border-top: 1px solid var(--border-default);
+      display: flex;
+      gap: .75rem;
+      justify-content: flex-end;
+      flex: 0 0 auto;
+    }
+
+    /* status bar */
+    #creatorStatusBar {
+      font-size: .78rem;
+      padding: .5rem 1rem;
+      background: var(--surface-2);
+      border-radius: .5rem;
+      min-height: 2rem;
+      margin-bottom: 1rem;
+      transition: .2s;
+    }
+
+    #creatorStatusBar.ok    { color: var(--success, #34d399); }
+    #creatorStatusBar.err   { color: var(--danger,  #ff5f5f); }
+    #creatorStatusBar.info  { color: var(--text-secondary); }
+    #creatorStatusBar.warn  { color: var(--warn, #f59e0b); }
+
+    /* progress overlay */
+    #creatorProgressOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.75);
+      z-index: 9000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #creatorProgressOverlay.active {
+      display: flex;
+    }
+
+    .creator-progress-box {
+      background: var(--surface-1);
+      border: 1px solid var(--border-default);
+      border-radius: 1rem;
+      width: min(480px, 92vw);
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .creator-progress-box h3 {
+      margin: 0 0 1.5rem;
+      font-size: 1.1rem;
+    }
+
+    /* success screen */
+    #creatorSuccessScreen {
+      display: none;
+      text-align: center;
+      padding: 2rem 0;
+    }
+
+    .creator-success-icon {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .creator-success-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+    }
+
+    .creator-success-traits {
+      font-size: .82rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      font-style: italic;
+    }
+
+    body.embed-mode .creator-main {
+      padding: .6rem;
+    }
+
+    body.embed-mode .creator-card {
+      width: min(620px, 100%);
+      border-radius: .9rem;
+    }
+
+    @media (max-width: 680px) {
+      .creator-main {
+        padding: .5rem;
+      }
+      .creator-card-header,
+      .creator-card-body,
+      .creator-card-footer {
+        padding-left: .85rem;
+        padding-right: .85rem;
+      }
+      .creator-card-header h1 {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="creator-shell">
+
+  <!-- Top bar -->
+  <div class="creator-topbar" id="creatorTopbar">
+    <span class="creator-topbar-brand">🧬 Entity Creator</span>
+    <a class="creator-topbar-back" href="index.html">← Back to REM</a>
+  </div>
+
+  <!-- Main content -->
+  <div class="creator-main">
+    <div class="creator-card">
+
+      <div class="creator-card-header">
+        <h1>Create a New Entity</h1>
+        <p>Choose a creation mode and fill in the details below. The entity will be available immediately in REM after creation.</p>
+      </div>
+
+      <div class="creator-card-body">
+
+        <!-- Status bar -->
+        <div id="creatorStatusBar" class="info">Choose a creation mode to get started.</div>
+
+        <!-- ── Step 0: Welcome / user name ── -->
+        <div id="creatorWelcomeStep">
+          <p class="text-secondary-c mb-4"><strong>Creator:</strong> Hey, let's vibe this setup. First, what should I call you?</p>
+          <div class="form-group">
+            <label>Your Name <span class="text-secondary-c text-xs-c">(optional)</span></label>
+            <input type="text" id="creatorUserName" placeholder="e.g., Alex, Sam, Voard">
+          </div>
+          <div class="callout callout-info mt-4">
+            <strong class="block mb-2">Creator:</strong>
+            <p class="text-sm-c text-secondary-c" style="margin:0">I'll show all 4 creation options next. You can fill onboarding fields now or let the entity ask the questions later in chat.</p>
+          </div>
+          <div class="mt-4">
+            <button class="btn bp" onclick="creatorContinueToModeSelection()">Continue →</button>
+          </div>
+        </div>
+
+        <!-- ── Step 1: Mode selection ── -->
+        <div id="entityCreationModeStep" style="display:none">
+          <p class="text-secondary-c mb-5"><strong>Creator:</strong> Pick a creation mode:</p>
+          <div class="entity-mode-grid">
+            <div class="entity-mode-card" onclick="selectEntityMode('random')">
+              <div class="entity-mode-icon">🎲</div>
+              <h4>Random Generation</h4>
+              <p>Automatically generate a complete entity with name, personality, life story, and core memories</p>
+            </div>
+            <div class="entity-mode-card" onclick="selectEntityMode('empty')">
+              <div class="entity-mode-icon">✏️</div>
+              <h4>Empty Entity</h4>
+              <p>Create a blank entity with your custom name and traits. No history — build memories through conversation</p>
+            </div>
+            <div class="entity-mode-card" onclick="selectEntityMode('guided')">
+              <div class="entity-mode-icon">🎨</div>
+              <h4>Guided Creation</h4>
+              <p>Walk through a step-by-step process to design your entity's personality and life story</p>
+            </div>
+            <div class="entity-mode-card" onclick="selectEntityMode('character')">
+              <div class="entity-mode-icon">📚</div>
+              <h4>Character Ingestion</h4>
+              <p>Create an entity inspired by a fictional or real character. The LLM extracts personality, speech style, and memories from your description</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Step 2: Empty Entity Form ── -->
+        <div id="entityEmptyFormStep" style="display:none">
+          <div class="mb-4">
+            <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
+          </div>
+          <h4 class="mb-4">Empty Entity Details</h4>
+          <div class="form-group">
+            <label>Entity Name <span class="text-accent">*</span></label>
+            <input type="text" id="emptyEntityName" placeholder="e.g., Luna, Alex, etc.">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Gender</label>
+              <select id="emptyEntityGender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="neutral">Neutral</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Age/Experience <span class="text-secondary-c text-xs-c">(optional)</span></label>
+              <input type="text" id="emptyEntityAge" placeholder="e.g., young, mature, ancient">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Personality Traits <span class="text-accent">*</span></label>
+            <input type="text" id="emptyEntityTraits" placeholder="e.g., curious, adventurous, creative (comma-separated)">
+            <p class="text-xs-c text-secondary-c mt-1">Enter at least 3-5 traits that define this entity's character</p>
+          </div>
+          <div class="form-group">
+            <label>Brief Introduction <span class="text-secondary-c text-xs-c">(optional)</span></label>
+            <textarea id="emptyEntityIntro" placeholder="How should this entity introduce itself?" rows="3"></textarea>
+          </div>
+        </div>
+
+        <!-- ── Step 3: Random Entity Options ── -->
+        <div id="entityRandomFormStep" style="display:none">
+          <div class="mb-4">
+            <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
+          </div>
+          <h4 class="mb-4">Random Generation Options</h4>
+          <div class="form-group">
+            <label>Gender Preference</label>
+            <select id="randomEntityGender">
+              <option value="random">Random</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="neutral">Neutral</option>
+            </select>
+            <p class="text-xs-c text-secondary-c mt-1">All other attributes (name, traits, life story) will be automatically generated</p>
+          </div>
+          <div class="callout callout-info mt-4">
+            <strong class="block mb-2">What gets generated:</strong>
+            <ul class="text-sm-c text-secondary-c" style="margin:.5rem 0;padding-left:1.5rem">
+              <li>Random name from name database</li>
+              <li>5 personality traits</li>
+              <li>Short life story (2-4 paragraphs)</li>
+              <li>5-10 core memories extracted from the story</li>
+              <li>Initial goals and exploration themes</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── Step 4: Character Ingestion ── -->
+        <div id="entityCharacterFormStep" style="display:none">
+          <div class="mb-4">
+            <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
+          </div>
+          <h4 class="mb-4">Character Ingestion</h4>
+          <p class="text-secondary-c text-sm-c mb-4">Tell us who the character is and where they're from. The LLM handles the rest — personality, speech style, traits, memories, everything.</p>
+          <div class="form-group">
+            <label>Character Name <span class="text-accent">*</span></label>
+            <input type="text" id="charEntityName" placeholder="e.g., Mad Hatter, Sherlock Holmes, Nikola Tesla">
+          </div>
+          <div class="form-group">
+            <label>Source / Origin <span class="text-accent">*</span></label>
+            <input type="text" id="charEntitySource" placeholder="e.g., Alice in Wonderland, BBC Sherlock, historical figure">
+            <p class="text-xs-c text-secondary-c mt-1">Book, movie, game, TV show, mythology, real person — whatever the source is.</p>
+          </div>
+          <div class="form-group">
+            <label>Additional Notes <span class="text-secondary-c text-xs-c">(optional)</span></label>
+            <textarea id="charEntityNotes" placeholder="Add anything extra: custom backstory twists, crossover adventures, specific traits you want emphasized, AU details, etc. Leave blank to use pure canon." rows="4"></textarea>
+            <p class="text-xs-c text-secondary-c mt-1">This is where you make it yours. Want the Mad Hatter to have gone on an adventure with Superman? Put it here.</p>
+          </div>
+          <div class="callout callout-info mt-4">
+            <strong class="block mb-2">What the LLM will figure out for you:</strong>
+            <ul class="text-sm-c text-secondary-c" style="margin:.5rem 0;padding-left:1.5rem">
+              <li>Personality traits, gender, archetype</li>
+              <li>Speech style, mannerisms, catchphrases</li>
+              <li>Beliefs, motivations, relationships</li>
+              <li>8-20 core memories from canonical lore</li>
+              <li>In-character greeting &amp; voice calibration</li>
+              <li>Behavioral rules &amp; tone drift protection</li>
+            </ul>
+            <p class="text-xs-c text-tertiary-c mt-2" style="margin-bottom:0">Entity will be created as "inspired by" the source character.</p>
+          </div>
+        </div>
+
+        <!-- ── Step 5: Guided Creation ── -->
+        <div id="entityGuidedFormStep" style="display:none">
+          <div class="mb-4">
+            <button class="btn text-sm-c" onclick="backToModeSelection()">← Back</button>
+          </div>
+          <h4 class="mb-4">Guided Entity Creation</h4>
+          <p class="text-secondary-c text-sm-c mb-4">Define your entity's identity and backstory. The LLM will generate a rich life history and core memories from your description.</p>
+          <div class="form-group">
+            <label>Entity Name <span class="text-accent">*</span></label>
+            <input type="text" id="guidedEntityName" placeholder="e.g., Neko, Luna, Marcus">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Gender</label>
+              <select id="guidedEntityGender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="neutral">Neutral</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Age/Era <span class="text-secondary-c text-xs-c">(optional)</span></label>
+              <input type="text" id="guidedEntityAge" placeholder="e.g., young adult, ancient, 25">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Personality Traits <span class="text-accent">*</span></label>
+            <input type="text" id="guidedEntityTraits" placeholder="e.g., sarcastic, brilliant, secretly caring (comma-separated)">
+            <p class="text-xs-c text-secondary-c mt-1">3-7 traits that define the entity's character. Be specific!</p>
+          </div>
+          <div class="form-group">
+            <label>Backstory / Description <span class="text-secondary-c text-xs-c">(recommended)</span></label>
+            <textarea id="guidedEntityBackstory" placeholder="Describe who this entity is, their history, relationships, skills, quirks, speaking style, and anything that makes them unique. The more detail you provide, the richer the generated life will be." rows="6"></textarea>
+            <p class="text-xs-c text-secondary-c mt-1">You can leave this lighter if you use intent presets + knowledge seed docs below.</p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Primary Intent</label>
+              <select id="guidedEntityIntent">
+                <option value="programming">Programming Partner</option>
+                <option value="companion">Companion</option>
+                <option value="assistant">General Assistant</option>
+                <option value="custom">Custom Hybrid</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Interaction Style</label>
+              <select id="guidedEntityInteractionStyle">
+                <option value="balanced">Balanced</option>
+                <option value="supportive">Supportive / Gentle</option>
+                <option value="blunt">Direct / Blunt</option>
+                <option value="mentor">Mentor / Coach</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Speaking Style <span class="text-secondary-c text-xs-c">(optional)</span></label>
+            <input type="text" id="guidedEntityStyle" placeholder="e.g., formal, witty, blunt, poetic, uses lots of sarcasm">
+          </div>
+          <div class="form-group">
+            <label>Knowledge Seed Notes / Documents <span class="text-secondary-c text-xs-c">(optional but powerful)</span></label>
+            <textarea id="guidedEntityKnowledgeSeed" placeholder="Paste notes, coding standards, personal preferences, or domain docs here. Content is automatically chunked and ingested through the full document pipeline — no separators needed." rows="6"></textarea>
+            <p class="text-xs-c text-secondary-c mt-1">These are converted into initial knowledge memories at creation time.</p>
+          </div>
+          <div class="form-group">
+            <label>Introduction Message <span class="text-secondary-c text-xs-c">(optional)</span></label>
+            <textarea id="guidedEntityIntro" placeholder="How should this entity introduce themselves? Leave blank to auto-generate." rows="3"></textarea>
+          </div>
+          <div class="form-group mt-4">
+            <label style="display:flex;align-items:center;gap:.7rem;cursor:pointer;user-select:none">
+              <input type="checkbox" id="guidedEntityUnbreakable" style="width:1.1rem;height:1.1rem;cursor:pointer;accent-color:var(--accent)">
+              <span>
+                <strong>🔒 Unbreakable Identity</strong>
+                <span class="text-xs-c text-secondary-c" style="display:block;margin-top:.15rem">Locks this entity to its origin story — backstory and traits are permanently authoritative. Great for NPCs and fixed characters that must never drift. Leave unchecked for companions and entities meant to evolve.</span>
+              </span>
+            </label>
+          </div>
+          <div class="callout callout-info mt-4">
+            <strong class="block mb-2">What the LLM will generate:</strong>
+            <ul class="text-sm-c text-secondary-c" style="margin:.5rem 0;padding-left:1.5rem">
+              <li>Life story based on your description</li>
+              <li>Core memories extracted from the story</li>
+              <li>Custom system prompt with personality</li>
+              <li>Emotional baseline matching the character</li>
+              <li>Initial goals and exploration themes</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── Creator Onboarding (shared across modes) ── -->
+        <div id="creatorOnboardingBlock" class="callout callout-info mt-4" style="display:none">
+          <strong class="block mb-2">Creator Onboarding</strong>
+          <p class="text-xs-c text-secondary-c mb-3">Optional: fill any fields now to pre-seed context. Leave blank to have the entity ask these as onboarding questions in chat.</p>
+          <div class="form-group">
+            <label>What should the entity call you? <span class="text-secondary-c text-xs-c">(optional)</span></label>
+            <input type="text" id="creatorOnboardName" placeholder="Your preferred name">
+          </div>
+          <div class="form-group">
+            <label>Your interests</label>
+            <input type="text" id="creatorOnboardInterests" placeholder="e.g., coding, art, robotics, storytelling">
+          </div>
+          <div class="form-group">
+            <label>What do you do?</label>
+            <input type="text" id="creatorOnboardOccupation" placeholder="e.g., developer, student, founder">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>What are you hoping to do together?</label>
+            <input type="text" id="creatorOnboardIntent" placeholder="e.g., build tools, explore ideas, stay focused">
+          </div>
+        </div>
+
+        <!-- ── Success screen ── -->
+        <div id="creatorSuccessScreen">
+          <div class="creator-success-icon">🧬</div>
+          <div class="creator-success-name" id="creatorSuccessName">Entity Created</div>
+          <div class="creator-success-traits" id="creatorSuccessTraits"></div>
+          <p class="text-secondary-c text-sm-c mb-4" id="creatorSuccessNote">Your entity is ready. Redirecting to REM…</p>
+          <div style="display:flex;gap:.75rem;justify-content:center">
+            <button class="btn bp" id="creatorPrimarySuccessBtn" onclick="goToMain()">Open in REM →</button>
+          </div>
+        </div>
+
+      </div><!-- /card-body -->
+
+      <div class="creator-card-footer" id="creatorCardFooter">
+        <a href="index.html" class="btn bg">Cancel</a>
+        <button class="btn bp" id="createEntityBtn" style="display:none" onclick="executeEntityCreation()">Create Entity</button>
+      </div>
+
+    </div><!-- /creator-card -->
+  </div><!-- /creator-main -->
+
+</div><!-- /creator-shell -->
+
+<!-- ── Progress overlay ── -->
+<div id="creatorProgressOverlay">
+  <div class="creator-progress-box">
+    <div style="font-size:3rem;margin-bottom:.75rem">🧬</div>
+    <h3>Creating Entity…</h3>
+    <div id="hatchProgressSteps" style="text-align:left;margin:1.5rem 0">
+      <div class="hatch-step" style="opacity:.6">
+        <span class="hatch-step-icon">⏳</span>
+        <span class="hatch-step-text">Generating identity and personality</span>
+      </div>
+      <div class="hatch-step" style="opacity:.4">
+        <span class="hatch-step-icon">⏳</span>
+        <span class="hatch-step-text">Creating life chapters</span>
+      </div>
+      <div class="hatch-step" style="opacity:.4">
+        <span class="hatch-step-icon">⏳</span>
+        <span class="hatch-step-text">Generating memories</span>
+      </div>
+      <div class="hatch-step" style="opacity:.4">
+        <span class="hatch-step-icon">⏳</span>
+        <span class="hatch-step-text">Building memory connections</span>
+      </div>
+      <div class="hatch-step" style="opacity:.4">
+        <span class="hatch-step-icon">⏳</span>
+        <span class="hatch-step-text">Generating goals and finalizing</span>
+      </div>
+      <div class="hatch-step" id="hatchStepSeed" style="display:none;opacity:.4">
+        <span class="hatch-step-icon">⏳</span>
+        <span class="hatch-step-text">Ingesting knowledge seed documents</span>
+      </div>
+    </div>
+    <div class="text-xs-c text-secondary-c">This may take 10–30 seconds…</div>
+  </div>
+</div>
+
+<script src="shared/api.js"></script>
+<script src="js/create.js"></script>
+</body>
+</html>

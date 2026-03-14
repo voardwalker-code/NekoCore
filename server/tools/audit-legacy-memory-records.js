@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const entityPaths = require('../entities/entityPaths');
+const entityPaths = require('../entityPaths');
 const { MEMORY_SCHEMA_VERSION, normalizeMemoryRecord } = require('../contracts/memory-schema');
 
 function parseArgs(argv) {

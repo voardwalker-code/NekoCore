@@ -159,7 +159,7 @@ Return ONLY this JSON (no other text, no markdown, no explanation):
     // Stamp active user onto the log.json so memories are attributed to who said them
     if (activeUserId && coreResult.memId && memoryEntityId) {
       try {
-        const entityPathsMod = require('../entities/entityPaths');
+        const entityPathsMod = require('../entityPaths');
         const fs = require('fs');
         const path = require('path');
         const episodicPath = entityPathsMod.getEpisodicMemoryPath(memoryEntityId);

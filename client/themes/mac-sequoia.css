@@ -1,0 +1,41 @@
+:root {
+  --surface-0: #0b1120;
+  --surface-1: #11182a;
+  --surface-2: #182136;
+  --surface-3: #1f2b42;
+  --border-default: rgba(166, 189, 255, 0.16);
+  --border-emphasis: rgba(166, 189, 255, 0.36);
+  --text-primary: #ecf2ff;
+  --text-secondary: #b9c9ea;
+  --text-tertiary: #7f94bb;
+  --text-quaternary: #5c6f94;
+  --accent: #79d5ff;
+  --accent-strong: #4ab7ff;
+  --accent-subtle: rgba(121, 213, 255, 0.14);
+  --cyan: #9be4ff;
+  --indigo: #8fa9ff;
+  --info: #8fa9ff;
+  --info-strong: #6f86ff;
+  --desktop-wallpaper:
+    radial-gradient(circle at top left, rgba(196, 220, 255, 0.26), transparent 30%),
+    radial-gradient(circle at top right, rgba(121, 213, 255, 0.22), transparent 28%),
+    radial-gradient(circle at bottom center, rgba(153, 174, 255, 0.18), transparent 36%),
+    linear-gradient(180deg, #0b1120 0%, #12192b 45%, #090f1d 100%);
+  --desktop-overlay: linear-gradient(135deg, rgba(8, 12, 23, 0.18), rgba(20, 30, 50, 0.6));
+  --taskbar-bg: rgba(17, 24, 42, 0.74);
+  --window-bg: rgba(17, 24, 42, 0.76);
+  --start-surface: rgba(17, 24, 42, 0.88);
+  --shortcut-bg: rgba(31, 43, 66, 0.68);
+  --shortcut-bg-hover: rgba(42, 58, 87, 0.86);
+}
+
+body.theme-mac-sequoia .wm-btn {
+  border-radius: 999px;
+  width: 14px;
+  height: 14px;
+  font-size: 0;
+}
+
+body.theme-mac-sequoia .wm-controls .wm-btn[data-action="close"] { background: #ff5f57; border-color: #ff7f78; }
+body.theme-mac-sequoia .wm-controls .wm-btn[data-action="maximize"] { background: #28c840; border-color: #4fdb63; }
+body.theme-mac-sequoia .wm-controls .wm-btn[data-action="popout"] { background: #ffbd2e; border-color: #ffd074; }

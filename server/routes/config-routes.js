@@ -39,7 +39,7 @@ function createConfigRoutes(ctx) {
   function readEntityProfileRef(entityId) {
     if (!entityId) return null;
     try {
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const canonicalId = entityPaths.normalizeEntityId(entityId);
       const entityFile = path.join(entityPaths.getEntityRoot(canonicalId), 'entity.json');
       if (!fs.existsSync(entityFile)) return null;
@@ -52,7 +52,7 @@ function createConfigRoutes(ctx) {
   }
 
   function writeEntityProfileRef(entityId, profileName) {
-    const entityPaths = require('../entities/entityPaths');
+    const entityPaths = require('../entityPaths');
     const canonicalId = entityPaths.normalizeEntityId(entityId);
     const entityFile = path.join(entityPaths.getEntityRoot(canonicalId), 'entity.json');
     if (!fs.existsSync(entityFile)) throw new Error('Entity not found: ' + canonicalId);

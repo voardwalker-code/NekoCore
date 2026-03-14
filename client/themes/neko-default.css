@@ -1,0 +1,13 @@
+:root {
+  --desktop-wallpaper:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.22), transparent 26%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.24), transparent 24%),
+    radial-gradient(circle at bottom center, rgba(129, 140, 248, 0.18), transparent 32%),
+    linear-gradient(180deg, #030712 0%, #08101d 46%, #04060d 100%);
+  --desktop-overlay: linear-gradient(135deg, rgba(4, 6, 13, 0.25), rgba(8, 16, 29, 0.72));
+  --taskbar-bg: rgba(8, 13, 24, 0.72);
+  --window-bg: rgba(8, 13, 24, 0.74);
+  --start-surface: rgba(8, 13, 24, 0.82);
+  --shortcut-bg: rgba(17, 30, 51, 0.72);
+  --shortcut-bg-hover: rgba(23, 39, 64, 0.84);
+}

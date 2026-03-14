@@ -14,7 +14,7 @@
 
 const fs   = require('fs');
 const path = require('path');
-const entityPaths = require('../../entities/entityPaths');
+const entityPaths = require('../../entityPaths');
 const { MEMORY_SCHEMA_VERSION } = require('../../contracts/memory-schema');
 
 const LTM_THRESHOLD    = 3;    // recall_weight needed to trigger LTM promotion

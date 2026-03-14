@@ -185,7 +185,7 @@ function createCognitiveRoutes(ctx) {
     rebuildMemoryGraph: async (req, res, apiHeaders) => {
       try {
         if (!ctx.currentEntityId) throw new Error('No entity loaded — cannot rebuild memory graph');
-        const entityPaths = require('../entities/entityPaths');
+        const entityPaths = require('../entityPaths');
         const MemoryGraphBuilder = require('../brain/memory-graph-builder');
         ctx.memoryGraphBuilder = new MemoryGraphBuilder({
           memDir: entityPaths.getEpisodicMemoryPath(ctx.currentEntityId),
@@ -219,7 +219,7 @@ function createCognitiveRoutes(ctx) {
         let semanticText = null;
         let logData = null;
         const entityMemRoot = ctx.currentEntityId
-          ? require('../entities/entityPaths').getMemoryRoot(ctx.currentEntityId)
+          ? require('../entityPaths').getMemoryRoot(ctx.currentEntityId)
           : null;
         const searchDirs = [];
         if (entityMemRoot) {
@@ -310,7 +310,7 @@ function createCognitiveRoutes(ctx) {
           res.end(JSON.stringify({ ok: true, nodes: [], edges: [] }));
           return;
         }
-        const entityPathsMod = require('../entities/entityPaths');
+        const entityPathsMod = require('../entityPaths');
         const memoryRoot = entityPathsMod.getMemoryRoot(ctx.currentEntityId);
         const nodes = [];
         const edges = [];
@@ -444,7 +444,7 @@ function createCognitiveRoutes(ctx) {
       try {
         let connections = 0;
         const entityMemRoot = ctx.currentEntityId
-          ? require('../entities/entityPaths').getMemoryRoot(ctx.currentEntityId)
+          ? require('../entityPaths').getMemoryRoot(ctx.currentEntityId)
           : null;
         const episodicDir = entityMemRoot ? path.join(entityMemRoot, 'episodic') : null;
         if (episodicDir && fs.existsSync(episodicDir)) {

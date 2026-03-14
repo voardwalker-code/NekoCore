@@ -15,7 +15,7 @@ function createEntityRoutes(ctx) {
     const fallback = cfg?.lastActive || null;
     if (!entityId) return fallback;
     try {
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const canonicalId = entityPaths.normalizeEntityId(entityId);
       const entityFile = path.join(entityPaths.getEntityRoot(canonicalId), 'entity.json');
       if (!fs.existsSync(entityFile)) return fallback;
@@ -94,7 +94,7 @@ function createEntityRoutes(ctx) {
       let memCount = entity.memory_count || 0;
       if (ctx.currentEntityId) {
         try {
-          const entityPathsMod = require('../entities/entityPaths');
+          const entityPathsMod = require('../entityPaths');
           const episodicDir = entityPathsMod.getEpisodicMemoryPath(ctx.currentEntityId);
           if (fs.existsSync(episodicDir)) {
             memCount = fs.readdirSync(episodicDir).filter(f => {
@@ -151,7 +151,7 @@ function createEntityRoutes(ctx) {
   async function postEntitiesLoad(req, res, apiHeaders, readBody) {
     try {
       const body = JSON.parse(await readBody(req));
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const canonicalId = entityPaths.normalizeEntityId(body.entityId);
       if (!canonicalId) throw new Error('Missing entityId');
 
@@ -233,7 +233,7 @@ function createEntityRoutes(ctx) {
     try {
       const body = JSON.parse(await readBody(req));
       const { entityId, name, gender, traits, introduction } = body;
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const canonicalId = entityPaths.normalizeEntityId(entityId);
       if (!canonicalId || !name || !traits) throw new Error('Missing required fields: entityId, name, or traits');
 
@@ -300,7 +300,7 @@ function createEntityRoutes(ctx) {
       entity.ownerId  = req.accountId || null;
       entity.isPublic = false;
 
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const entityPath = entityPaths.getEntityRoot(hatchResult.entityId);
       if (!fs.existsSync(entityPath)) fs.mkdirSync(entityPath, { recursive: true });
       fs.writeFileSync(path.join(entityPath, 'entity.json'), JSON.stringify(entity, null, 2), 'utf8');
@@ -376,7 +376,7 @@ function createEntityRoutes(ctx) {
       const interactionDirective = interactionPresets[chosenInteraction] || interactionPresets.balanced;
 
       const entityIdRaw = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
-      const entityPathsModule = require('../entities/entityPaths');
+      const entityPathsModule = require('../entityPaths');
       const canonicalId = entityPathsModule.normalizeEntityId(entityIdRaw);
 
       const profileContext = [
@@ -568,7 +568,7 @@ function createEntityRoutes(ctx) {
 
       // ─── Create Entity Files ───
       const entityIdRaw = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
-      const entityPathsModule = require('../entities/entityPaths');
+      const entityPathsModule = require('../entityPaths');
       const canonicalId = entityPathsModule.normalizeEntityId(entityIdRaw);
       ctx.entityManager.createEntityFolder(canonicalId);
       const entityRoot = entityPathsModule.getEntityRoot(canonicalId);
@@ -618,7 +618,7 @@ function createEntityRoutes(ctx) {
   async function postEntitiesDelete(req, res, apiHeaders, readBody) {
     try {
       const body = JSON.parse(await readBody(req));
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const canonicalId = entityPaths.normalizeEntityId(body.entityId);
       if (!canonicalId) throw new Error('Missing entityId');
 
@@ -648,7 +648,7 @@ function createEntityRoutes(ctx) {
   async function postEntitiesVisibility(req, res, apiHeaders, readBody) {
     try {
       const body = JSON.parse(await readBody(req));
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const canonicalId = entityPaths.normalizeEntityId(body.entityId);
       if (!canonicalId) throw new Error('Missing entityId');
 
@@ -677,7 +677,7 @@ function createEntityRoutes(ctx) {
   async function postEntitiesOnboardingSeed(req, res, apiHeaders, readBody) {
     try {
       const body = JSON.parse(await readBody(req));
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const Onboarding = require('../brain/identity/onboarding');
 
       const requestedEntityId = entityPaths.normalizeEntityId(body.entityId);
@@ -789,7 +789,7 @@ function createEntityRoutes(ctx) {
 
       const entity = result.entity;
       const persona = { userName: 'User', userIdentity: '', llmName: entity.name || 'Entity', llmStyle: 'adaptive and curious', mood: 'curious', emotions: 'ready, attentive', tone: 'warm-casual', userPersonality: 'Getting to know them', llmPersonality: 'I am ' + (entity.name || 'Entity') + '. I was hatched with a synthetic life history. My traits are: ' + (entity.personality_traits || []).join(', ') + '.', continuityNotes: 'First session — just hatched.', dreamSummary: 'A fresh start.', sleepCount: 0, lastSleep: null, createdAt: new Date().toISOString() };
-      const entityMemRoot = require('../entities/entityPaths').getMemoryRoot(entityId);
+      const entityMemRoot = require('../entityPaths').getMemoryRoot(entityId);
       fs.writeFileSync(path.join(entityMemRoot, 'persona.json'), JSON.stringify(persona, null, 2), 'utf8');
       fs.writeFileSync(path.join(entityMemRoot, 'system-prompt.txt'), _buildRichSystemPrompt(persona), 'utf8');
 
@@ -817,7 +817,7 @@ function createEntityRoutes(ctx) {
 
   function getUsersList(req, res, apiHeaders) {
     const userProfiles = require('../services/user-profiles');
-    const entityPaths = require('../entities/entityPaths');
+    const entityPaths = require('../entityPaths');
     const entityId = _requireEntity(res, apiHeaders);
     if (!entityId) return;
     const users = userProfiles.listUsers(entityId, entityPaths);
@@ -828,7 +828,7 @@ function createEntityRoutes(ctx) {
 
   async function postCreateUser(req, res, apiHeaders, readBody) {
     const userProfiles = require('../services/user-profiles');
-    const entityPaths = require('../entities/entityPaths');
+    const entityPaths = require('../entityPaths');
     const entityId = _requireEntity(res, apiHeaders);
     if (!entityId) return;
     const body = JSON.parse(await readBody(req));
@@ -839,7 +839,7 @@ function createEntityRoutes(ctx) {
 
   function getUsersActive(req, res, apiHeaders) {
     const userProfiles = require('../services/user-profiles');
-    const entityPaths = require('../entities/entityPaths');
+    const entityPaths = require('../entityPaths');
     const entityId = _requireEntity(res, apiHeaders);
     if (!entityId) return;
     const user = userProfiles.getActiveUser(entityId, entityPaths);
@@ -849,7 +849,7 @@ function createEntityRoutes(ctx) {
 
   async function postSetActiveUser(req, res, apiHeaders, readBody) {
     const userProfiles = require('../services/user-profiles');
-    const entityPaths = require('../entities/entityPaths');
+    const entityPaths = require('../entityPaths');
     const entityId = _requireEntity(res, apiHeaders);
     if (!entityId) return;
     const body = JSON.parse(await readBody(req));
@@ -875,7 +875,7 @@ function createEntityRoutes(ctx) {
 
   function deleteActiveUser(req, res, apiHeaders) {
     const userProfiles = require('../services/user-profiles');
-    const entityPaths = require('../entities/entityPaths');
+    const entityPaths = require('../entityPaths');
     const entityId = _requireEntity(res, apiHeaders);
     if (!entityId) return;
     const result = userProfiles.setActiveUser(entityId, null, entityPaths);
@@ -897,7 +897,7 @@ function createEntityRoutes(ctx) {
   function getActiveRelationship(req, res, apiHeaders) {
     const relSvc = require('../services/relationship-service');
     const userProfiles = require('../services/user-profiles');
-    const entityPaths = require('../entities/entityPaths');
+    const entityPaths = require('../entityPaths');
     const entityId = _requireEntity(res, apiHeaders);
     if (!entityId) return;
     const active = userProfiles.getActiveUser(entityId, entityPaths);
@@ -923,7 +923,7 @@ function createEntityRoutes(ctx) {
 
   async function putUpdateUser(req, res, apiHeaders, readBody, pathname) {
     const userProfiles = require('../services/user-profiles');
-    const entityPaths = require('../entities/entityPaths');
+    const entityPaths = require('../entityPaths');
     const entityId = _requireEntity(res, apiHeaders);
     if (!entityId) return;
     const userId = pathname.replace('/api/users/', '').split('/')[0];
@@ -935,7 +935,7 @@ function createEntityRoutes(ctx) {
 
   function deleteUserProfile(req, res, apiHeaders, pathname) {
     const userProfiles = require('../services/user-profiles');
-    const entityPaths = require('../entities/entityPaths');
+    const entityPaths = require('../entityPaths');
     const entityId = _requireEntity(res, apiHeaders);
     if (!entityId) return;
     const userId = pathname.replace('/api/users/', '').split('/')[0];
@@ -949,7 +949,7 @@ function createEntityRoutes(ctx) {
   async function postEntitiesRelease(req, res, apiHeaders, readBody) {
     try {
       const body = JSON.parse(await readBody(req));
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const canonicalId = entityPaths.normalizeEntityId(body.entityId);
       if (!canonicalId) throw new Error('Missing entityId');
 
@@ -984,7 +984,7 @@ function createEntityRoutes(ctx) {
       return;
     }
     try {
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const canonicalId = entityPaths.normalizeEntityId(rawId);
       const entityRoot = entityPaths.getEntityRoot(canonicalId);
       const memRoot = entityPaths.getMemoryRoot(canonicalId);
@@ -1087,7 +1087,7 @@ function createEntityRoutes(ctx) {
     const entityId = _requireEntity(res, apiHeaders);
     if (!entityId) return;
     try {
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const entityFile = path.join(entityPaths.getEntityRoot(entityId), 'entity.json');
       const entity = fs.existsSync(entityFile) ? JSON.parse(fs.readFileSync(entityFile, 'utf8')) : {};
 

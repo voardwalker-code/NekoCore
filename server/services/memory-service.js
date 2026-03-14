@@ -19,7 +19,7 @@ const ArchiveManager   = require('../brain/memory/archive-manager');
 const ConsciousMemory  = require('../brain/memory/conscious-memory');
 const MemoryImages     = require('../brain/memory/memory-images');
 const ImageGenerator   = require('../brain/generation/image-generator');
-const entityPaths      = require('../entities/entityPaths');
+const entityPaths      = require('../entityPaths');
 const configService    = require('./config-service');
 const { normalizeMemoryRecord } = require('../contracts/memory-schema');
 

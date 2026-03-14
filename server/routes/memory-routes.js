@@ -85,7 +85,7 @@ function createMemoryRoutes(ctx) {
     try {
       let archives = [];
       if (ctx.currentEntityId) {
-        const entityPaths = require('../entities/entityPaths');
+        const entityPaths = require('../entityPaths');
         const archiveDir = path.join(entityPaths.getMemoryRoot(ctx.currentEntityId), 'archives');
         if (fs.existsSync(archiveDir)) {
           const files = fs.readdirSync(archiveDir).filter(f => f.endsWith('.txt'));
@@ -228,7 +228,7 @@ function createMemoryRoutes(ctx) {
       res.writeHead(200, apiHeaders);
       res.end(JSON.stringify({ ok: true }));
       if (ctx.currentEntityId) {
-        try { ctx.contextConsolidator.buildConsolidatedContext(ctx.currentEntityId, require('../entities/entityPaths')); } catch (e2) { /* ignore */ }
+        try { ctx.contextConsolidator.buildConsolidatedContext(ctx.currentEntityId, require('../entityPaths')); } catch (e2) { /* ignore */ }
       }
     } catch (e) {
       res.writeHead(400, apiHeaders);
@@ -348,7 +348,7 @@ function createMemoryRoutes(ctx) {
         return;
       }
       const LifeDiary = require('../brain/identity/life-diary');
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const diaryPath = entityPaths.getLifeDiaryPath(ctx.currentEntityId);
       const text = fs.existsSync(diaryPath) ? fs.readFileSync(diaryPath, 'utf8') : '';
       const entries = LifeDiary.readRecent(ctx.currentEntityId, 20);
@@ -368,7 +368,7 @@ function createMemoryRoutes(ctx) {
         return;
       }
       const DreamDiary = require('../brain/identity/dream-diary');
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       const diaryPath = entityPaths.getDreamDiaryPath(ctx.currentEntityId);
       const text = fs.existsSync(diaryPath) ? fs.readFileSync(diaryPath, 'utf8') : '';
       const entries = DreamDiary.readRecent(ctx.currentEntityId, 20);
@@ -393,7 +393,7 @@ function createMemoryRoutes(ctx) {
         return;
       }
 
-      const entityPathsMod = require('../entities/entityPaths');
+      const entityPathsMod = require('../entityPaths');
       const memoryRoot = entityPathsMod.getMemoryRoot(ctx.currentEntityId);
       const MemoryImages = require('../brain/memory/memory-images');
       const memoryImages = new MemoryImages({ entityId: ctx.currentEntityId });
@@ -471,7 +471,7 @@ function createMemoryRoutes(ctx) {
         return;
       }
 
-      const entityPathsMod = require('../entities/entityPaths');
+      const entityPathsMod = require('../entityPaths');
       const MemoryImages = require('../brain/memory/memory-images');
       const memoryImages = new MemoryImages({ entityId: ctx.currentEntityId });
       const memoryRoot = entityPathsMod.getMemoryRoot(ctx.currentEntityId);
@@ -579,7 +579,7 @@ function createMemoryRoutes(ctx) {
         return;
       }
 
-      const entityPathsMod = require('../entities/entityPaths');
+      const entityPathsMod = require('../entityPaths');
       const memoryRoot = entityPathsMod.getMemoryRoot(ctx.currentEntityId);
       const ltmDir = path.join(memoryRoot, 'ltm');
       if (!fs.existsSync(ltmDir)) {
@@ -672,7 +672,7 @@ function createMemoryRoutes(ctx) {
         return;
       }
 
-      const entityPathsMod = require('../entities/entityPaths');
+      const entityPathsMod = require('../entityPaths');
       const MemoryImages = require('../brain/memory/memory-images');
       const memoryImages = new MemoryImages({ entityId: ctx.currentEntityId });
       const memoryRoot = entityPathsMod.getMemoryRoot(ctx.currentEntityId);

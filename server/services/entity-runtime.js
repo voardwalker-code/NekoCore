@@ -62,7 +62,7 @@ class EntityRuntime {
   getMemoryRoot() {
     if (!this.entityId) return null;
     try {
-      const entityPaths = require('../entities/entityPaths');
+      const entityPaths = require('../entityPaths');
       return entityPaths.getMemoryRoot(this.entityId);
     } catch {
       return null;
@@ -70,7 +70,7 @@ class EntityRuntime {
   }
 
   activate(entityId) {
-    const entityPaths = require('../entities/entityPaths');
+    const entityPaths = require('../entityPaths');
     const { cognitiveBus, modelRouter, attentionSystem, identityManager, consciousEngine, archiveManager, hatchEntity, loadConfig, broadcastSSE } = this.globals;
 
     const entityDir = entityPaths.getEntityRoot(entityId);

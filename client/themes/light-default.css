@@ -1,0 +1,35 @@
+:root {
+  --surface-0: #f2f5fb;
+  --surface-1: #ffffff;
+  --surface-2: #eef3fb;
+  --surface-3: #e6edf8;
+  --border-default: rgba(37, 73, 148, 0.15);
+  --border-emphasis: rgba(37, 73, 148, 0.32);
+  --border-subtle: rgba(37, 73, 148, 0.08);
+  --text-primary: #122039;
+  --text-secondary: #334b71;
+  --text-tertiary: #5d7398;
+  --text-quaternary: #7e92b3;
+  --accent: #2f77ff;
+  --accent-strong: #1f63ea;
+  --accent-subtle: rgba(47, 119, 255, 0.14);
+  --cyan: #169ad6;
+  --indigo: #4c63e5;
+  --info: #4c63e5;
+  --info-strong: #3148cd;
+  --danger: #d64b5f;
+  --danger-subtle: rgba(214, 75, 95, 0.1);
+  --danger-border: rgba(214, 75, 95, 0.26);
+  --warning: #c2871f;
+  --desktop-wallpaper:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.26), transparent 30%),
+    radial-gradient(circle at top right, rgba(34, 211, 238, 0.2), transparent 28%),
+    radial-gradient(circle at bottom center, rgba(59, 130, 246, 0.15), transparent 36%),
+    linear-gradient(180deg, #f7f9ff 0%, #eef3fb 44%, #e9effa 100%);
+  --desktop-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(216, 228, 247, 0.52));
+  --taskbar-bg: rgba(255, 255, 255, 0.85);
+  --window-bg: rgba(255, 255, 255, 0.86);
+  --start-surface: rgba(255, 255, 255, 0.93);
+  --shortcut-bg: rgba(237, 243, 252, 0.88);
+  --shortcut-bg-hover: rgba(225, 234, 249, 0.98);
+}

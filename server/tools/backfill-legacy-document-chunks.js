@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const entityPaths = require('../entities/entityPaths');
+const entityPaths = require('../entityPaths');
 const { MEMORY_SCHEMA_VERSION } = require('../contracts/memory-schema');
 
 const DOC_COMMON = {

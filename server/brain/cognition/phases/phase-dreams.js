@@ -180,7 +180,7 @@ async function _runDreamCycle(loop, dreamCallLLM, options = {}) {
     // Generate pixel art visualizations
     if (loop.dreamVisualizer && dreams.length > 0) {
       try {
-        const entityPaths = require('../../../entities/entityPaths');
+        const entityPaths = require('../../../entityPaths');
         const pixelArtDir = entityPaths.getPixelArtPath(loop.memoryStorage.entityId || 'default');
         const cycleId = `cycle_${Date.now()}`;
         const cycleDir = path.join(pixelArtDir, cycleId);
@@ -251,7 +251,7 @@ function _appendDreamImages(loop, cycleId, vizResult) {
   try {
     const entityId = loop.memoryStorage?.entityId;
     if (!entityId) return;
-    const entityPaths = require('../../../entities/entityPaths');
+    const entityPaths = require('../../../entityPaths');
     const diaryPath = entityPaths.getDreamDiaryPath(entityId);
     if (!fs.existsSync(diaryPath)) return;
 

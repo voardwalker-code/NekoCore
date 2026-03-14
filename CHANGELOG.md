@@ -5,10 +5,22 @@ Built with MA (Memory Architect v1).
 
 ## [Unreleased]
 
+### Added
+- Standalone Entity Creator app surface (`client/create.html`, `client/js/create.js`) with embedded shell mode support
+- Creator window app integration in desktop shell (`tab-creator` + `WINDOW_APPS` entry)
+- Users window app (`tab-users`) with in-app profile management actions: create, set active, clear active, delete
+- Additional release/check-in controls in chat toolbar and entity profile view
+- Start menu power action (`⏻ Power`) and left-bottom sidebar power action (`Power Off Server`)
+
 ### Changed
 - Documentation sync pass for source-of-truth docs (`Documents/current/ARCHITECTURE-OVERVIEW.md`, `PIPELINE-AND-ORCHESTRATION.md`, `MEMORY-SYSTEM.md`, `CONTRACTS-AND-SCHEMAS.md`, `OPEN-ITEMS-AUDIT.md`) to reflect v0.6.0 runtime behavior
 - Updated architecture deck `Documents/REM-Architecture-v0.6.0.html` to match current orchestration flow (1A+1D parallel, 1C after both, 2B inlined), route/module counts, and schema wording
 - Updated README docs-governance wording to reflect tracked source-of-truth docs in `Documents/current/`
+- Entity creation flow moved from inline modal to dedicated Creator app window; legacy `showNewEntityDialog()` entry points now route to Creator
+- Entity app browser no longer exposes `+ New` creation controls; creation is owned by Creator app
+- Creator app layout tightened for shell parity and made scrollable in embedded mode to prevent form clipping
+- Release button visibility/state now server-synced via `/api/entities/current`, preventing checkout/check-in dead-ends from stale local state
+- Header stop-server control converted to icon-only power button (`⏻`)
 
 ## [0.6.0] - 2026-03-13
 

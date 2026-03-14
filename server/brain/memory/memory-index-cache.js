@@ -11,7 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { getIndexPath } = require('../../entities/entityPaths');
+const { getIndexPath } = require('../../entityPaths');
 const { normalizeTopics, expandQueryTopic } = require('../utils/topic-utils');
 
 class MemoryIndexCache {

@@ -115,7 +115,7 @@ class Neurochemistry {
   save() {
     if (!this.entityId) return;
     try {
-      const { getNeurochemistryPath } = require('../../entities/entityPaths');
+      const { getNeurochemistryPath } = require('../../entityPaths');
       const data = { state: this.state, savedAt: new Date().toISOString() };
       fs.writeFileSync(getNeurochemistryPath(this.entityId), JSON.stringify(data, null, 2));
     } catch (_) {}
@@ -124,7 +124,7 @@ class Neurochemistry {
   load() {
     if (!this.entityId) return;
     try {
-      const { getNeurochemistryPath } = require('../../entities/entityPaths');
+      const { getNeurochemistryPath } = require('../../entityPaths');
       const file = getNeurochemistryPath(this.entityId);
       if (fs.existsSync(file)) {
         const d = JSON.parse(fs.readFileSync(file, 'utf8'));
