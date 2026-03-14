@@ -620,6 +620,15 @@
       </div>
 
       <div class="tm-panel" style="margin-top:var(--space-4)">
+        <div class="tm-panel-title">🌐 Browser Status</div>
+        <div class="tm-list">
+          <div class="tm-list-row"><span>Open Tabs</span><strong id="tmBrowserTabCount">0</strong></div>
+          <div class="tm-list-row"><span>Active URL</span><strong id="tmBrowserActiveUrl" style="font-size:var(--text-xs);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">No active tab</strong></div>
+          <div class="tm-list-row"><span>Status</span><strong id="tmBrowserStatus">Idle</strong></div>
+        </div>
+      </div>
+
+      <div class="tm-panel" style="margin-top:var(--space-4)">
         <div class="tm-panel-title">App Performance</div>
         <div id="tmAppMetricsGrid" class="tm-app-metrics-grid">
           <div class="tm-metric-empty">Open or pin apps to see live app telemetry.</div>
@@ -1529,6 +1538,66 @@
           </div>
           <p class="text-xs-c text-tertiary-c mt-2">Applies to main chat, conscious mind, orchestrator, and task runner. For internal system calls, see "Internal Token Limits" below.</p>
           <div id="maxTokensStatus" class="status-toast" style="display:none;margin-top:var(--space-3)"></div>
+        </div>
+      </div>
+
+      <!-- Per-Function Token Limits -->
+      <div class="settings-section" style="margin:0;border:none;background:transparent;padding:var(--space-4);border-top:1px solid var(--border-default)">
+        <div class="settings-section-header" style="margin-bottom:var(--space-4);border-bottom:1px solid var(--border-default);padding-bottom:var(--space-3)">
+          <h2 style="font-size:var(--text-base)">🌐 Browser Settings</h2>
+          <p>Configure homepage, search engine, session restore, and external link behavior for the NekoCore Browser</p>
+        </div>
+
+        <div class="grid grid-2" style="gap:var(--space-4)">
+          <div class="config-card">
+            <div class="config-card-title" style="color:var(--accent)">Homepage</div>
+            <div class="fl mb-2">
+              <label>Homepage URL</label>
+              <input type="url" id="browserSettingsHomepage" value="https://neko-core.com" class="w-full" placeholder="https://neko-core.com">
+            </div>
+            <p class="text-xs-c text-tertiary-c mt-1">The page that opens when you click the Home button or open a new tab</p>
+          </div>
+
+          <div class="config-card">
+            <div class="config-card-title" style="color:var(--info)">Search Engine</div>
+            <div class="fl mb-2">
+              <label>Default search</label>
+              <select id="browserSettingsSearch" class="w-full">
+                <option value="google" selected>Google</option>
+                <option value="duckduckgo">DuckDuckGo</option>
+                <option value="bing">Bing</option>
+              </select>
+            </div>
+            <p class="text-xs-c text-tertiary-c mt-1">Used when typing a search query into the address bar</p>
+          </div>
+
+          <div class="config-card">
+            <div class="config-card-title" style="color:var(--accent-green)">Session Restore</div>
+            <div class="flex items-center gap-3 mb-3">
+              <input type="checkbox" id="browserSettingsSessionRestore" checked>
+              <label for="browserSettingsSessionRestore" class="text-sm-c">Restore tabs on startup</label>
+            </div>
+            <p class="text-xs-c text-tertiary-c mt-1">When enabled, your open browser tabs are saved and restored automatically</p>
+          </div>
+
+          <div class="config-card">
+            <div class="config-card-title" style="color:var(--warning)">External Links</div>
+            <div class="fl mb-2">
+              <label>Open links from other apps in</label>
+              <select id="browserSettingsExternalLinks" class="w-full">
+                <option value="in-app" selected>NekoCore Browser (in-app)</option>
+                <option value="external">System browser (external)</option>
+              </select>
+            </div>
+            <p class="text-xs-c text-tertiary-c mt-1">How links from chat, skills, and other apps should open</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-5 justify-end flex-wrap">
+          <button class="btn bg" onclick="browserClearHistory()" title="Clear browsing history">Clear History</button>
+          <button class="btn bg" onclick="browserClearBookmarks()" title="Remove all bookmarks">Clear Bookmarks</button>
+          <button class="btn bg" onclick="browserResetSettings()">Reset to Defaults</button>
+          <button class="btn bp" onclick="browserSaveSettingsFromUI()">Save Browser Settings</button>
         </div>
       </div>
 

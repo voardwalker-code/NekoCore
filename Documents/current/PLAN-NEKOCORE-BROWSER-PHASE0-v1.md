@@ -113,6 +113,27 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 
 ---
 
+### Phase NB-4: Shell Integration
+
+**Goal:** Make the browser feel native to the NekoCore desktop shell with launch routing, settings, status reporting, graceful shutdown, and iframe fallback handling.
+**Status:** `Done`
+**Depends on:** Phase NB-3
+
+#### Slice Checklist
+
+- [x] NB-4-0: Settings store — browser-host/settings-store.js with homepage, search engine, session restore, external link behavior
+- [x] NB-4-1: Settings API endpoints — GET /api/browser/settings, POST /api/browser/settings/update, POST /api/browser/settings/reset, GET /api/browser/status
+- [x] NB-4-2: Launch routing — global openInBrowser(url) function, opens browser window and navigates, deferrable if browser not yet initialized
+- [x] NB-4-3: Browser settings panel — new section in Advanced tab with homepage, search engine, session restore toggle, external link behavior, clear history/bookmarks buttons
+- [x] NB-4-4: Browser status in task manager — tab count, active URL, and status displayed in Task Manager browser card; periodic 3s update timer
+- [x] NB-4-5: Taskbar badge — tab count badge on browser pinned-app button when multiple tabs open
+- [x] NB-4-6: Graceful shutdown — browserCleanup() called on beforeunload, _browserSaveSessionSync() via sendBeacon, session save on browser window close
+- [x] NB-4-7: Iframe fallback handling — error event detection, blocked-site overlay with "Open in System Browser" action, proactive 8s load timeout check
+- [x] NB-4-8: Search engine integration — URL normalization respects search engine setting (Google, DuckDuckGo, Bing)
+- [x] NB-4-9: Settings loaded on browser init — homepage, session restore toggle, and search engine preference applied on startup
+
+---
+
 ## 6. Slice Definitions
 
 ### NB-0-0 — Phase 0 Plan Initialization
@@ -560,14 +581,16 @@ Files changed (expected):
 | 2026-03-14 | NB-2-4 | Done | Lifecycle and download POC: host state machine, download start/complete/failure with correlatable IDs |
 | 2026-03-14 | NB-2-5 | Done | Backend bridge wired: browser-routes.js registered in server.js, all read/command endpoints functional via SSE relay |
 | 2026-03-14 | NB-2-6 | Done | Spike acceptance: 23/23 tests pass covering navigation, tabs, lifecycle, downloads, and event shape |
+| 2026-03-14 | NB-3-0 – NB-3-5 | Done | Browser Core MVP: multi-tab browser with history, bookmarks, downloads, session restore, web search |
+| 2026-03-14 | NB-4-0 – NB-4-9 | Done | Shell Integration: settings store + API, launch routing, settings panel, task manager status, taskbar badge, graceful shutdown, iframe fallback, search engine integration |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
-- **Current phase:** NB-2 Technical Spike Implementation — `Done`
-- **Current slice:** none (NB-2 complete)
-- **Last completed slice:** NB-2-6
+- **Current phase:** NB-4 Shell Integration — `Done`
+- **Current slice:** none (NB-4 complete)
+- **Last completed slice:** NB-4-9
 - **In-progress item:** none
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** Phase NB-3 planning (if defined) or feature integration into main runtime
+- **Next action on resume:** Phase NB-5 planning (Human Mode Completion) or next roadmap phase

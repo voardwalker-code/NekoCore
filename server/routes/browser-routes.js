@@ -30,7 +30,7 @@
 
 const browserHost = require('../../browser-host');
 const { tabModel, navigation, lifecycle, downloadManager, eventBus,
-        historyStore, bookmarkStore, sessionStore } = browserHost;
+        historyStore, bookmarkStore, sessionStore, settingsStore } = browserHost;
 
 function createBrowserRoutes(ctx) {
   const { broadcastSSE } = ctx;
@@ -102,6 +102,23 @@ function createBrowserRoutes(ctx) {
     if (req.method === 'GET' && p === '/api/browser/session-restore') {
       const session = sessionStore.load();
       json(res, apiHeaders, 200, { ok: true, session });
+      return true;
+    }
+
+    if (req.method === 'GET' && p === '/api/browser/settings') {
+      json(res, apiHeaders, 200, { ok: true, settings: settingsStore.getAll() });
+      return true;
+    }
+
+    if (req.method === 'GET' && p === '/api/browser/status') {
+      json(res, apiHeaders, 200, {
+        ok: true,
+        tabCount: tabModel.getTabCount(),
+        activeTabId: tabModel.getActiveTabId(),
+        activeTab: tabModel.getTab(tabModel.getActiveTabId()),
+        hostState: lifecycle.getHostState(),
+        downloadCount: downloadManager.getAllDownloads().length,
+      });
       return true;
     }
 
@@ -230,6 +247,18 @@ function createBrowserRoutes(ctx) {
       if (p === '/api/browser/session/save') {
         const snapshot = sessionStore.save(tabModel.getAllTabs(), tabModel.getActiveTabId());
         json(res, apiHeaders, 200, { ok: true, snapshot });
+        return true;
+      }
+
+      // Settings sub-routes
+      if (p === '/api/browser/settings/update') {
+        const settings = settingsStore.update(body);
+        json(res, apiHeaders, 200, { ok: true, settings });
+        return true;
+      }
+      if (p === '/api/browser/settings/reset') {
+        const settings = settingsStore.reset();
+        json(res, apiHeaders, 200, { ok: true, settings });
         return true;
       }
 

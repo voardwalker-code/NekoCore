@@ -1,18 +1,20 @@
 /**
- * NekoCore Browser — Client Core (NB-3 Browser Core MVP)
+ * NekoCore Browser — Client Core (NB-4 Shell Integration)
  *
  * Multi-tab browser with address bar, history, bookmarks, downloads panel,
- * session restore, and web search. Replaces the old single-iframe browser.
+ * session restore, web search, settings integration, shell status reporting,
+ * launch routing, and iframe fallback handling.
  *
  * Owns: browser shell UI state and user interaction wiring.
  * Must NOT contain: filesystem logic, host process management, or backend policy.
  */
 
-/* global showNotification */
+/* global showNotification, openWindow, switchMainTab */
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const BROWSER_HOMEPAGE = 'https://neko-core.com';
+let BROWSER_HOMEPAGE = 'https://neko-core.com';
 const BROWSER_SEARCH_HISTORY_KEY = 'rem-browser-search-history-v1';
+const BROWSER_SETTINGS_KEY = 'rem-browser-settings-v1';
 const BROWSER_TRENDING_QUERIES = [
   'latest AI tools', 'javascript window resize observer',
   'memory consolidation research', 'chrome app mode flags',
@@ -26,6 +28,8 @@ let _browserSearchHistory = [];
 let _browserBookmarks = [];
 let _browserInitialized = false;
 let _browserSessionSaveTimer = null;
+let _browserSettings = {};
+let _browserStatusTimer = null;
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 async function _browserApi(method, path, body) {
@@ -50,6 +54,7 @@ function _browserCreateIframe(tabId) {
     const tab = _browserTabs.get(tabId);
     if (!tab) return;
     tab.loading = false;
+    tab.blocked = false;
     // Try to read title (same-origin only)
     try {
       const doc = iframe.contentDocument;
@@ -62,10 +67,22 @@ function _browserCreateIframe(tabId) {
     } catch { /* cross-origin */ }
     _browserUpdateTabStrip();
     _browserUpdateNavBar();
+    _browserReportStatus();
     // Report state to server
     _browserApi('POST', '/api/browser/command/update-tab', {
       tabId, url: tab.url, title: tab.title, loading: false
     }).catch(() => {});
+  });
+
+  // Detect iframe load failures (X-Frame-Options, CSP blocks)
+  iframe.addEventListener('error', () => {
+    const tab = _browserTabs.get(tabId);
+    if (!tab) return;
+    tab.loading = false;
+    tab.blocked = true;
+    _browserShowBlockedOverlay(tabId);
+    _browserUpdateTabStrip();
+    _browserReportStatus();
   });
 
   document.getElementById('browserFrames').appendChild(iframe);
@@ -154,8 +171,12 @@ function _browserNormalizeUrl(raw) {
   if (!trimmed) return '';
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   if (/^[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed)) return 'https://' + trimmed;
-  // Treat as search query
-  return 'https://www.google.com/search?q=' + encodeURIComponent(trimmed);
+  // Treat as search query — respect search engine setting
+  const engine = _browserSettings.searchEngine || 'google';
+  const q = encodeURIComponent(trimmed);
+  if (engine === 'duckduckgo') return 'https://duckduckgo.com/?q=' + q;
+  if (engine === 'bing') return 'https://www.bing.com/search?q=' + q;
+  return 'https://www.google.com/search?q=' + q;
 }
 
 async function browserNavigate(url) {
@@ -181,6 +202,9 @@ async function browserNavigate(url) {
   // Add to history
   _browserApi('POST', '/api/browser/history/add', { url: normalized, title: normalized }).catch(() => {});
   _browserScheduleSessionSave();
+  _browserReportStatus();
+  // Check for blocked iframe after a delay
+  _browserCheckIframeLoaded(_browserActiveTabId);
 }
 
 function browserNavigateFromInput() {
@@ -557,6 +581,205 @@ function _browserHandleSSE(eventType, data) {
   }
 }
 
+// ─── Settings ─────────────────────────────────────────────────────────────────
+async function _browserLoadSettings() {
+  try {
+    const res = await _browserApi('GET', '/api/browser/settings');
+    if (res.ok && res.settings) {
+      _browserSettings = res.settings;
+      BROWSER_HOMEPAGE = _browserSettings.homepage || 'https://neko-core.com';
+    }
+  } catch { /* use defaults */ }
+}
+
+async function browserSaveSettings(partial) {
+  try {
+    const res = await _browserApi('POST', '/api/browser/settings/update', partial);
+    if (res.ok && res.settings) {
+      _browserSettings = res.settings;
+      BROWSER_HOMEPAGE = _browserSettings.homepage || 'https://neko-core.com';
+      if (typeof showNotification === 'function') showNotification('Browser settings saved', 'success');
+    }
+  } catch {
+    if (typeof showNotification === 'function') showNotification('Failed to save browser settings', 'error');
+  }
+}
+
+async function browserResetSettings() {
+  try {
+    const res = await _browserApi('POST', '/api/browser/settings/reset', {});
+    if (res.ok && res.settings) {
+      _browserSettings = res.settings;
+      BROWSER_HOMEPAGE = _browserSettings.homepage || 'https://neko-core.com';
+      _browserPopulateSettingsUI();
+      if (typeof showNotification === 'function') showNotification('Browser settings reset to defaults', 'success');
+    }
+  } catch {
+    if (typeof showNotification === 'function') showNotification('Failed to reset browser settings', 'error');
+  }
+}
+
+function _browserPopulateSettingsUI() {
+  const homepageEl = document.getElementById('browserSettingsHomepage');
+  const searchEl = document.getElementById('browserSettingsSearch');
+  const sessionEl = document.getElementById('browserSettingsSessionRestore');
+  const linkEl = document.getElementById('browserSettingsExternalLinks');
+  if (homepageEl) homepageEl.value = _browserSettings.homepage || 'https://neko-core.com';
+  if (searchEl) searchEl.value = _browserSettings.searchEngine || 'google';
+  if (sessionEl) sessionEl.checked = _browserSettings.sessionRestore !== false;
+  if (linkEl) linkEl.value = _browserSettings.externalLinkBehavior || 'in-app';
+}
+
+function browserSaveSettingsFromUI() {
+  const homepage = (document.getElementById('browserSettingsHomepage')?.value || '').trim();
+  const searchEngine = document.getElementById('browserSettingsSearch')?.value || 'google';
+  const sessionRestore = document.getElementById('browserSettingsSessionRestore')?.checked !== false;
+  const externalLinkBehavior = document.getElementById('browserSettingsExternalLinks')?.value || 'in-app';
+  browserSaveSettings({ homepage: homepage || 'https://neko-core.com', searchEngine, sessionRestore, externalLinkBehavior });
+}
+
+async function browserClearHistory() {
+  if (!confirm('Clear all browsing history?')) return;
+  await _browserApi('POST', '/api/browser/history/clear', {});
+  _browserRenderHomeHistory();
+  if (typeof showNotification === 'function') showNotification('Browsing history cleared', 'success');
+}
+
+async function browserClearBookmarks() {
+  if (!confirm('Remove all bookmarks?')) return;
+  // Remove one by one via API (bookmark store has no clear-all)
+  for (const bm of [..._browserBookmarks]) {
+    await _browserApi('POST', '/api/browser/bookmarks/remove', { url: bm.url });
+  }
+  _browserBookmarks = [];
+  _browserRenderHomeBookmarks();
+  _browserUpdateBookmarkStar();
+  if (typeof showNotification === 'function') showNotification('All bookmarks removed', 'success');
+}
+
+// ─── Shell Launch Routing ─────────────────────────────────────────────────────
+function openInBrowser(url) {
+  // Open the browser window and navigate to the given URL
+  if (typeof openWindow === 'function') {
+    openWindow('browser');
+  } else if (typeof switchMainTab === 'function') {
+    switchMainTab('browser');
+  }
+  // Wait for init if needed, then navigate
+  const doNav = () => {
+    if (url) browserNavigate(url);
+  };
+  if (_browserInitialized) {
+    doNav();
+  } else {
+    // Defer until init completes
+    setTimeout(doNav, 300);
+  }
+}
+
+// ─── Shell Status Reporting ───────────────────────────────────────────────────
+function _browserReportStatus() {
+  // Update the browser status card in the task manager if it exists
+  const tabCount = document.getElementById('tmBrowserTabCount');
+  const activeUrl = document.getElementById('tmBrowserActiveUrl');
+  const statusEl = document.getElementById('tmBrowserStatus');
+  if (tabCount) tabCount.textContent = String(_browserTabs.size);
+  if (activeUrl) {
+    const tab = _browserTabs.get(_browserActiveTabId);
+    activeUrl.textContent = tab ? _truncate(tab.url || 'New Tab', 60) : 'No active tab';
+  }
+  if (statusEl) {
+    const loadingCount = Array.from(_browserTabs.values()).filter(t => t.loading).length;
+    statusEl.textContent = loadingCount > 0 ? loadingCount + ' loading' : 'Ready';
+  }
+  // Update taskbar badge
+  _browserUpdateTaskbarBadge();
+}
+
+function _browserUpdateTaskbarBadge() {
+  // Find the taskbar button for the browser and update its badge
+  const btns = document.querySelectorAll('.os-pinned-app[data-tab="browser"]');
+  btns.forEach(btn => {
+    let badge = btn.querySelector('.browser-tab-badge');
+    if (_browserTabs.size > 1) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'browser-tab-badge';
+        btn.appendChild(badge);
+      }
+      badge.textContent = String(_browserTabs.size);
+    } else if (badge) {
+      badge.remove();
+    }
+  });
+}
+
+// ─── Iframe Fallback / Blocked Site Handling ──────────────────────────────────
+function _browserShowBlockedOverlay(tabId) {
+  const tab = _browserTabs.get(tabId);
+  if (!tab || !tab.iframe) return;
+  // Remove existing overlay if any
+  const existing = document.querySelector(`.browser-blocked-overlay[data-tab-id="${tabId}"]`);
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'browser-blocked-overlay';
+  overlay.dataset.tabId = tabId;
+  overlay.innerHTML = `
+    <div class="browser-blocked-content">
+      <div class="browser-blocked-icon">🚫</div>
+      <div class="browser-blocked-title">This site can't be displayed here</div>
+      <div class="browser-blocked-msg">This website blocks embedded viewing (X-Frame-Options or CSP).</div>
+      <div class="browser-blocked-actions">
+        <button class="btn bp" onclick="window.open('${_escHtml(tab.url)}', '_blank', 'noopener')">Open in System Browser ↗</button>
+        <button class="btn bg" onclick="browserGoHome()">Go Home</button>
+      </div>
+    </div>
+  `;
+  const framesEl = document.getElementById('browserFrames');
+  if (framesEl) framesEl.appendChild(overlay);
+}
+
+// Proactive blocked-site check: after navigation, check if iframe loaded
+function _browserCheckIframeLoaded(tabId) {
+  setTimeout(() => {
+    const tab = _browserTabs.get(tabId);
+    if (!tab || !tab.iframe || !tab.loading) return;
+    // If still loading after 8 seconds, might be blocked
+    try {
+      // Try to access content — if blocked, this throws
+      const doc = tab.iframe.contentDocument;
+      if (doc && doc.body && doc.body.innerHTML === '') {
+        tab.blocked = true;
+        tab.loading = false;
+        _browserShowBlockedOverlay(tabId);
+        _browserUpdateTabStrip();
+      }
+    } catch { /* cross-origin is normal, not necessarily blocked */ }
+  }, 8000);
+}
+
+// ─── Graceful Shutdown ────────────────────────────────────────────────────────
+function _browserSaveSessionSync() {
+  // Synchronous session save using sendBeacon for beforeunload
+  if (!_browserInitialized || _browserTabs.size === 0) return;
+  const tabs = [];
+  for (const [id, tab] of _browserTabs) {
+    tabs.push({ tabId: id, url: tab.url, title: tab.title });
+  }
+  const payload = JSON.stringify({ tabs, activeTabId: _browserActiveTabId, savedAt: Date.now() });
+  try {
+    navigator.sendBeacon('/api/browser/session/save', new Blob([payload], { type: 'application/json' }));
+  } catch { /* best effort */ }
+}
+
+function browserCleanup() {
+  // Called when browser window is closed or shell is shutting down
+  _browserSaveSessionSync();
+  if (_browserSessionSaveTimer) clearTimeout(_browserSessionSaveTimer);
+  if (_browserStatusTimer) clearInterval(_browserStatusTimer);
+}
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
 function _truncate(s, max) { return s && s.length > max ? s.slice(0, max) + '…' : (s || ''); }
 function _escHtml(s) {
@@ -570,19 +793,25 @@ async function initBrowserApp() {
   if (_browserInitialized) return;
   _browserInitialized = true;
 
+  await _browserLoadSettings();
   _browserLoadSearchHistory();
   await _browserLoadBookmarks();
 
-  // Try session restore first
-  const restored = await _browserRestoreSession();
+  // Try session restore if enabled
+  const shouldRestore = _browserSettings.sessionRestore !== false;
+  const restored = shouldRestore ? await _browserRestoreSession() : false;
   if (!restored) {
-    // Create default tab
     await browserNewTab();
   }
 
   _browserUpdateTabStrip();
   _browserRenderHome();
   _browserUpdateBookmarkStar();
+  _browserPopulateSettingsUI();
+  _browserReportStatus();
+
+  // Start periodic status reporting (for task manager)
+  _browserStatusTimer = setInterval(_browserReportStatus, 3000);
 
   // Hook into SSE if available
   if (typeof window._browserSSERegistered === 'undefined') {
@@ -606,3 +835,12 @@ function showBrowserHomeView() { _browserShowHomeView(); }
 function showBrowserPageView() { _browserShowPageView(); }
 function showBrowserResultsView() { _browserShowResultsView(); }
 function openBrowserExternal() { browserOpenExternal(); }
+
+// ─── Exports for shell integration (NB-4) ────────────────────────────────────
+// openInBrowser(url) — launch routing: opens browser window and navigates
+// browserCleanup() — graceful shutdown: save session synchronously
+// browserSaveSettingsFromUI() — save settings from Advanced tab form
+// browserResetSettings() — reset to defaults
+// browserClearHistory() — clear all history
+// browserClearBookmarks() — clear all bookmarks
+// _browserReportStatus() — update task manager browser card

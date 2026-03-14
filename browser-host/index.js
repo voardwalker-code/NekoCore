@@ -19,6 +19,7 @@ const downloadManager  = require('./download-manager');
 const historyStore     = require('./history-store');
 const bookmarkStore    = require('./bookmark-store');
 const sessionStore     = require('./session-store');
+const settingsStore    = require('./settings-store');
 
 module.exports = {
   name: MODULE_NAME,
@@ -31,4 +32,5 @@ module.exports = {
   historyStore,
   bookmarkStore,
   sessionStore,
+  settingsStore,
 };

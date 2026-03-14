@@ -6,6 +6,17 @@ Built with MA (Memory Architect v1).
 ## [Unreleased]
 
 ### Added
+- **NekoCore Browser Phase NB-4 — Shell Integration (complete)**
+  - `browser-host/settings-store.js` — browser settings persistence (homepage, search engine, session restore, external link behavior)
+  - Settings API endpoints: GET/update/reset for browser settings, GET /api/browser/status for shell status reporting
+  - `openInBrowser(url)` — global launch routing function: opens browser window and navigates to URL from any app
+  - Browser settings panel in Advanced tab: homepage URL, search engine selector (Google/DuckDuckGo/Bing), session restore toggle, external link behavior, clear history/bookmarks buttons
+  - Browser status card in Task Manager: open tab count, active URL, loading status with 3s periodic updates
+  - Taskbar tab count badge on browser pinned-app button (visible when 2+ tabs open)
+  - Graceful shutdown: `browserCleanup()` on `beforeunload`, `sendBeacon` session save, session save on browser window close
+  - Iframe blocked-site overlay: detects load failures, shows fallback UI with "Open in System Browser" action + home button
+  - Search engine preference wired into address bar URL normalization
+  - CSS: blocked site overlay, taskbar badge, position:relative on pinned-app buttons
 - **NekoCore Browser Phase NB-3 — Browser Core MVP (complete)**
   - `browser-host/history-store.js` — server-side browsing history persistence (500 max entries, search, clear)
   - `browser-host/bookmark-store.js` — server-side bookmarks with deduplication by URL, add/remove/check

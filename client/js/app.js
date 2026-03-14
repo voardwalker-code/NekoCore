@@ -730,6 +730,7 @@ function initDesktopShell() {
 
   window.addEventListener('beforeunload', () => {
     if (!windowManager.popoutTab) saveWindowLayout();
+    if (typeof browserCleanup === 'function') browserCleanup();
     reportWebUiPresence(false, { beacon: true });
   });
 }
@@ -1205,6 +1206,10 @@ function openWindow(tabName, options = {}) {
 function closeWindow(tabName) {
   const meta = windowManager.windows.get(tabName);
   if (!meta) return;
+  // Browser-specific: save session on window close
+  if (tabName === 'browser' && typeof _browserSaveSessionSync === 'function') {
+    _browserSaveSessionSync();
+  }
   meta.open = false;
   meta.el.classList.remove('open', 'focused');
   meta.el.style.display = 'none';

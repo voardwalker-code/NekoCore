@@ -49,6 +49,18 @@ Progress update:
     - Browser init hook wired into applyWindowActivationEffects
     - Require path fix for browser-routes → browser-host
     - 23/23 spike acceptance tests still pass
+18. NB-4 Shell Integration phase completed in a single pass:
+    - Server: settings-store.js (homepage, search engine, session restore, external link behavior)
+    - Routes: settings GET/update/reset endpoints + browser status endpoint added
+    - Client: openInBrowser(url) global launch routing function
+    - Client: browser settings panel in Advanced tab (homepage, search engine, session restore, external links, clear history/bookmarks)
+    - Client: browser status card in Task Manager (tab count, active URL, status)
+    - Client: taskbar badge showing tab count on browser pinned-app button
+    - Client: graceful shutdown (browserCleanup on beforeunload, sendBeacon session save, session save on window close)
+    - Client: iframe blocked-site overlay with fallback to system browser
+    - Client: search engine setting wired into URL normalization (Google/DuckDuckGo/Bing)
+    - CSS: blocked overlay, taskbar badge, position:relative on pinned-app buttons
+    - 23/23 spike acceptance tests still pass
 
 ## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
 
