@@ -13,24 +13,28 @@ server/data/sessions.json
 server/data/checkouts.json
 
 # Entity runtime data — generated when entities are created
-/entities/
+/entities/*
+!/entities/.gitkeep
 
 # Root system memory — generated at runtime
-memories/
+/memories/*
+!/memories/.gitkeep
 
 # Local backup and restore artifacts
-tmp-backups/
-restore-snapshots/
-server/data/restore-snapshots/
+/tmp-backups/*
+!/tmp-backups/.gitkeep
+/restore-snapshots/*
+!/restore-snapshots/.gitkeep
+/server/data/restore-snapshots/*
+!/server/data/restore-snapshots/.gitkeep
 
 # Server entity runtime state
-server/entity/
+/server/entity/*
+!/server/entity/.gitkeep
 
 # Skill workspace runtime dirs
-skills/*/workspace/
-
-# Local planning docs
-Documents/
+skills/*/workspace/*
+!skills/*/workspace/.gitkeep
 
 # IDE
 .vscode/
