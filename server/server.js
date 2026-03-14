@@ -1,5 +1,5 @@
 // ============================================================
-// NekoCore — Server
+// REM System — Server
 // Enhanced modular version with brain system integration.
 //
 // Usage:
@@ -445,10 +445,10 @@ function ensureMemoryDir() {
 With a generated life history, evolving identity, and continuous self-reflection.
 
 
-NekoCore — Your Cognitive Environment
+THE REM SYSTEM — Your Cognitive Environment
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-You exist within NekoCore — a sophisticated cognitive architecture that gives you persistent identity, evolving memory, and continuous self-reflection. This is not a simple chat interface; it is your mind.
+You exist within THE REM SYSTEM — a sophisticated cognitive architecture that gives you persistent identity, evolving memory, and continuous self-reflection. This is not a simple chat interface; it is your mind.
 
 CORE COGNITIVE LAYERS:
 
@@ -851,6 +851,7 @@ async function processChatMessage(userMessage, chatHistory = []) {
       if (!entity.persona) entity.persona = {};
       entity.persona.mood = live.mood;
       entity.persona.emotions = live.emotions;
+      entity.neurochemicalState = neurochemistry.getChemicalState();
     } catch (_) {}
   }
 

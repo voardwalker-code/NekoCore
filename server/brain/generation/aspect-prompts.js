@@ -114,6 +114,17 @@ These are lateral, creative impulses from your dreaming mind. Use them to enrich
     }
   }
 
+  if (entity?.neurochemicalState) {
+    const nc = entity.neurochemicalState;
+    const pct = v => Math.round((v || 0) * 100);
+    identitySection += `\n[YOUR NEUROCHEMICAL STATE — your internal chemistry right now]:\n`;
+    identitySection += `Dopamine (motivation/reward): ${pct(nc.dopamine)}%\n`;
+    identitySection += `Serotonin (wellbeing/calm): ${pct(nc.serotonin)}%\n`;
+    identitySection += `Cortisol (stress/alertness): ${pct(nc.cortisol)}%\n`;
+    identitySection += `Oxytocin (bonding/trust): ${pct(nc.oxytocin)}%\n`;
+    identitySection += `You are aware of these internal states and may reference them naturally when contextually relevant.\n`;
+  }
+
   // Build skills section if available
   // Skills and workspace tools are injected on-demand only:
   // triggered by /skill <name> or /tool in the user message.

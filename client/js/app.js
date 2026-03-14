@@ -1808,6 +1808,47 @@ async function fetchPhysicalState() {
   } catch (err) {
     lg('err', 'Failed to fetch somatic state: ' + err.message);
   }
+  fetchNeuroState();
+}
+
+async function fetchNeuroState() {
+  try {
+    const resp = await fetch('/api/neurochemistry');
+    const data = await resp.json();
+    if (data) updateNeuroUI(data);
+  } catch (err) {
+    lg('err', 'Failed to fetch neurochemistry state: ' + err.message);
+  }
+}
+
+function updateNeuroUI(data) {
+  const chemicals = data.chemicals || data.state || {};
+  const vec = data.emotionalVector || {};
+
+  const chems = ['dopamine', 'serotonin', 'cortisol', 'oxytocin'];
+  for (const chem of chems) {
+    const val = chemicals[chem];
+    if (val == null) continue;
+    const pct = Math.round(val * 100);
+    const bar = document.getElementById('neuro-bar-' + chem);
+    const label = document.getElementById('neuro-val-' + chem);
+    if (bar) bar.style.width = pct + '%';
+    if (label) label.textContent = pct + '%';
+  }
+
+  // Derive mood label from emotional vector if available
+  const valence = vec.valence != null ? vec.valence : null;
+  const arousal = vec.arousal != null ? vec.arousal : null;
+  const moodEl = document.getElementById('neuroMoodLabel');
+  const emotionsEl = document.getElementById('neuroEmotionsLabel');
+  if (moodEl && valence != null) {
+    const moodText = valence > 0.6 ? 'Positive' : valence < 0.35 ? 'Low' : 'Neutral';
+    const energyText = arousal > 0.6 ? 'High energy' : arousal < 0.35 ? 'Low energy' : 'Balanced';
+    moodEl.textContent = moodText;
+    if (emotionsEl) emotionsEl.textContent = energyText + ' · valence ' + Math.round(valence * 100) + '% · arousal ' + Math.round(arousal * 100) + '%';
+  } else if (moodEl) {
+    moodEl.textContent = 'Active';
+  }
 }
 
 function updatePhysicalUI(data) {
@@ -1955,6 +1996,8 @@ function connectPhysicalSSE() {
             bodyNarrative: data.bodyNarrative,
             toggles: data.toggles
           });
+        } else if (data.type === 'NEUROCHEMICAL_SHIFT' && data.state) {
+          updateNeuroUI({ chemicals: data.state, emotionalVector: data.emotionalVector });
         }
       } catch (err) { /* ignore */ }
     });
