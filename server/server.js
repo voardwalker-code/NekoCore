@@ -1518,6 +1518,7 @@ const createChatRoutes     = require('./routes/chat-routes');
 const createCogRoutes      = require('./routes/cognitive-routes');
 const createDocumentRoutes = require('./routes/document-routes');
 const createAuthRoutes     = require('./routes/auth-routes');
+const createBrowserRoutes  = require('./routes/browser-routes');
 
 const sseRoutes      = createSSERoutes(ctx);
 const configRoutes   = createConfigRoutes(ctx);
@@ -1529,8 +1530,9 @@ const chatRoutes     = createChatRoutes(ctx);
 const cogRoutes      = createCogRoutes(ctx);
 const documentRoutes = createDocumentRoutes(ctx);
 const authRoutes     = createAuthRoutes(ctx);
+const browserRoutes  = createBrowserRoutes(ctx);
 
-const _routeDispatchers = [authRoutes, sseRoutes, configRoutes, memoryRoutes, chatRoutes, entityRoutes, brainRoutes, skillsRoutes, cogRoutes, documentRoutes];
+const _routeDispatchers = [authRoutes, sseRoutes, configRoutes, memoryRoutes, chatRoutes, entityRoutes, brainRoutes, skillsRoutes, cogRoutes, documentRoutes, browserRoutes];
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);

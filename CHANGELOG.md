@@ -6,6 +6,14 @@ Built with MA (Memory Architect v1).
 ## [Unreleased]
 
 ### Added
+- **NekoCore Browser Phase NB-2 — Technical Spike Implementation (complete)**
+  - `browser-host/event-bus.js` — lightweight pub/sub with automatic timestamping and wildcard relay
+  - `browser-host/tab-model.js` — tab create/switch/close with deterministic active-tab fallback (next → prev → null)
+  - `browser-host/navigation.js` — URL navigate, back, forward, reload with per-tab history stacks, URL validation, and error envelopes
+  - `browser-host/lifecycle.js` — host state machine (host_starting → host_ready → host_closing)
+  - `browser-host/download-manager.js` — download start/complete/failure with correlatable IDs
+  - `server/routes/browser-routes.js` — HTTP bridge with session/tabs/downloads read endpoints and navigate/tab-create/tab-activate/tab-close/reload/go-back/go-forward commands; SSE event relay
+  - `tests/unit/browser-spike-acceptance.js` — 23-test acceptance suite validating all NB-1-0 criteria
 - Standalone Entity Creator app surface (`client/create.html`, `client/js/create.js`) with embedded shell mode support
 - Creator window app integration in desktop shell (`tab-creator` + `WINDOW_APPS` entry)
 - Users window app (`tab-users`) with in-app profile management actions: create, set active, clear active, delete

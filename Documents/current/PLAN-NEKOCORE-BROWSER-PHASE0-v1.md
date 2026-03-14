@@ -81,18 +81,18 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 ### Phase NB-2: Technical Spike Implementation
 
 **Goal:** Build a minimal working WebView2 browser host that passes NB-1-0 acceptance checks, validate repo boundaries, and produce the evidence package for NB-3 handoff.
-**Status:** `In Progress`
+**Status:** `Done`
 **Depends on:** Phase NB-1
 
 #### Slice Checklist
 
 - [x] NB-2-0: NB-1 exit review — close NB-1 gate, create NB-2 plan section, confirm readiness for spike code
 - [x] NB-2-1: Host module scaffold — create `browser-host/` directory structure, package manifest, and entry point; verify build path runs
-- [ ] NB-2-2: Navigation POC — URL input, navigate, back/forward/refresh, navigation events on active tab
-- [ ] NB-2-3: Tab model POC — create/switch/close with deterministic active-tab logic and state sync
-- [ ] NB-2-4: Lifecycle and download events POC — host/tab lifecycle state transitions, download start/complete event emission
-- [ ] NB-2-5: Backend bridge wiring — `server/routes/browser-routes.js` wired to host module, session/tab/download read endpoints functional
-- [ ] NB-2-6: Spike acceptance run — execute NB-1-0 checklist against POC, produce pass/fail log, event trace, and residual-risk notes
+- [x] NB-2-2: Navigation POC — URL input, navigate, back/forward/refresh, navigation events on active tab
+- [x] NB-2-3: Tab model POC — create/switch/close with deterministic active-tab logic and state sync
+- [x] NB-2-4: Lifecycle and download events POC — host/tab lifecycle state transitions, download start/complete event emission
+- [x] NB-2-5: Backend bridge wiring — `server/routes/browser-routes.js` wired to host module, session/tab/download read endpoints functional
+- [x] NB-2-6: Spike acceptance run — execute NB-1-0 checklist against POC, produce pass/fail log, event trace, and residual-risk notes
 
 ---
 
@@ -538,14 +538,19 @@ Files changed (expected):
 | 2026-03-14 | NB-1-2 | Done | Initial bridge/API contract list defined for session, tabs, commands, events, and error envelopes |
 | 2026-03-14 | NB-2-0 | Done | NB-1 exit review complete; Phase NB-2 spike defined with NB-2-1 through NB-2-6 slice structure |
 | 2026-03-14 | NB-2-1 | Done | browser-host/ scaffold created with package.json and entry point; verified load on target platform |
+| 2026-03-14 | NB-2-2 | Done | Navigation POC: navigate/back/forward/reload with per-tab history stacks and browser.navigation.state events |
+| 2026-03-14 | NB-2-3 | Done | Tab model POC: create/switch/close with deterministic active-tab fallback and browser.tab.lifecycle events |
+| 2026-03-14 | NB-2-4 | Done | Lifecycle and download POC: host state machine, download start/complete/failure with correlatable IDs |
+| 2026-03-14 | NB-2-5 | Done | Backend bridge wired: browser-routes.js registered in server.js, all read/command endpoints functional via SSE relay |
+| 2026-03-14 | NB-2-6 | Done | Spike acceptance: 23/23 tests pass covering navigation, tabs, lifecycle, downloads, and event shape |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
-- **Current phase:** NB-2 Technical Spike Implementation
-- **Current slice:** NB-2-2 — status: not started
-- **Last completed slice:** NB-2-1
+- **Current phase:** NB-2 Technical Spike Implementation — `Done`
+- **Current slice:** none (NB-2 complete)
+- **Last completed slice:** NB-2-6
 - **In-progress item:** none
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** implement navigation POC on active tab with URL input, back/forward/refresh, and event emission
+- **Next action on resume:** Phase NB-3 planning (if defined) or feature integration into main runtime

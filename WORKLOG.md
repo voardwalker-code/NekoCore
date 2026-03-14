@@ -1332,3 +1332,45 @@ Scope delivered:
 
 Push status:
 1. Push could not be executed from this workspace: no `.git` metadata is present (`fatal: not a git repository`).
+
+### 2026-03-14 - NekoCore Browser Phase NB-2 Technical Spike (Complete)
+
+Status: `Done`
+
+Scope delivered (NB-2-2 through NB-2-6 in one pass):
+
+1. **NB-2-2 — Navigation POC:**
+   - Created `browser-host/navigation.js` with navigate/back/forward/reload.
+   - Per-tab history stacks (back + forward) with URL validation and protocol whitelisting.
+   - Emits `browser.navigation.state` events with contract fields.
+
+2. **NB-2-3 — Tab Model POC:**
+   - Created `browser-host/tab-model.js` with create/switch/close.
+   - Deterministic active-tab fallback: next → previous → null.
+   - Emits `browser.tab.lifecycle` events on create/close.
+
+3. **NB-2-4 — Lifecycle and Download POC:**
+   - Created `browser-host/lifecycle.js` with host state machine (host_starting → host_ready → host_closing).
+   - Created `browser-host/download-manager.js` with start/complete/failure and correlatable IDs.
+   - Both emit contract events through shared event bus.
+
+4. **NB-2-5 — Backend Bridge Wiring:**
+   - Created `server/routes/browser-routes.js` following existing route factory pattern.
+   - Endpoints: GET session/tabs/downloads; POST navigate/tab-create/tab-activate/tab-close/reload/go-back/go-forward.
+   - SSE relay: all `browser.*` events forwarded to SSE clients via `broadcastSSE`.
+   - Registered in `server/server.js` dispatcher array.
+
+5. **NB-2-6 — Spike Acceptance Run:**
+   - Created `tests/unit/browser-spike-acceptance.js` with 23 tests.
+   - Result: 23/23 pass — all NB-1-0 acceptance criteria met.
+   - Categories: host lifecycle (3), tab model (6), navigation (8), downloads (4), event shape (2).
+
+6. **Supporting infrastructure:**
+   - Created `browser-host/event-bus.js` — lightweight EventEmitter with auto-timestamp and wildcard relay.
+   - Updated `browser-host/index.js` entry point to re-export all submodules.
+
+Validation:
+1. `node tests/unit/browser-spike-acceptance.js` => 23 pass, 0 fail.
+2. `require('./browser-host')` loads cleanly with all 5 submodules.
+3. Plan checklist NB-2-2 through NB-2-6 checked done; phase status set to Done.
+4. Ledger, stop/resume snapshot, CHANGELOG updated.

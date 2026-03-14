@@ -11,7 +11,18 @@
 const MODULE_NAME = '@nekocore/browser-host';
 const MODULE_VERSION = '0.0.1';
 
+const eventBus         = require('./event-bus');
+const tabModel         = require('./tab-model');
+const navigation       = require('./navigation');
+const lifecycle        = require('./lifecycle');
+const downloadManager  = require('./download-manager');
+
 module.exports = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
+  eventBus,
+  tabModel,
+  navigation,
+  lifecycle,
+  downloadManager,
 };
