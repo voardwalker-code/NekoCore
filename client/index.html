@@ -1354,26 +1354,31 @@
   <!-- ===== BROWSER TAB ===== -->
   <div class="tab-content" id="tab-browser">
     <div class="browser-shell">
-      <!-- Tab Strip -->
+      <!-- Tab Strip (Chrome-style) -->
       <div class="browser-tab-strip">
         <div class="browser-tabs" id="browserTabs"></div>
-        <button class="browser-tab-new" onclick="browserNewTab()" title="New Tab">+</button>
+        <button class="browser-tab-new" onclick="browserNewTab()" title="New Tab (Ctrl+T)">+</button>
       </div>
 
-      <!-- Navigation Toolbar -->
-      <div class="browser-toolbar">
-        <button class="btn bg text-xs-c" onclick="browserGoBack()" title="Back (Alt+←)">←</button>
-        <button class="btn bg text-xs-c" onclick="browserGoForward()" title="Forward (Alt+→)">→</button>
-        <button class="btn bg text-xs-c" onclick="browserReload()" title="Reload (Ctrl+R)">⟳</button>
-        <button class="btn bg text-xs-c" onclick="browserGoHome()" title="Home">⌂</button>
-        <input id="browserUrlInput" class="browser-url-input" type="text" placeholder="Search or enter URL... (Ctrl+L)" onkeydown="if(event.key==='Enter')browserNavigateFromInput()">
-        <button class="btn bp text-xs-c" onclick="browserNavigateFromInput()">Go</button>
-        <button class="btn bg text-xs-c" id="browserBookmarkBtn" onclick="browserToggleBookmark()" title="Bookmark (Ctrl+D)">☆</button>
-        <button class="btn bg text-xs-c" onclick="browserOpenBookmarkManager()" title="Bookmark Manager (Ctrl+Shift+B)">📑</button>
-        <button class="btn bg text-xs-c" onclick="browserOpenHistoryManager()" title="History (Ctrl+H)">🕐</button>
-        <button class="btn bg text-xs-c" onclick="browserToggleDownloads()" title="Downloads (Ctrl+J)">⬇</button>
-        <button class="btn bg text-xs-c" onclick="browserOpenExternal()" title="Open in external browser">↗</button>
-        <button class="btn bg text-xs-c" id="browserLLMModeBtn" onclick="browserToggleLLMMode()" title="Switch to LLM Mode">🧠</button>
+      <!-- Omnibar (Chrome-style unified toolbar) -->
+      <div class="browser-omnibar">
+        <div class="browser-nav-btns">
+          <button class="browser-nav-btn" onclick="browserGoBack()" title="Back (Alt+←)">←</button>
+          <button class="browser-nav-btn" onclick="browserGoForward()" title="Forward (Alt+→)">→</button>
+          <button class="browser-nav-btn" onclick="browserReload()" title="Reload (Ctrl+R)">⟳</button>
+        </div>
+        <div class="browser-url-box">
+          <span class="browser-url-icon">🔍</span>
+          <input id="browserUrlInput" class="browser-url-input" type="text" placeholder="Search or enter web address" onkeydown="if(event.key==='Enter')browserNavigateFromInput()" spellcheck="false" autocomplete="off">
+        </div>
+        <div class="browser-action-btns">
+          <button class="browser-action-btn" id="browserBookmarkBtn" onclick="browserToggleBookmark()" title="Bookmark (Ctrl+D)">☆</button>
+          <button class="browser-action-btn" onclick="browserOpenBookmarkManager()" title="Bookmarks (Ctrl+Shift+B)">📑</button>
+          <button class="browser-action-btn" onclick="browserOpenHistoryManager()" title="History (Ctrl+H)">🕐</button>
+          <button class="browser-action-btn" onclick="browserToggleDownloads()" title="Downloads (Ctrl+J)">⬇</button>
+          <button class="browser-action-btn" onclick="browserOpenExternal()" title="Open in system browser">↗</button>
+          <button class="browser-action-btn" id="browserLLMModeBtn" onclick="browserToggleLLMMode()" title="LLM Mode">🧠</button>
+        </div>
       </div>
 
 
@@ -1381,9 +1386,9 @@
       <!-- Home Page -->
       <div class="browser-home-wrap" id="browserHomeWrap">
         <div class="browser-home-hero">
-          <div class="browser-home-kicker">NekoCore Browser</div>
-          <div class="browser-home-title">Search from your Neko workspace</div>
-          <div class="browser-home-sub">Multi-tab browsing with search, bookmarks, and history.</div>
+          <div class="browser-home-logo">🌐</div>
+          <div class="browser-home-title">NekoCore Browser</div>
+          <div class="browser-home-sub">Search or enter a web address above</div>
         </div>
         <div class="browser-home-grid">
           <section class="browser-home-card">

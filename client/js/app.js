@@ -63,51 +63,54 @@ const DEFAULT_PINNED_APPS = ['chat', 'skills', 'activity', 'browser'];
 
 const WINDOW_APPS = [
   { tab: 'chat', label: 'Chat', icon: '💬', w: 980, h: 680 },
+  { tab: 'entity', label: 'Entity', icon: '🧬', w: 820, h: 620 },
+  { tab: 'creator', label: 'Creator', icon: '✨', w: 980, h: 760 },
+  { tab: 'users', label: 'Users', icon: '👥', w: 900, h: 660 },
+  { tab: 'browser', label: 'NekoCore Browser', icon: '🌐', w: 1080, h: 720 },
   { tab: 'skills', label: 'Skills', icon: '🧰', w: 980, h: 680 },
-  { tab: 'settings', label: 'Settings', icon: '⚙️', w: 980, h: 700 },
+  { tab: 'workspace', label: 'Workspace', icon: '📁', w: 980, h: 680 },
+  { tab: 'documents', label: 'Documents', icon: '📄', w: 980, h: 680 },
   { tab: 'visualizer', label: 'Visualizer', icon: '🧠', w: 1020, h: 700 },
   { tab: 'physical', label: 'Physical Body', icon: '❤️', w: 900, h: 640 },
   { tab: 'dreamgallery', label: 'Dream Gallery', icon: '🌙', w: 980, h: 680 },
   { tab: 'lifediary', label: 'Life Diary', icon: '📘', w: 900, h: 640 },
   { tab: 'dreamdiary', label: 'Dream Diary', icon: '🌘', w: 900, h: 640 },
-  { tab: 'documents', label: 'Documents', icon: '📄', w: 980, h: 680 },
-  { tab: 'workspace', label: 'Workspace', icon: '📁', w: 980, h: 680 },
-  { tab: 'activity', label: 'Task Manager', icon: '🖥️', w: 980, h: 680 },
-  { tab: 'observability', label: 'Observability', icon: '🧪', w: 980, h: 680 },
+  { tab: 'themes', label: 'Themes', icon: '🎨', w: 900, h: 640 },
+  { tab: 'settings', label: 'Settings', icon: '⚙️', w: 980, h: 700 },
   { tab: 'advanced', label: 'Advanced', icon: '🔧', w: 980, h: 680 },
-  { tab: 'entity', label: 'Entity', icon: '🧬', w: 820, h: 620 },
-  { tab: 'creator', label: 'Creator', icon: '✨', w: 980, h: 760 },
-  { tab: 'users', label: 'Users', icon: '👥', w: 900, h: 660 },
-  { tab: 'browser', label: 'Web Browser', icon: '🌐', w: 1080, h: 720 }
+  { tab: 'activity', label: 'Task Manager', icon: '🖥️', w: 980, h: 680 },
+  { tab: 'observability', label: 'Observability', icon: '🧪', w: 980, h: 680 }
 ];
 
 const START_MENU_CATEGORY_ORDER = [
-  { id: 'communication', label: 'Communication' },
-  { id: 'workspace', label: 'Workspace' },
-  { id: 'statistics', label: 'Statistics' },
-  { id: 'customization', label: 'Customization' },
-  { id: 'system', label: 'System & Settings' },
-  { id: 'creation', label: 'Creation & Identity' }
+  { id: 'core', label: 'Core' },
+  { id: 'browse', label: 'Browse & Research' },
+  { id: 'tools', label: 'Tools & Workspace' },
+  { id: 'mind', label: 'Mind & Identity' },
+  { id: 'journal', label: 'Journals & Dreams' },
+  { id: 'appearance', label: 'Appearance' },
+  { id: 'system', label: 'System' }
 ];
 
 const APP_CATEGORY_BY_TAB = {
-  chat: 'communication',
-  skills: 'communication',
-  workspace: 'workspace',
-  documents: 'workspace',
-  browser: 'workspace',
-  visualizer: 'statistics',
-  physical: 'statistics',
-  activity: 'statistics',
-  observability: 'statistics',
+  chat: 'core',
+  entity: 'core',
+  creator: 'core',
+  users: 'core',
+  browser: 'browse',
+  skills: 'tools',
+  workspace: 'tools',
+  documents: 'tools',
+  visualizer: 'mind',
+  physical: 'mind',
+  dreamgallery: 'journal',
+  lifediary: 'journal',
+  dreamdiary: 'journal',
+  themes: 'appearance',
   settings: 'system',
   advanced: 'system',
-  users: 'system',
-  creator: 'creation',
-  entity: 'creation',
-  dreamgallery: 'creation',
-  lifediary: 'creation',
-  dreamdiary: 'creation'
+  activity: 'system',
+  observability: 'system'
 };
 
 const START_MENU_SPECIAL_APPS = [
@@ -121,21 +124,12 @@ const START_MENU_SPECIAL_APPS = [
     pinnable: false,
     description: 'Classic settings hub'
   },
-  {
-    id: 'themes-app',
-    tab: 'themes',
-    launchTab: 'themes',
-    label: 'Themes',
-    icon: '🎨',
-    category: 'customization',
-    pinnable: true,
-    description: 'Theme gallery'
-  },
+
   {
     id: 'save-layout',
     label: 'Save Layout',
     icon: '💾',
-    category: 'customization',
+    category: 'appearance',
     pinnable: false,
     description: 'Save current windows',
     action: 'saveWindowLayout'
@@ -144,7 +138,7 @@ const START_MENU_SPECIAL_APPS = [
     id: 'restore-layout',
     label: 'Restore Layout',
     icon: '🧩',
-    category: 'customization',
+    category: 'appearance',
     pinnable: false,
     description: 'Restore saved layout',
     action: 'restoreWindowLayout'
@@ -153,7 +147,7 @@ const START_MENU_SPECIAL_APPS = [
     id: 'reset-layout',
     label: 'Reset Layout',
     icon: '🗑️',
-    category: 'customization',
+    category: 'appearance',
     pinnable: false,
     description: 'Reset window positions',
     action: 'resetWindowLayout'

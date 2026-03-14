@@ -243,17 +243,24 @@ function _browserCloseOtherTabs(keepTabId) {
 }
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
+function _browserIsUrl(raw) {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return false;
+  if (/^https?:\/\//i.test(trimmed)) return true;
+  if (/^localhost(:\d+)?/i.test(trimmed)) return true;
+  if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?/.test(trimmed)) return true;
+  if (/^[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed)) return true;
+  return false;
+}
+
 function _browserNormalizeUrl(raw) {
   const trimmed = (raw || '').trim();
   if (!trimmed) return '';
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^localhost(:\d+)?/i.test(trimmed)) return 'http://' + trimmed;
+  if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?/.test(trimmed)) return 'http://' + trimmed;
   if (/^[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed)) return 'https://' + trimmed;
-  // Treat as search query — respect search engine setting
-  const engine = _browserSettings.searchEngine || 'google';
-  const q = encodeURIComponent(trimmed);
-  if (engine === 'duckduckgo') return 'https://duckduckgo.com/?q=' + q;
-  if (engine === 'bing') return 'https://www.bing.com/search?q=' + q;
-  return 'https://www.google.com/search?q=' + q;
+  return '';
 }
 
 async function browserNavigate(url) {
@@ -287,7 +294,15 @@ async function browserNavigate(url) {
 function browserNavigateFromInput() {
   const input = document.getElementById('browserUrlInput');
   if (!input) return;
-  browserNavigate(input.value);
+  const raw = (input.value || '').trim();
+  if (!raw) return;
+  if (_browserIsUrl(raw)) {
+    browserNavigate(raw);
+  } else {
+    // Search query — use server-side search to show results without hitting blocked iframes
+    browserExecuteSearch(raw);
+    input.value = raw;
+  }
 }
 
 function browserGoBack() {

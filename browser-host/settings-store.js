@@ -14,7 +14,7 @@ const SETTINGS_FILE = path.join(__dirname, '..', 'server', 'data', 'browser-sett
 
 const DEFAULTS = {
   homepage: 'https://neko-core.com',
-  searchEngine: 'google',
+  searchEngine: 'duckduckgo',
   sessionRestore: true,
   externalLinkBehavior: 'in-app',
 };
