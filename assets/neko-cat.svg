@@ -1,0 +1,94 @@
+<svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg" width="200" height="180">
+  <style>
+    @keyframes catTailWag { 0%, 100% { transform: rotate(-15deg); } 50% { transform: rotate(15deg); } }
+    @keyframes catPawSmash { 0%, 45%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+    @keyframes catPawSmashR { 0%, 55%, 100% { transform: translateY(0); } 60% { transform: translateY(3px); } }
+    @keyframes catBlink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+    @keyframes floatingCat { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
+    .cat-root { animation: floatingCat 4s ease-in-out infinite; }
+    .cat-tail { transform-origin: 135px 80px; animation: catTailWag 2s ease-in-out infinite; }
+    .cat-paw-l { transform-origin: 78px 100px; animation: catPawSmash 0.8s infinite; }
+    .cat-paw-r { transform-origin: 122px 100px; animation: catPawSmashR 0.7s infinite; }
+    .cat-eyes { transform-origin: 100px 50px; animation: catBlink 4s infinite; }
+  </style>
+  <g class="cat-root">
+    <!-- laptop body -->
+    <rect x="50" y="95" width="100" height="70" rx="5" fill="#1a2744" stroke="#2d7aed" stroke-width="1.5"/>
+    <rect x="55" y="100" width="90" height="55" rx="3">
+      <animate attributeName="fill" values="#1a3a6a;#1e4488;#1a3a6a;#224e99;#1a3a6a" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <!-- screen code lines -->
+    <rect x="60" y="108" width="40" height="2.5" rx="1" fill="#4d9aff" opacity="0.7"/>
+    <rect x="60" y="114" width="55" height="2.5" rx="1" fill="#00d4ff" opacity="0.5"/>
+    <rect x="60" y="120" width="30" height="2.5" rx="1" fill="#4d9aff" opacity="0.4"/>
+    <rect x="60" y="126" width="60" height="2.5" rx="1" fill="#2d7aed" opacity="0.5"/>
+    <rect x="60" y="132" width="45" height="2.5" rx="1" fill="#00d4ff" opacity="0.3"/>
+    <rect x="60" y="138" width="70" height="2.5" rx="1" fill="#4d9aff" opacity="0.6"/>
+    <rect x="60" y="144" width="25" height="2.5" rx="1" fill="#2d7aed" opacity="0.4"/>
+    <!-- laptop stand -->
+    <rect x="90" y="165" width="20" height="8" fill="#1a2744" stroke="#2d7aed" stroke-width="1"/>
+    <rect x="80" y="172" width="40" height="4" rx="2" fill="#1a2744" stroke="#2d7aed" stroke-width="1"/>
+    <!-- keyboard -->
+    <rect x="55" y="162" width="90" height="12" rx="3" fill="#0d1f3c" stroke="#2d7aed" stroke-width="1"/>
+    <g fill="#1a3a6a">
+      <rect x="58" y="164" width="5" height="3" rx="0.5"/><rect x="64" y="164" width="5" height="3" rx="0.5"/>
+      <rect x="70" y="164" width="5" height="3" rx="0.5"/><rect x="76" y="164" width="5" height="3" rx="0.5"/>
+      <rect x="82" y="164" width="5" height="3" rx="0.5"/><rect x="88" y="164" width="5" height="3" rx="0.5"/>
+      <rect x="94" y="164" width="5" height="3" rx="0.5"/><rect x="100" y="164" width="5" height="3" rx="0.5"/>
+      <rect x="106" y="164" width="5" height="3" rx="0.5"/><rect x="112" y="164" width="5" height="3" rx="0.5"/>
+      <rect x="118" y="164" width="5" height="3" rx="0.5"/><rect x="124" y="164" width="5" height="3" rx="0.5"/>
+      <rect x="130" y="164" width="5" height="3" rx="0.5"/><rect x="136" y="164" width="5" height="3" rx="0.5"/>
+      <rect x="60" y="168.5" width="5" height="3" rx="0.5"/><rect x="66" y="168.5" width="5" height="3" rx="0.5"/>
+      <rect x="72" y="168.5" width="5" height="3" rx="0.5"/><rect x="78" y="168.5" width="5" height="3" rx="0.5"/>
+      <rect x="84" y="168.5" width="20" height="3" rx="0.5"/>
+      <rect x="106" y="168.5" width="5" height="3" rx="0.5"/><rect x="112" y="168.5" width="5" height="3" rx="0.5"/>
+      <rect x="118" y="168.5" width="5" height="3" rx="0.5"/><rect x="124" y="168.5" width="5" height="3" rx="0.5"/>
+      <rect x="130" y="168.5" width="5" height="3" rx="0.5"/>
+    </g>
+    <!-- body -->
+    <ellipse cx="100" cy="82" rx="28" ry="22" fill="#2d7aed"/>
+    <!-- head -->
+    <circle cx="100" cy="52" r="22" fill="#2d7aed"/>
+    <!-- ears outer -->
+    <polygon points="82,38 76,18 92,32" fill="#2d7aed"/>
+    <polygon points="118,38 124,18 108,32" fill="#2d7aed"/>
+    <!-- ears inner -->
+    <polygon points="84,36 79,22 91,32" fill="#1a5fcc"/>
+    <polygon points="116,36 121,22 109,32" fill="#1a5fcc"/>
+    <!-- eyes -->
+    <g class="cat-eyes">
+      <ellipse cx="90" cy="50" rx="5" ry="5.5" fill="#0c0c14"/>
+      <ellipse cx="110" cy="50" rx="5" ry="5.5" fill="#0c0c14"/>
+      <ellipse cx="91" cy="49" rx="2" ry="2" fill="#00d4ff"/>
+      <ellipse cx="111" cy="49" rx="2" ry="2" fill="#00d4ff"/>
+    </g>
+    <!-- nose + mouth -->
+    <ellipse cx="100" cy="58" rx="2.5" ry="1.5" fill="#1a5fcc"/>
+    <path d="M100,59.5 Q96,63 93,61" fill="none" stroke="#1a5fcc" stroke-width="1"/>
+    <path d="M100,59.5 Q104,63 107,61" fill="none" stroke="#1a5fcc" stroke-width="1"/>
+    <!-- whiskers -->
+    <line x1="75" y1="55" x2="86" y2="56" stroke="#4d9aff" stroke-width="0.7" opacity="0.5"/>
+    <line x1="75" y1="59" x2="86" y2="58" stroke="#4d9aff" stroke-width="0.7" opacity="0.5"/>
+    <line x1="114" y1="56" x2="125" y2="55" stroke="#4d9aff" stroke-width="0.7" opacity="0.5"/>
+    <line x1="114" y1="58" x2="125" y2="59" stroke="#4d9aff" stroke-width="0.7" opacity="0.5"/>
+    <!-- left paw -->
+    <g class="cat-paw-l">
+      <ellipse cx="78" cy="158" rx="10" ry="6" fill="#2d7aed"/>
+      <circle cx="73" cy="155" r="2.5" fill="#1a5fcc"/>
+      <circle cx="78" cy="153.5" r="2.5" fill="#1a5fcc"/>
+      <circle cx="83" cy="155" r="2.5" fill="#1a5fcc"/>
+    </g>
+    <!-- right paw -->
+    <g class="cat-paw-r">
+      <ellipse cx="122" cy="158" rx="10" ry="6" fill="#2d7aed"/>
+      <circle cx="117" cy="155" r="2.5" fill="#1a5fcc"/>
+      <circle cx="122" cy="153.5" r="2.5" fill="#1a5fcc"/>
+      <circle cx="127" cy="155" r="2.5" fill="#1a5fcc"/>
+    </g>
+    <!-- tail -->
+    <g class="cat-tail">
+      <path d="M128,80 Q145,75 148,60 Q150,45 140,40 Q130,36 128,48" fill="none" stroke="#2d7aed" stroke-width="5" stroke-linecap="round"/>
+      <path d="M128,80 Q145,75 148,60 Q150,45 140,40 Q130,36 128,48" fill="none" stroke="#4d9aff" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+    </g>
+  </g>
+</svg>
