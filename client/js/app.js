@@ -515,6 +515,7 @@ async function refreshSavedConfig() {
       if (data && data.profiles) {
         savedConfig = data;
         renderProfileChips();
+        initSimpleProviderUI();
       }
     }
   } catch (_) {}
@@ -553,17 +554,8 @@ function loadProfile(name) {
     if (modelEl) modelEl.value = p.ollama.model || 'llama3';
   }
 
-  // Load OpenRouter/API key fields — handle both legacy (p.apikey) and
-  // multi-aspect format (p.main.apiKey) via getMainConfigFromProfile
-  const mainConfig = getMainConfigFromProfile(p);
-  if (mainConfig && mainConfig.type === 'openrouter') {
-    const epEl = document.getElementById('apikeyEndpoint-main');
-    const keyEl = document.getElementById('apikeyKey-main');
-    const modelEl = document.getElementById('apikeyModel-main');
-    if (epEl) epEl.value = mainConfig.endpoint || '';
-    if (keyEl) keyEl.value = mainConfig.apiKey || '';
-    if (modelEl) modelEl.value = mainConfig.model || '';
-  } else if (p.apikey) {
+  // Load OpenRouter/API key fields if present
+  if (p.apikey) {
     const epEl = document.getElementById('apikeyEndpoint-main');
     const keyEl = document.getElementById('apikeyKey-main');
     const modelEl = document.getElementById('apikeyModel-main');
@@ -646,44 +638,43 @@ const LLM_ROLES = {
 // Users can always type/paste any custom model ID in the same input field.
 const OPENROUTER_ROLE_MODELS = {
   main: {
-    def: 'inception/mercury-2',
+    def: 'openai/gpt-4o',
     models: [
-      { id: 'inception/mercury-2', l: 'Mercury-2 ✓ Recommended — fast strong reasoning' },
-      { id: 'anthropic/claude-sonnet-4-5', l: 'Claude Sonnet 4.5 — premium quality' },
-      { id: 'openai/gpt-4o', l: 'OpenAI GPT-4o — balanced main chat' },
-      { id: 'google/gemini-2.5-pro', l: 'Gemini 2.5 Pro — deep thinking' },
-      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.5 Flash — fast/cheap' },
-      { id: 'deepseek/deepseek-chat-v3-0324', l: 'DeepSeek V3 — cost-effective' }
+      { id: 'openai/gpt-4o', l: 'OpenAI GPT-4o (balanced main chat)' },
+      { id: 'anthropic/claude-sonnet-4', l: 'Claude Sonnet 4 (strong reasoning)' },
+      { id: 'google/gemini-2.5-pro', l: 'Gemini 2.5 Pro (deep thinking)' },
+      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.5 Flash (fast/cheap)' },
+      { id: 'deepseek/deepseek-chat-v3-0324', l: 'DeepSeek V3 (cost-effective)' }
     ]
   },
   subconscious: {
-    def: 'inception/mercury-2',
+    def: 'google/gemini-2.5-flash',
     models: [
-      { id: 'inception/mercury-2', l: 'Mercury-2 ✓ Recommended — memory/context tasks' },
-      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.0 Flash Lite — fast/cheap background' },
-      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.5 Flash — strong background tasks' },
-      { id: 'deepseek/deepseek-chat-v3-0324', l: 'DeepSeek V3 — long context value' },
-      { id: 'openai/gpt-4o-mini', l: 'GPT-4o Mini — low-cost throughput' }
+      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.5 Flash (memory/background tasks)' },
+      { id: 'deepseek/deepseek-chat-v3-0324', l: 'DeepSeek V3 (long context value)' },
+      { id: 'anthropic/claude-sonnet-4', l: 'Claude Sonnet 4 (reflection quality)' },
+      { id: 'meta-llama/llama-3.3-70b-instruct', l: 'Llama 3.3 70B (self-host friendly alt)' },
+      { id: 'openai/gpt-4o-mini', l: 'OpenAI GPT-4o Mini (low-cost throughput)' }
     ]
   },
   dream: {
-    def: 'google/gemini-2.5-flash',
+    def: 'anthropic/claude-sonnet-4',
     models: [
-      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.5 Flash ✓ Recommended — fast dream cycles' },
-      { id: 'anthropic/claude-sonnet-4-5', l: 'Claude Sonnet 4.5 — creative synthesis' },
-      { id: 'openai/gpt-4o', l: 'OpenAI GPT-4o — imaginative + coherent' },
-      { id: 'google/gemini-2.5-pro', l: 'Gemini 2.5 Pro — narrative planning' },
-      { id: 'deepseek/deepseek-chat-v3-0324', l: 'DeepSeek V3 — economical dream cycles' }
+      { id: 'anthropic/claude-sonnet-4', l: 'Claude Sonnet 4 (creative synthesis)' },
+      { id: 'openai/gpt-4o', l: 'OpenAI GPT-4o (imaginative + coherent)' },
+      { id: 'google/gemini-2.5-pro', l: 'Gemini 2.5 Pro (narrative planning)' },
+      { id: 'meta-llama/llama-3.3-70b-instruct', l: 'Llama 3.3 70B (dream simulation alt)' },
+      { id: 'deepseek/deepseek-chat-v3-0324', l: 'DeepSeek V3 (economical dream cycles)' }
     ]
   },
   orchestrator: {
-    def: 'anthropic/claude-sonnet-4-5',
+    def: 'openai/gpt-4o',
     models: [
-      { id: 'anthropic/claude-sonnet-4-5', l: 'Claude Sonnet 4.5 ✓ Recommended — best final voicing' },
-      { id: 'inception/mercury-2', l: 'Mercury-2 — fast orchestration' },
-      { id: 'openai/gpt-4o', l: 'OpenAI GPT-4o — balanced synthesis' },
-      { id: 'google/gemini-2.5-pro', l: 'Gemini 2.5 Pro — deep integration' },
-      { id: 'deepseek/deepseek-chat-v3-0324', l: 'DeepSeek V3 — cost-effective' }
+      { id: 'openai/gpt-4o', l: 'OpenAI GPT-4o (balanced synthesis)' },
+      { id: 'anthropic/claude-sonnet-4', l: 'Claude Sonnet 4 (strong persona modulation)' },
+      { id: 'google/gemini-2.5-pro', l: 'Gemini 2.5 Pro (deep integration)' },
+      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.5 Flash (fast/cheap orchestration)' },
+      { id: 'deepseek/deepseek-chat-v3-0324', l: 'DeepSeek V3 (cost-effective)' }
     ]
   }
 };
@@ -697,28 +688,28 @@ let currentRecommendedPresetProvider = 'openrouter';
 
 const RECOMMENDED_MODEL_STACKS = {
   best: {
-    main: 'anthropic/claude-sonnet-4-5',
-    subconscious: 'inception/mercury-2',
-    dream: 'google/gemini-2.5-flash',
-    orchestrator: 'anthropic/claude-sonnet-4-5'
+    main: 'anthropic/claude-sonnet-4.6',
+    subconscious: 'moonshotai/kimi-k2.5',
+    dream: 'anthropic/claude-sonnet-4.6',
+    orchestrator: 'anthropic/claude-sonnet-4.6'
   },
   fast: {
     main: 'inception/mercury-2',
     subconscious: 'inception/mercury-2',
-    dream: 'google/gemini-2.5-flash',
+    dream: 'google/gemini-3.1-flash-lite-preview',
     orchestrator: 'inception/mercury-2'
   },
   cheap: {
-    main: 'meta-llama/llama-3.3-70b-instruct:free',
-    subconscious: 'google/gemini-2.5-flash',
-    dream: 'google/gemini-2.5-flash',
-    orchestrator: 'meta-llama/llama-3.3-70b-instruct:free'
+    main: 'arcee-ai/trinity-large-preview:free',
+    subconscious: 'stepfun/step-3.5-flash:free',
+    dream: 'arcee-ai/trinity-large-preview:free',
+    orchestrator: 'arcee-ai/trinity-large-preview:free'
   },
   hybrid: {
-    main: 'deepseek/deepseek-chat-v3-0324',
+    main: 'deepseek/deepseek-v3.2',
     subconscious: 'inception/mercury-2',
-    dream: 'google/gemini-2.5-flash',
-    orchestrator: 'deepseek/deepseek-chat-v3-0324'
+    dream: 'google/gemini-3-flash-preview',
+    orchestrator: 'deepseek/deepseek-v3.2'
   }
 };
 
@@ -1606,6 +1597,7 @@ function _startApp() {
         if (data && data.profiles) {
           savedConfig = data;
           renderProfileChips();
+          initSimpleProviderUI();
         }
       }
     } catch (e) {
@@ -3166,6 +3158,7 @@ async function createEmptyEntity() {
   lg('ok', `Created empty entity: ${name}. Start chatting to build their memories!`);
   addChatBubble('system', `✨ ${name} has been created! This is an empty entity with no history. Their memories will be formed through your conversations together.`);
   refreshSidebarEntities();
+  switchMainTab('chat');
 }
 
 async function createRandomEntity() {
@@ -3236,6 +3229,7 @@ async function createRandomEntity() {
     
     lg('ok', `Generated random entity: ${data.entity.name}`);
     refreshSidebarEntities();
+    switchMainTab('chat');
   } catch (err) {
     closeHatchProgress();
     if (err.name === 'AbortError') {
@@ -3311,6 +3305,7 @@ async function createCharacterEntity() {
 
     lg('ok', 'Character ingestion complete: ' + data.entity.name + ' (' + (data.entity.memory_count || 0) + ' memories seeded)');
     refreshSidebarEntities();
+    switchMainTab('chat');
   } catch (err) {
     closeHatchProgress();
     if (err.name === 'AbortError') {
@@ -3455,6 +3450,7 @@ async function createGuidedEntity() {
 
     lg('ok', 'Generated guided entity: ' + data.entity.name);
     refreshSidebarEntities();
+    switchMainTab('chat');
   } catch (err) {
     closeHatchProgress();
     if (err.name === 'AbortError') {
