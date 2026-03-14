@@ -5403,3 +5403,329 @@ body.popout-mode .app {
   flex-shrink: 0;
 }
 #viz-type-legend .legend-label { color: var(--text-tertiary); }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   NB-6 LLM Mode Foundation
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── LLM Mode Toggle Button ───────────────────────────── */
+#browserLLMModeBtn.llm-mode-active {
+  background: var(--accent);
+  color: var(--surface-1);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* ── LLM Panel (sidebar) ──────────────────────────────── */
+.browser-llm-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  max-width: 50%;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-1);
+  border-left: 2px solid var(--accent);
+  z-index: 60;
+  overflow: hidden;
+  box-shadow: -4px 0 16px rgba(0,0,0,.3);
+}
+
+.llm-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
+  border-bottom: 1px solid var(--border-default);
+}
+.llm-panel-header h3 { margin: 0; font-size: var(--text-sm); }
+.llm-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.llm-session-label {
+  font-size: var(--text-xs);
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+/* ── Source Preview ────────────────────────────────────── */
+.llm-source-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-default);
+}
+.llm-section-title {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.llm-source-preview {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  max-height: 80px;
+  overflow-y: auto;
+  font-size: var(--text-xs);
+}
+.llm-source-url {
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 2px;
+  word-break: break-all;
+}
+.llm-source-text {
+  color: var(--text-tertiary);
+  line-height: 1.3;
+}
+.llm-source-empty {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* ── Action Buttons ────────────────────────────────────── */
+.llm-actions {
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-default);
+}
+
+/* ── Ask Section ───────────────────────────────────────── */
+.llm-ask-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-default);
+}
+.llm-ask-row {
+  display: flex;
+  gap: 4px;
+}
+.llm-ask-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+.llm-ask-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* ── Output Area ───────────────────────────────────────── */
+.llm-output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.llm-output h2, .llm-output h3, .llm-output h4 {
+  margin: 8px 0 4px;
+  color: var(--text-primary);
+}
+.llm-output code {
+  background: var(--surface-2);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.llm-output ul { padding-left: 16px; margin: 4px 0; }
+.llm-output li { margin: 2px 0; }
+
+.llm-loading {
+  color: var(--accent);
+  font-style: italic;
+  padding: 8px 0;
+}
+.llm-error {
+  color: var(--error);
+  padding: 8px 0;
+}
+.llm-result-header {
+  font-weight: 700;
+  font-size: var(--text-base);
+  margin-bottom: 8px;
+  color: var(--accent);
+}
+.llm-result-body {
+  color: var(--text-primary);
+}
+
+/* ── Chat messages ─────────────────────────────────────── */
+.llm-chat-user {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  margin: 6px 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+.llm-chat-assistant {
+  padding: 6px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-default) 50%, transparent);
+  margin: 4px 0;
+}
+
+/* ── Citations ─────────────────────────────────────────── */
+.llm-citations { margin-top: 8px; }
+.llm-citation {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  padding: 2px 0;
+}
+.llm-citation a {
+  color: var(--info);
+  text-decoration: underline;
+}
+
+/* ── Extraction results ────────────────────────────────── */
+.llm-table-wrap { margin: 8px 0; overflow-x: auto; }
+.llm-table-caption { font-weight: 600; margin-bottom: 4px; }
+.llm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+}
+.llm-table th, .llm-table td {
+  border: 1px solid var(--border-default);
+  padding: 4px 6px;
+  text-align: left;
+}
+.llm-table th {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
+  font-weight: 600;
+}
+.llm-entity-list, .llm-link-list, .llm-outline { margin: 4px 0; }
+.llm-entity {
+  padding: 3px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-default) 30%, transparent);
+}
+.llm-entity-type {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: var(--text-xs);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  margin-right: 4px;
+  text-transform: uppercase;
+}
+.llm-entity-ctx {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+.llm-link-row {
+  padding: 3px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-default) 30%, transparent);
+}
+.llm-link-cat {
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: var(--text-xs);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  margin-right: 4px;
+}
+.llm-link-url { color: var(--info); }
+.llm-outline-item {
+  padding: 3px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-default) 20%, transparent);
+}
+.llm-outline-summary {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+.llm-empty {
+  color: var(--text-tertiary);
+  font-style: italic;
+  padding: 8px 0;
+}
+.llm-raw {
+  background: var(--surface-2);
+  padding: 8px;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+}
+
+/* ── Footer ────────────────────────────────────────────── */
+.llm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border-default);
+  background: var(--surface-1);
+}
+.llm-status {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+.llm-footer-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ── Save Confirmation Dialog ──────────────────────────── */
+.llm-save-dialog {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.5);
+  z-index: 70;
+}
+.llm-save-content {
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4);
+}
+.llm-save-content h4 { margin: 0 0 8px; }
+.llm-save-content p { font-size: var(--text-sm); color: var(--text-secondary); margin: 0 0 10px; }
+.llm-save-preview {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+.llm-save-topics-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.llm-save-topics-row label { font-size: var(--text-sm); }
+.llm-save-topics {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+.llm-save-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

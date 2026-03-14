@@ -1360,6 +1360,7 @@
         <button class="btn bg text-xs-c" onclick="browserOpenHistoryManager()" title="History (Ctrl+H)">🕐</button>
         <button class="btn bg text-xs-c" onclick="browserToggleDownloads()" title="Downloads (Ctrl+J)">⬇</button>
         <button class="btn bg text-xs-c" onclick="browserOpenExternal()" title="Open in external browser">↗</button>
+        <button class="btn bg text-xs-c" id="browserLLMModeBtn" onclick="browserToggleLLMMode()" title="Switch to LLM Mode">🧠</button>
       </div>
 
       <!-- Search Bar -->
@@ -1459,6 +1460,75 @@
           <input id="histManagerSearch" class="browser-manager-search" type="text" placeholder="Search history..." oninput="_histFilterChanged()">
         </div>
         <div id="histManagerList" class="browser-manager-list"></div>
+      </div>
+
+      <!-- LLM Mode Panel (NB-6) -->
+      <div class="browser-llm-panel hidden" id="browserLLMPanel">
+        <div class="llm-panel-header">
+          <h3>🤖 LLM Mode</h3>
+          <div class="llm-panel-controls">
+            <span id="llmSessionLabel" class="llm-session-label"></span>
+            <button class="btn bg text-xs-c" id="llmEphemeralBtn" onclick="browserToggleEphemeral()" title="Ephemeral — nothing auto-saved">👁 Ephemeral</button>
+            <button class="btn bg text-xs-c" onclick="browserNewResearchSession()" title="Start research session">📂 Session</button>
+            <button class="btn bg text-xs-c" onclick="browserToggleLLMMode()">✕</button>
+          </div>
+        </div>
+
+        <!-- Source Preview -->
+        <div class="llm-source-section">
+          <div class="llm-section-title">Page Source</div>
+          <div id="llmSourcePreview" class="llm-source-preview">
+            <div class="llm-source-empty">No page content extracted. Navigate to a page and click Extract.</div>
+          </div>
+          <button class="btn bg text-xs-c" onclick="browserExtractPage()" title="Re-extract current page">🔄 Extract</button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="llm-actions">
+          <button class="btn bp text-xs-c" onclick="browserSummarizePage()">📝 Summarize</button>
+          <button class="btn bg text-xs-c" onclick="browserExtractStructured('outline')">📑 Outline</button>
+          <button class="btn bg text-xs-c" onclick="browserExtractStructured('entities')">🏷️ Entities</button>
+          <button class="btn bg text-xs-c" onclick="browserExtractStructured('tables')">📊 Tables</button>
+          <button class="btn bg text-xs-c" onclick="browserExtractStructured('links')">🔗 Links</button>
+        </div>
+
+        <!-- Ask This Page -->
+        <div class="llm-ask-section">
+          <div class="llm-section-title">Ask This Page</div>
+          <div class="llm-ask-row">
+            <input id="llmAskInput" class="llm-ask-input" type="text" placeholder="Ask a question about this page..." onkeydown="if(event.key==='Enter')browserAskPage()">
+            <button class="btn bp text-xs-c" onclick="browserAskPage()">Ask</button>
+          </div>
+        </div>
+
+        <!-- Output Area -->
+        <div id="llmOutput" class="llm-output"></div>
+
+        <!-- Footer Actions -->
+        <div class="llm-footer">
+          <span id="llmStatus" class="llm-status"></span>
+          <div class="llm-footer-actions">
+            <button class="btn bg text-xs-c" onclick="browserSaveToMemory()" title="Save analysis to entity memory">💾 Save to Memory</button>
+            <button class="btn bg text-xs-c" onclick="_llmClearOutput()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save to Memory Confirmation Dialog (NB-6) -->
+      <div class="llm-save-dialog hidden" id="llmSaveConfirm">
+        <div class="llm-save-content">
+          <h4>💾 Save to Entity Memory?</h4>
+          <p>This will save the current analysis to the active entity's memory.</p>
+          <div id="llmSavePreview" class="llm-save-preview"></div>
+          <div class="llm-save-topics-row">
+            <label>Topics:</label>
+            <input id="llmSaveTopics" class="llm-save-topics" type="text" placeholder="browser-research, analysis" value="browser-research">
+          </div>
+          <div class="llm-save-actions">
+            <button class="btn bp" onclick="browserConfirmSave()">Confirm Save</button>
+            <button class="btn bg" onclick="browserCancelSave()">Cancel</button>
+          </div>
+        </div>
       </div>
 
       <!-- Keyboard Shortcuts Reference -->

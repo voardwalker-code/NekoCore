@@ -6,7 +6,20 @@ Built with MA (Memory Architect v1).
 ## [Unreleased]
 
 ### Added
-- **NekoCore Browser Phase NB-5 — Human Mode Completion (complete)**
+- **NekoCore Browser Phase NB-6 — LLM Mode Foundation (complete)**
+  - Mode switch: toggle between Human Mode (🧠) and LLM Mode (🤖) via toolbar button, LLM panel slides in as sidebar
+  - Page extraction: server-side URL fetch via existing webFetch.fetchAndExtract(), returns clean text from any page
+  - Page summarization: LLM-powered summary with markdown formatting, auto-tracks in research session
+  - Ask-this-page chat: multi-turn Q&A grounded only in extracted page content, conversation history maintained per page
+  - Source citation: every AI answer includes 📎 source links with excerpt preview, clicking navigates to source URL
+  - Structured extraction: LLM-powered extraction of tables (rendered as HTML tables), named entities (typed + context), links (categorized), and page outline (hierarchical with summaries)
+  - User confirmation for writes: save-to-memory requires explicit confirmation dialog with topic editing before any entity memory write
+  - Research session model: separate from normal chat — tracks extracted pages, Q&A exchanges, and structured extractions; session CRUD with create/list/get/activate/delete/clear
+  - Ephemeral vs saved toggle: clear control to choose ephemeral analysis (no auto-save) vs persistent session tracking
+  - Domain-aware safety: page content extracted server-side through SSRF-protected webFetch, max 12K chars to LLM, no raw HTML sent to client
+  - `browser-host/research-session.js` — new module: session state management with JSON persistence, max 20 sessions, 100 messages per session
+  - 13 new API endpoints: extract-page, summarize, ask-page, extract-structured, save-to-memory, research CRUD (list/create/get/activate/active/delete/clear)
+  - Full CSS: LLM sidebar panel, source preview, chat messages, citation links, extraction renderers (tables/entities/links/outline), save confirmation dialog, ephemeral/saved toggle, mode button glow
   - Bookmark Manager: full-screen panel with search, folder filter, inline edit (title/URL/folder), add form, per-item delete, and import/export
   - History Manager: full-screen panel with search, grouped by date, per-entry delete, clear today, clear all, and export
   - Tab context menu: right-click for duplicate tab, reload, pin/unpin, mute/unmute, close, close other tabs

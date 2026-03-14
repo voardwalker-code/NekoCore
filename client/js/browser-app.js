@@ -1,5 +1,5 @@
 /**
- * NekoCore Browser — Client Core (NB-5 Human Mode Completion)
+ * NekoCore Browser — Client Core (NB-6 LLM Mode Foundation)
  *
  * Multi-tab browser with address bar, history, bookmarks, downloads panel,
  * session restore, web search, settings integration, shell status reporting,
@@ -31,6 +31,14 @@ let _browserInitialized = false;
 let _browserSessionSaveTimer = null;
 let _browserSettings = {};
 let _browserStatusTimer = null;
+
+// ─── LLM Mode State (NB-6) ───────────────────────────────────────────────────
+let _browserLLMMode = false;        // Human Mode vs LLM Mode
+let _browserPageText = '';           // Last extracted page text
+let _browserPageUrl = '';            // URL of extracted page
+let _browserAskHistory = [];         // Ask-this-page conversation
+let _browserResearchSessionId = null; // Active research session
+let _browserEphemeralMode = true;    // true = ephemeral analysis, false = auto-save
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 async function _browserApi(method, path, body) {
@@ -1274,6 +1282,378 @@ function _escHtml(s) {
   return d.innerHTML;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// NB-6 LLM Mode Foundation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Mode Toggle ──────────────────────────────────────────────────────────────
+function browserToggleLLMMode() {
+  _browserLLMMode = !_browserLLMMode;
+  const panel = document.getElementById('browserLLMPanel');
+  const toggle = document.getElementById('browserLLMModeBtn');
+  if (panel) panel.classList.toggle('hidden', !_browserLLMMode);
+  if (toggle) {
+    toggle.textContent = _browserLLMMode ? '🤖' : '🧠';
+    toggle.title = _browserLLMMode ? 'Switch to Human Mode' : 'Switch to LLM Mode';
+    toggle.classList.toggle('llm-mode-active', _browserLLMMode);
+  }
+  // Auto-extract page when switching to LLM mode
+  if (_browserLLMMode) _llmAutoExtract();
+}
+
+// ─── Page Extraction ──────────────────────────────────────────────────────────
+async function _llmAutoExtract() {
+  const tab = _browserTabs.get(_browserActiveTabId);
+  if (!tab || !tab.url || tab.url === 'about:blank') return;
+  // Skip if already extracted this URL
+  if (_browserPageUrl === tab.url && _browserPageText) return;
+  await browserExtractPage();
+}
+
+async function browserExtractPage() {
+  const tab = _browserTabs.get(_browserActiveTabId);
+  if (!tab || !tab.url) {
+    if (typeof showNotification === 'function') showNotification('No active page to extract', 'warning');
+    return;
+  }
+  const statusEl = document.getElementById('llmStatus');
+  if (statusEl) statusEl.textContent = 'Extracting page content...';
+
+  try {
+    const r = await _browserApi('POST', '/api/browser/extract-page', { url: tab.url });
+    if (r.ok) {
+      _browserPageText = r.text;
+      _browserPageUrl = r.url || tab.url;
+      _browserAskHistory = [];
+      _llmUpdateSourcePreview();
+      if (statusEl) statusEl.textContent = `Extracted ${r.text.length} chars from ${_truncate(_browserPageUrl, 40)}`;
+    } else {
+      if (statusEl) statusEl.textContent = 'Extraction failed: ' + (r.message || 'Unknown error');
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = 'Extraction error: ' + err.message;
+  }
+}
+
+function _llmUpdateSourcePreview() {
+  const preview = document.getElementById('llmSourcePreview');
+  if (!preview) return;
+  if (_browserPageText) {
+    preview.innerHTML = `<div class="llm-source-url">${_escHtml(_truncate(_browserPageUrl, 60))}</div><div class="llm-source-text">${_escHtml(_truncate(_browserPageText, 300))}</div>`;
+  } else {
+    preview.innerHTML = '<div class="llm-source-empty">No page content extracted. Navigate to a page and click Extract.</div>';
+  }
+}
+
+// ─── Summarize Page ───────────────────────────────────────────────────────────
+async function browserSummarizePage() {
+  if (!_browserPageText) {
+    await browserExtractPage();
+    if (!_browserPageText) return;
+  }
+  const output = document.getElementById('llmOutput');
+  const statusEl = document.getElementById('llmStatus');
+  if (output) output.innerHTML = '<div class="llm-loading">Summarizing page…</div>';
+  if (statusEl) statusEl.textContent = 'Calling LLM for summary...';
+
+  try {
+    const r = await _browserApi('POST', '/api/browser/summarize', {
+      text: _browserPageText, url: _browserPageUrl,
+      title: _browserTabs.get(_browserActiveTabId)?.title || ''
+    });
+    if (r.ok) {
+      _llmRenderOutput('Summary', r.summary, r.citations, r.usage);
+      if (statusEl) statusEl.textContent = 'Summary complete' + (r.usage ? ` (${r.usage.total_tokens} tokens)` : '');
+    } else {
+      if (output) output.innerHTML = `<div class="llm-error">${_escHtml(r.message || 'Summarization failed')}</div>`;
+      if (statusEl) statusEl.textContent = 'Summary failed';
+    }
+  } catch (err) {
+    if (output) output.innerHTML = `<div class="llm-error">${_escHtml(err.message)}</div>`;
+  }
+}
+
+// ─── Ask This Page ────────────────────────────────────────────────────────────
+async function browserAskPage() {
+  const input = document.getElementById('llmAskInput');
+  const question = input ? input.value.trim() : '';
+  if (!question) return;
+  if (!_browserPageText) {
+    await browserExtractPage();
+    if (!_browserPageText) return;
+  }
+
+  const output = document.getElementById('llmOutput');
+  // Show user question
+  const qDiv = document.createElement('div');
+  qDiv.className = 'llm-chat-user';
+  qDiv.textContent = question;
+  if (output) output.appendChild(qDiv);
+  if (input) input.value = '';
+
+  // Show loading
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'llm-loading';
+  loadDiv.textContent = 'Thinking…';
+  if (output) output.appendChild(loadDiv);
+  output.scrollTop = output.scrollHeight;
+
+  const statusEl = document.getElementById('llmStatus');
+  if (statusEl) statusEl.textContent = 'Asking LLM...';
+
+  try {
+    const r = await _browserApi('POST', '/api/browser/ask-page', {
+      question, text: _browserPageText, url: _browserPageUrl,
+      history: _browserAskHistory.slice(-10)
+    });
+    loadDiv.remove();
+    if (r.ok) {
+      _browserAskHistory.push({ role: 'user', content: question });
+      _browserAskHistory.push({ role: 'assistant', content: r.answer });
+      const aDiv = document.createElement('div');
+      aDiv.className = 'llm-chat-assistant';
+      aDiv.innerHTML = _llmFormatMarkdown(r.answer);
+      if (r.citations && r.citations.length) {
+        const cite = document.createElement('div');
+        cite.className = 'llm-citation';
+        cite.innerHTML = '📎 Source: ' + r.citations.map(c => `<a href="#" onclick="browserNavigate('${_escHtml(c.source)}');return false">${_escHtml(_truncate(c.source, 40))}</a>`).join(', ');
+        aDiv.appendChild(cite);
+      }
+      if (output) output.appendChild(aDiv);
+      output.scrollTop = output.scrollHeight;
+      if (statusEl) statusEl.textContent = 'Answer ready' + (r.usage ? ` (${r.usage.total_tokens} tokens)` : '');
+    } else {
+      loadDiv.remove();
+      const errDiv = document.createElement('div');
+      errDiv.className = 'llm-error';
+      errDiv.textContent = r.message || 'Failed to get answer';
+      if (output) output.appendChild(errDiv);
+    }
+  } catch (err) {
+    loadDiv.remove();
+    const errDiv = document.createElement('div');
+    errDiv.className = 'llm-error';
+    errDiv.textContent = err.message;
+    if (output) output.appendChild(errDiv);
+  }
+}
+
+// ─── Structured Extraction ────────────────────────────────────────────────────
+async function browserExtractStructured(type) {
+  if (!_browserPageText) {
+    await browserExtractPage();
+    if (!_browserPageText) return;
+  }
+  const output = document.getElementById('llmOutput');
+  const statusEl = document.getElementById('llmStatus');
+  if (output) output.innerHTML = `<div class="llm-loading">Extracting ${type}…</div>`;
+  if (statusEl) statusEl.textContent = `Extracting ${type}...`;
+
+  try {
+    const r = await _browserApi('POST', '/api/browser/extract-structured', {
+      type, text: _browserPageText, url: _browserPageUrl
+    });
+    if (r.ok) {
+      _llmRenderExtraction(type, r.data, r.usage);
+      if (statusEl) statusEl.textContent = `${type} extraction complete` + (r.usage ? ` (${r.usage.total_tokens} tokens)` : '');
+    } else {
+      if (output) output.innerHTML = `<div class="llm-error">${_escHtml(r.message || 'Extraction failed')}</div>`;
+    }
+  } catch (err) {
+    if (output) output.innerHTML = `<div class="llm-error">${_escHtml(err.message)}</div>`;
+  }
+}
+
+function _llmRenderExtraction(type, data, usage) {
+  const output = document.getElementById('llmOutput');
+  if (!output) return;
+  const titles = { tables: '📊 Tables', entities: '🏷️ Entities', links: '🔗 Links', outline: '📑 Outline' };
+  let html = `<div class="llm-result-header">${titles[type] || type}</div>`;
+
+  if (typeof data === 'string') {
+    html += `<pre class="llm-raw">${_escHtml(data)}</pre>`;
+  } else if (Array.isArray(data)) {
+    if (type === 'tables') {
+      data.forEach(table => {
+        html += `<div class="llm-table-wrap">`;
+        if (table.caption) html += `<div class="llm-table-caption">${_escHtml(table.caption)}</div>`;
+        html += '<table class="llm-table"><thead><tr>';
+        (table.headers || []).forEach(h => { html += `<th>${_escHtml(h)}</th>`; });
+        html += '</tr></thead><tbody>';
+        (table.rows || []).forEach(row => {
+          html += '<tr>';
+          (Array.isArray(row) ? row : []).forEach(cell => { html += `<td>${_escHtml(String(cell))}</td>`; });
+          html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+      });
+      if (data.length === 0) html += '<div class="llm-empty">No tables found on this page.</div>';
+    } else if (type === 'entities') {
+      if (data.length === 0) { html += '<div class="llm-empty">No named entities found.</div>'; }
+      else {
+        html += '<div class="llm-entity-list">';
+        data.forEach(e => {
+          html += `<div class="llm-entity"><span class="llm-entity-type">${_escHtml(e.type || 'other')}</span> <strong>${_escHtml(e.name || '')}</strong> <span class="llm-entity-ctx">${_escHtml(e.context || '')}</span></div>`;
+        });
+        html += '</div>';
+      }
+    } else if (type === 'links') {
+      if (data.length === 0) { html += '<div class="llm-empty">No links found.</div>'; }
+      else {
+        html += '<div class="llm-link-list">';
+        data.forEach(l => {
+          const urlPart = l.url ? ` <a href="#" onclick="browserNavigate(\'${_escHtml(l.url)}\');return false" class="llm-link-url">${_escHtml(_truncate(l.url, 40))}</a>` : '';
+          html += `<div class="llm-link-row"><span class="llm-link-cat">${_escHtml(l.category || '')}</span> ${_escHtml(l.text || '')}${urlPart}</div>`;
+        });
+        html += '</div>';
+      }
+    } else if (type === 'outline') {
+      if (data.length === 0) { html += '<div class="llm-empty">Could not build outline.</div>'; }
+      else {
+        html += '<div class="llm-outline">';
+        data.forEach(item => {
+          const indent = Math.max(0, (item.level || 1) - 1) * 16;
+          html += `<div class="llm-outline-item" style="padding-left:${indent}px"><strong>${_escHtml(item.text || '')}</strong> <span class="llm-outline-summary">${_escHtml(item.summary || '')}</span></div>`;
+        });
+        html += '</div>';
+      }
+    } else {
+      html += `<pre class="llm-raw">${_escHtml(JSON.stringify(data, null, 2))}</pre>`;
+    }
+  }
+  output.innerHTML = html;
+}
+
+// ─── Save to Entity Memory (with confirmation) ───────────────────────────────
+function browserSaveToMemory() {
+  const output = document.getElementById('llmOutput');
+  if (!output || !output.textContent.trim()) {
+    if (typeof showNotification === 'function') showNotification('Nothing to save — run an analysis first', 'warning');
+    return;
+  }
+  // Show confirmation dialog
+  const dialog = document.getElementById('llmSaveConfirm');
+  if (dialog) {
+    const preview = document.getElementById('llmSavePreview');
+    if (preview) preview.textContent = _truncate(output.textContent, 400);
+    dialog.classList.remove('hidden');
+  }
+}
+
+function browserConfirmSave() {
+  const dialog = document.getElementById('llmSaveConfirm');
+  if (dialog) dialog.classList.add('hidden');
+
+  const output = document.getElementById('llmOutput');
+  const content = output ? output.textContent.trim() : '';
+  if (!content) return;
+
+  const topicsInput = document.getElementById('llmSaveTopics');
+  const topics = topicsInput ? topicsInput.value.split(',').map(t => t.trim()).filter(Boolean) : ['browser-research'];
+  const saveType = _browserEphemeralMode ? 'semantic' : 'core';
+
+  _browserApi('POST', '/api/browser/save-to-memory', {
+    content, semantic: _truncate(content, 280),
+    topics, saveType, sourceUrl: _browserPageUrl,
+    importance: 0.7, emotion: 'curious'
+  }).then(r => {
+    if (r.ok) {
+      if (typeof showNotification === 'function') showNotification('Saved to entity memory (' + saveType + ')', 'success');
+    } else {
+      if (typeof showNotification === 'function') showNotification('Save failed: ' + (r.message || 'Unknown'), 'error');
+    }
+  }).catch(err => {
+    if (typeof showNotification === 'function') showNotification('Save error: ' + err.message, 'error');
+  });
+}
+
+function browserCancelSave() {
+  const dialog = document.getElementById('llmSaveConfirm');
+  if (dialog) dialog.classList.add('hidden');
+}
+
+// ─── Ephemeral vs Saved Toggle ────────────────────────────────────────────────
+function browserToggleEphemeral() {
+  _browserEphemeralMode = !_browserEphemeralMode;
+  const btn = document.getElementById('llmEphemeralBtn');
+  if (btn) {
+    btn.textContent = _browserEphemeralMode ? '👁 Ephemeral' : '💾 Saved';
+    btn.title = _browserEphemeralMode
+      ? 'Analysis is ephemeral — nothing auto-saved. Click to switch.'
+      : 'Analysis auto-tracked in research session. Click to switch.';
+  }
+}
+
+// ─── Research Sessions ────────────────────────────────────────────────────────
+async function browserNewResearchSession() {
+  const title = prompt('Research session title:', 'Research ' + new Date().toLocaleDateString());
+  if (!title) return;
+  const r = await _browserApi('POST', '/api/browser/research/create', { title });
+  if (r.ok) {
+    _browserResearchSessionId = r.session.id;
+    if (typeof showNotification === 'function') showNotification('Research session started: ' + title, 'success');
+    _llmUpdateSessionLabel();
+  }
+}
+
+async function browserEndResearchSession() {
+  _browserResearchSessionId = null;
+  _llmUpdateSessionLabel();
+}
+
+function _llmUpdateSessionLabel() {
+  const label = document.getElementById('llmSessionLabel');
+  if (!label) return;
+  if (_browserResearchSessionId) {
+    label.textContent = '📂 Session Active';
+    label.title = 'Research session: ' + _browserResearchSessionId;
+  } else {
+    label.textContent = '';
+  }
+}
+
+// ─── Render Helpers ───────────────────────────────────────────────────────────
+function _llmRenderOutput(title, content, citations, usage) {
+  const output = document.getElementById('llmOutput');
+  if (!output) return;
+  let html = `<div class="llm-result-header">${_escHtml(title)}</div>`;
+  html += `<div class="llm-result-body">${_llmFormatMarkdown(content)}</div>`;
+  if (citations && citations.length) {
+    html += '<div class="llm-citations">';
+    citations.forEach(c => {
+      html += `<div class="llm-citation">📎 <a href="#" onclick="browserNavigate('${_escHtml(c.source)}');return false">${_escHtml(_truncate(c.source, 50))}</a>`;
+      if (c.excerpt) html += ` — <em>${_escHtml(_truncate(c.excerpt, 100))}</em>`;
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  output.innerHTML = html;
+}
+
+function _llmFormatMarkdown(text) {
+  if (!text) return '';
+  // Basic markdown → HTML (headings, bold, italic, code, lists, links)
+  return _escHtml(text)
+    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+}
+
+function _llmClearOutput() {
+  const output = document.getElementById('llmOutput');
+  if (output) output.innerHTML = '';
+  _browserAskHistory = [];
+  const statusEl = document.getElementById('llmStatus');
+  if (statusEl) statusEl.textContent = '';
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function initBrowserApp() {
   if (_browserInitialized) return;
@@ -1347,3 +1727,17 @@ function openBrowserExternal() { browserOpenExternal(); }
 // _histFilterChanged() — history manager search handler
 // histClearAll() — clear all history from manager
 // histDeleteToday() — delete today's history from manager
+
+// ─── Exports for LLM Mode (NB-6) ─────────────────────────────────────────────
+// browserToggleLLMMode() — toggle between Human and LLM mode
+// browserExtractPage() — extract current page content
+// browserSummarizePage() — summarize current page via LLM
+// browserAskPage() — ask a question about current page
+// browserExtractStructured(type) — extract tables/entities/links/outline
+// browserSaveToMemory() — save analysis to entity memory (with confirmation)
+// browserConfirmSave() — confirm memory save
+// browserCancelSave() — cancel memory save
+// browserToggleEphemeral() — toggle ephemeral vs saved mode
+// browserNewResearchSession() — create new research session
+// browserEndResearchSession() — end current research session
+// _llmClearOutput() — clear LLM output panel

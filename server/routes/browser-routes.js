@@ -1,9 +1,10 @@
 'use strict';
 
 /**
- * NekoCore — Browser Routes (NB-3 Browser Core MVP)
+ * NekoCore — Browser Routes (NB-6 LLM Mode Foundation)
  *
- * HTTP surface for browser host commands, history, bookmarks, and session.
+ * HTTP surface for browser host commands, history, bookmarks, session,
+ * and LLM-powered page analysis, chat, structured extraction, and research sessions.
  * Follows the existing route-module factory pattern.
  *
  * Endpoints:
@@ -30,10 +31,11 @@
 
 const browserHost = require('../../browser-host');
 const { tabModel, navigation, lifecycle, downloadManager, eventBus,
-        historyStore, bookmarkStore, sessionStore, settingsStore } = browserHost;
+        historyStore, bookmarkStore, sessionStore, settingsStore, researchSession } = browserHost;
 
 function createBrowserRoutes(ctx) {
-  const { broadcastSSE } = ctx;
+  const { broadcastSSE, webFetch, callLLMWithRuntime, loadAspectRuntimeConfig,
+          createCoreMemory, createSemanticKnowledge } = ctx;
 
   // Forward all browser events to SSE clients
   eventBus.on('*', (ev) => {
@@ -307,6 +309,251 @@ function createBrowserRoutes(ctx) {
       }
       if (p === '/api/browser/settings/export') {
         json(res, apiHeaders, 200, { ok: true, settings: settingsStore.getAll() });
+        return true;
+      }
+
+      // ── LLM Mode endpoints (NB-6) ────────────────────────────────────────
+
+      // Extract page content server-side
+      if (p === '/api/browser/extract-page') {
+        if (!body.url) { errEnvelope(res, apiHeaders, 400, 'MISSING_URL', 'url is required'); return true; }
+        try {
+          const result = await webFetch.fetchAndExtract(body.url);
+          json(res, apiHeaders, 200, { ok: true, url: result.url, text: result.text, type: result.type });
+        } catch (err) {
+          errEnvelope(res, apiHeaders, 502, 'FETCH_FAILED', 'Failed to extract page: ' + err.message);
+        }
+        return true;
+      }
+
+      // Summarize page content using LLM
+      if (p === '/api/browser/summarize') {
+        if (!body.text && !body.url) { errEnvelope(res, apiHeaders, 400, 'MISSING_INPUT', 'text or url is required'); return true; }
+        const runtime = loadAspectRuntimeConfig('main');
+        if (!runtime) { errEnvelope(res, apiHeaders, 503, 'NO_LLM', 'No LLM configured'); return true; }
+
+        let pageText = body.text || '';
+        let pageUrl = body.url || '';
+        if (!pageText && pageUrl) {
+          try {
+            const fetched = await webFetch.fetchAndExtract(pageUrl);
+            pageText = fetched.text;
+          } catch (err) {
+            errEnvelope(res, apiHeaders, 502, 'FETCH_FAILED', err.message);
+            return true;
+          }
+        }
+
+        const messages = [
+          { role: 'system', content: 'You are a research assistant in the NekoCore Browser. Summarize the following web page content concisely. Include key points, main arguments, and important details. Always cite specific parts of the text when making claims. Format with markdown.' },
+          { role: 'user', content: `Page URL: ${pageUrl}\n\n--- PAGE CONTENT ---\n${pageText.slice(0, 12000)}` }
+        ];
+
+        try {
+          const response = await callLLMWithRuntime(runtime, messages, { temperature: 0.3, maxTokens: 2000, returnUsage: true });
+          const content = typeof response === 'string' ? response : response.content;
+          const usage = typeof response === 'string' ? null : response.usage;
+
+          // Track in research session if active
+          const session = researchSession.getActiveSession();
+          if (session) {
+            researchSession.addPage(session.id, { url: pageUrl, title: body.title || pageUrl, extractedText: pageText.slice(0, 4000) });
+            researchSession.addExtraction(session.id, { type: 'summary', data: content, pageUrl });
+          }
+
+          json(res, apiHeaders, 200, { ok: true, summary: content, usage, pageUrl, citations: [{ source: pageUrl, excerpt: pageText.slice(0, 200) }] });
+        } catch (err) {
+          errEnvelope(res, apiHeaders, 500, 'LLM_ERROR', 'Summarization failed: ' + err.message);
+        }
+        return true;
+      }
+
+      // Ask a question about a page
+      if (p === '/api/browser/ask-page') {
+        if (!body.question) { errEnvelope(res, apiHeaders, 400, 'MISSING_QUESTION', 'question is required'); return true; }
+        if (!body.text && !body.url) { errEnvelope(res, apiHeaders, 400, 'MISSING_INPUT', 'text or url is required'); return true; }
+        const runtime = loadAspectRuntimeConfig('main');
+        if (!runtime) { errEnvelope(res, apiHeaders, 503, 'NO_LLM', 'No LLM configured'); return true; }
+
+        let pageText = body.text || '';
+        let pageUrl = body.url || '';
+        if (!pageText && pageUrl) {
+          try {
+            const fetched = await webFetch.fetchAndExtract(pageUrl);
+            pageText = fetched.text;
+          } catch (err) {
+            errEnvelope(res, apiHeaders, 502, 'FETCH_FAILED', err.message);
+            return true;
+          }
+        }
+
+        // Build conversation (include previous messages if provided)
+        const chatHistory = Array.isArray(body.history) ? body.history.slice(-10) : [];
+        const messages = [
+          { role: 'system', content: `You are a research assistant in the NekoCore Browser. Answer questions using ONLY the page content provided below. Always cite specific quotes from the content to support your answers. If the answer isn't in the content, say so clearly. Format with markdown.\n\n--- PAGE CONTENT (from ${pageUrl}) ---\n${pageText.slice(0, 12000)}` },
+          ...chatHistory.map(m => ({ role: m.role, content: m.content })),
+          { role: 'user', content: body.question }
+        ];
+
+        try {
+          const response = await callLLMWithRuntime(runtime, messages, { temperature: 0.3, maxTokens: 2000, returnUsage: true });
+          const content = typeof response === 'string' ? response : response.content;
+          const usage = typeof response === 'string' ? null : response.usage;
+
+          // Track in research session if active
+          const session = researchSession.getActiveSession();
+          if (session) {
+            researchSession.addMessage(session.id, { role: 'user', content: body.question });
+            researchSession.addMessage(session.id, { role: 'assistant', content, citations: [{ source: pageUrl }] });
+          }
+
+          json(res, apiHeaders, 200, { ok: true, answer: content, usage, pageUrl, citations: [{ source: pageUrl, excerpt: pageText.slice(0, 200) }] });
+        } catch (err) {
+          errEnvelope(res, apiHeaders, 500, 'LLM_ERROR', 'Ask-page failed: ' + err.message);
+        }
+        return true;
+      }
+
+      // Structured extraction (tables, entities, links, outline)
+      if (p === '/api/browser/extract-structured') {
+        if (!body.type) { errEnvelope(res, apiHeaders, 400, 'MISSING_TYPE', 'type is required (tables|entities|links|outline)'); return true; }
+        if (!body.text && !body.url) { errEnvelope(res, apiHeaders, 400, 'MISSING_INPUT', 'text or url is required'); return true; }
+        const runtime = loadAspectRuntimeConfig('main');
+        if (!runtime) { errEnvelope(res, apiHeaders, 503, 'NO_LLM', 'No LLM configured'); return true; }
+
+        let pageText = body.text || '';
+        let pageUrl = body.url || '';
+        if (!pageText && pageUrl) {
+          try {
+            const fetched = await webFetch.fetchAndExtract(pageUrl);
+            pageText = fetched.text;
+          } catch (err) {
+            errEnvelope(res, apiHeaders, 502, 'FETCH_FAILED', err.message);
+            return true;
+          }
+        }
+
+        const extractionPrompts = {
+          tables: 'Extract all tabular data from this page content. Return a JSON array of objects where each object represents a table with keys: "caption" (string), "headers" (string array), "rows" (array of string arrays). If no tables found, return an empty array.',
+          entities: 'Extract all named entities from this page content. Return a JSON array of objects with keys: "name" (string), "type" (one of "person", "organization", "location", "product", "event", "other"), "context" (short excerpt where mentioned). If no entities found, return an empty array.',
+          links: 'Extract and categorize all meaningful links/references mentioned in this page. Return a JSON array of objects with keys: "text" (link text), "url" (if available), "category" (one of "navigation", "reference", "resource", "social", "other"). If no links found, return an empty array.',
+          outline: 'Create a structured outline/table of contents from this page. Return a JSON array of objects with keys: "level" (1-4), "text" (heading/section text), "summary" (1-sentence summary of that section). If structure is unclear, create a logical outline from content.'
+        };
+
+        const prompt = extractionPrompts[body.type];
+        if (!prompt) { errEnvelope(res, apiHeaders, 400, 'INVALID_TYPE', 'type must be one of: tables, entities, links, outline'); return true; }
+
+        const messages = [
+          { role: 'system', content: `You are a structured data extraction assistant. ${prompt}\n\nRespond with ONLY valid JSON — no markdown fences, no explanation.` },
+          { role: 'user', content: `--- PAGE CONTENT (from ${pageUrl}) ---\n${pageText.slice(0, 12000)}` }
+        ];
+
+        try {
+          const response = await callLLMWithRuntime(runtime, messages, { temperature: 0.1, maxTokens: 3000, returnUsage: true });
+          const raw = typeof response === 'string' ? response : response.content;
+          const usage = typeof response === 'string' ? null : response.usage;
+          let data;
+          try {
+            data = JSON.parse(raw.replace(/^```json?\s*/i, '').replace(/```\s*$/i, '').trim());
+          } catch {
+            data = raw;
+          }
+
+          // Track in research session if active
+          const session = researchSession.getActiveSession();
+          if (session) {
+            researchSession.addExtraction(session.id, { type: body.type, data, pageUrl });
+          }
+
+          json(res, apiHeaders, 200, { ok: true, type: body.type, data, usage, pageUrl });
+        } catch (err) {
+          errEnvelope(res, apiHeaders, 500, 'LLM_ERROR', 'Extraction failed: ' + err.message);
+        }
+        return true;
+      }
+
+      // Save analysis result to entity memory (requires user confirmation on client)
+      if (p === '/api/browser/save-to-memory') {
+        if (!body.content) { errEnvelope(res, apiHeaders, 400, 'MISSING_CONTENT', 'content is required'); return true; }
+        if (!ctx.currentEntityId) { errEnvelope(res, apiHeaders, 400, 'NO_ENTITY', 'No active entity — cannot save to memory'); return true; }
+
+        const semantic = (body.semantic || body.content).slice(0, 280);
+        const topics = Array.isArray(body.topics) ? body.topics : ['browser-research'];
+        const saveType = body.saveType || 'semantic'; // 'core' or 'semantic'
+
+        try {
+          let result;
+          if (saveType === 'core') {
+            result = createCoreMemory({
+              semantic,
+              narrative: body.content,
+              emotion: body.emotion || 'curious',
+              topics,
+              importance: body.importance || 0.7,
+            });
+          } else {
+            result = createSemanticKnowledge({
+              knowledge: body.content.slice(0, 2000),
+              topics,
+              importance: body.importance || 0.6,
+            });
+          }
+          // Mark research session as saved if active
+          const session = researchSession.getActiveSession();
+          if (session) researchSession.markSaved(session.id);
+
+          json(res, apiHeaders, 200, { ok: true, saveType, memResult: result, source: body.sourceUrl || '' });
+        } catch (err) {
+          errEnvelope(res, apiHeaders, 500, 'SAVE_FAILED', 'Memory save failed: ' + err.message);
+        }
+        return true;
+      }
+
+      // ── Research Session endpoints ──────────────────────────────────────
+
+      if (p === '/api/browser/research/list') {
+        json(res, apiHeaders, 200, { ok: true, sessions: researchSession.listSessions() });
+        return true;
+      }
+
+      if (p === '/api/browser/research/create') {
+        const session = researchSession.createSession(body.title);
+        json(res, apiHeaders, 201, { ok: true, session });
+        return true;
+      }
+
+      if (p === '/api/browser/research/get') {
+        if (!body.id) { errEnvelope(res, apiHeaders, 400, 'MISSING_ID', 'id is required'); return true; }
+        const session = researchSession.getSession(body.id);
+        if (!session) { errEnvelope(res, apiHeaders, 404, 'NOT_FOUND', 'Session not found'); return true; }
+        json(res, apiHeaders, 200, { ok: true, session });
+        return true;
+      }
+
+      if (p === '/api/browser/research/activate') {
+        if (!body.id) { errEnvelope(res, apiHeaders, 400, 'MISSING_ID', 'id is required'); return true; }
+        const session = researchSession.setActiveSession(body.id);
+        if (!session) { errEnvelope(res, apiHeaders, 404, 'NOT_FOUND', 'Session not found'); return true; }
+        json(res, apiHeaders, 200, { ok: true, session });
+        return true;
+      }
+
+      if (p === '/api/browser/research/active') {
+        const session = researchSession.getActiveSession();
+        json(res, apiHeaders, 200, { ok: true, session });
+        return true;
+      }
+
+      if (p === '/api/browser/research/delete') {
+        if (!body.id) { errEnvelope(res, apiHeaders, 400, 'MISSING_ID', 'id is required'); return true; }
+        const deleted = researchSession.deleteSession(body.id);
+        json(res, apiHeaders, 200, { ok: true, deleted });
+        return true;
+      }
+
+      if (p === '/api/browser/research/clear') {
+        researchSession.clearSessions();
+        json(res, apiHeaders, 200, { ok: true });
         return true;
       }
 

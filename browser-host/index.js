@@ -20,6 +20,7 @@ const historyStore     = require('./history-store');
 const bookmarkStore    = require('./bookmark-store');
 const sessionStore     = require('./session-store');
 const settingsStore    = require('./settings-store');
+const researchSession  = require('./research-session');
 
 module.exports = {
   name: MODULE_NAME,
@@ -33,4 +34,5 @@ module.exports = {
   bookmarkStore,
   sessionStore,
   settingsStore,
+  researchSession,
 };

@@ -1,7 +1,25 @@
 # WORKLOG
 
 Status: active architecture refactor tracking.
-Last updated: 2026-03-14
+Last updated: 2026-03-15
+
+## Session Ledger - 2026-03-15 (NekoCore Browser NB-6 LLM Mode Foundation)
+
+Status: `Completed`
+
+Purpose:
+1. Add LLM Mode to the NekoCore Browser alongside Human Mode.
+2. Enable page summarization, ask-this-page chat, and structured extraction.
+3. Add research session model separate from entity chat.
+4. Enforce user confirmation for all memory writes.
+
+Completed outputs:
+1. Created `browser-host/research-session.js` — research session state management.
+2. Added 13 new LLM API endpoints to `server/routes/browser-routes.js`.
+3. Added LLM mode client code to `client/js/browser-app.js`.
+4. Added LLM panel HTML to `client/index.html`.
+5. Added full CSS for LLM mode to `client/css/ui-v2.css`.
+6. All 334 existing tests pass. JS syntax verified. Server loads cleanly.
 
 ## Session Ledger - 2026-03-14 (NekoCore Browser Phase 0 Kickoff)
 
