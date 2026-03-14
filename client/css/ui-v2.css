@@ -4531,6 +4531,197 @@ body.popout-mode .os-side-dash {
   border: 0;
 }
 
+.browser-frames {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0a0a0a;
+  position: relative;
+}
+
+.browser-frames .browser-frame {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Tab Strip ────────────────────────────────────── */
+.browser-tab-strip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 34px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.browser-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.browser-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  max-width: 200px;
+  min-width: 80px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px 8px 0 0;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  font-family: inherit;
+}
+
+.browser-tab-btn.active {
+  background: var(--surface-1);
+  color: var(--text-primary);
+  border-bottom-color: var(--surface-1);
+  font-weight: 600;
+}
+
+.browser-tab-btn:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+}
+
+.browser-tab-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.browser-tab-close {
+  flex-shrink: 0;
+  opacity: 0.4;
+  font-size: 11px;
+  border-radius: 3px;
+  padding: 0 3px;
+  cursor: pointer;
+}
+
+.browser-tab-close:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--danger) 25%, transparent);
+}
+
+.browser-tab-new {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px 8px 0 0;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.browser-tab-new:hover {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-2));
+  color: var(--text-primary);
+}
+
+/* ── Downloads Panel ──────────────────────────────── */
+.browser-downloads {
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--surface-1);
+  max-height: 200px;
+  overflow: auto;
+}
+
+.browser-downloads-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-2);
+  border-radius: 10px 10px 0 0;
+  color: var(--text-primary);
+}
+
+.browser-download-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-default) 50%, transparent);
+}
+
+.browser-dl-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.browser-dl-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.browser-dl-name {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-dl-url {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-dl-state {
+  flex-shrink: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* ── History rows on home ─────────────────────────── */
+.browser-history-row {
+  padding: 6px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-default) 40%, transparent);
+}
+
+.browser-history-row:last-child {
+  border-bottom: none;
+}
+
+.browser-search-result-row {
+  padding: .75rem;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.browser-empty-state {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  padding: 6px 0;
+}
+
 .browser-note {
   font-size: var(--text-xs);
   color: var(--text-tertiary);

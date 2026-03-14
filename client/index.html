@@ -1332,29 +1332,37 @@
   <!-- ===== BROWSER TAB ===== -->
   <div class="tab-content" id="tab-browser">
     <div class="browser-shell">
+      <!-- Tab Strip -->
+      <div class="browser-tab-strip">
+        <div class="browser-tabs" id="browserTabs"></div>
+        <button class="browser-tab-new" onclick="browserNewTab()" title="New Tab">+</button>
+      </div>
+
+      <!-- Navigation Toolbar -->
       <div class="browser-toolbar">
-        <button class="btn bg text-xs-c" onclick="openBrowserHome()">⌂</button>
-        <button class="btn bg text-xs-c" onclick="browserGoBack()">←</button>
-        <button class="btn bg text-xs-c" onclick="browserGoForward()">→</button>
-        <button class="btn bg text-xs-c" onclick="browserReload()">⟳</button>
-        <input id="browserUrlInput" class="browser-url-input" type="text" value="https://neko-core.com" placeholder="https://..." onkeydown="if(event.key==='Enter')navigateBrowserToInput()">
-        <button class="btn bp text-xs-c" onclick="navigateBrowserToInput()">Go</button>
-        <button class="btn bg text-xs-c" onclick="openBrowserExternal()">Open External</button>
+        <button class="btn bg text-xs-c" onclick="browserGoBack()" title="Back">←</button>
+        <button class="btn bg text-xs-c" onclick="browserGoForward()" title="Forward">→</button>
+        <button class="btn bg text-xs-c" onclick="browserReload()" title="Reload">⟳</button>
+        <button class="btn bg text-xs-c" onclick="browserGoHome()" title="Home">⌂</button>
+        <input id="browserUrlInput" class="browser-url-input" type="text" placeholder="Search or enter URL..." onkeydown="if(event.key==='Enter')browserNavigateFromInput()">
+        <button class="btn bp text-xs-c" onclick="browserNavigateFromInput()">Go</button>
+        <button class="btn bg text-xs-c" id="browserBookmarkBtn" onclick="browserToggleBookmark()" title="Bookmark">☆</button>
+        <button class="btn bg text-xs-c" onclick="browserToggleDownloads()" title="Downloads">⬇</button>
+        <button class="btn bg text-xs-c" onclick="browserOpenExternal()" title="Open in external browser">↗</button>
       </div>
 
+      <!-- Search Bar -->
       <div class="browser-search-bar">
-        <input id="browserSearchQuery" class="browser-search-input" type="text" placeholder="Search the web from NekoCore Browser..." onkeydown="if(event.key==='Enter')executeBrowserSearch()">
-        <button class="btn bp text-xs-c" onclick="executeBrowserSearch()">Search Web</button>
-        <button class="btn bg text-xs-c" onclick="showBrowserResultsView()">Show Results</button>
-        <button class="btn bg text-xs-c" onclick="showBrowserHomeView()">Search Home</button>
-        <button class="btn bg text-xs-c" onclick="showBrowserPageView()">Show Page</button>
+        <input id="browserSearchQuery" class="browser-search-input" type="text" placeholder="Search the web from NekoCore Browser..." onkeydown="if(event.key==='Enter')browserExecuteSearch()">
+        <button class="btn bp text-xs-c" onclick="browserExecuteSearch()">Search Web</button>
       </div>
 
+      <!-- Home Page -->
       <div class="browser-home-wrap" id="browserHomeWrap">
         <div class="browser-home-hero">
           <div class="browser-home-kicker">NekoCore Browser</div>
           <div class="browser-home-title">Search from your Neko workspace</div>
-          <div class="browser-home-sub">Quickly search the web, then open results in this app browser.</div>
+          <div class="browser-home-sub">Multi-tab browsing with search, bookmarks, and history.</div>
         </div>
         <div class="browser-home-grid">
           <section class="browser-home-card">
@@ -1365,24 +1373,43 @@
             <div class="browser-home-card-title">Recent Searches</div>
             <div id="browserRecentSearchChips" class="browser-chip-list"></div>
           </section>
+          <section class="browser-home-card">
+            <div class="browser-home-card-title">Bookmarks</div>
+            <div id="browserBookmarksList" class="browser-chip-list"></div>
+          </section>
+          <section class="browser-home-card">
+            <div class="browser-home-card-title">Recent History</div>
+            <div id="browserHistoryList"></div>
+          </section>
         </div>
       </div>
 
+      <!-- Search Results -->
       <div class="browser-search-results hidden" id="browserSearchResultsWrap">
         <div class="browser-results-title">
           <span>Search Results</span>
           <div class="browser-results-actions">
-            <button class="btn bg text-xs-c" id="browserResultsToggleBtn" onclick="toggleBrowserResultsMinimized()">Minimize</button>
-            <button class="btn bg text-xs-c" onclick="hideBrowserResults()">Close</button>
+            <button class="btn bg text-xs-c" onclick="_browserShowPageView()">Back to Page</button>
+            <button class="btn bg text-xs-c" onclick="_browserShowHomeView()">Home</button>
           </div>
         </div>
         <div id="browserSearchResultsList" class="file-browser" style="max-height:100%;overflow:auto"></div>
       </div>
 
-      <div class="browser-frame-wrap" id="browserFrameWrap">
-        <iframe id="browserFrame" class="browser-frame" src="https://neko-core.com" loading="lazy" referrerpolicy="no-referrer"></iframe>
+      <!-- Tab Frames Container (iframes live here) -->
+      <div class="browser-frames hidden" id="browserFrames"></div>
+
+      <!-- Downloads Panel -->
+      <div class="browser-downloads hidden" id="browserDownloadsPanel">
+        <div class="browser-downloads-header">
+          <span>Downloads</span>
+          <button class="btn bg text-xs-c" onclick="browserToggleDownloads()">✕</button>
+        </div>
+        <div id="browserDownloadsList"></div>
       </div>
-      <div class="browser-note">Some websites block embedding via iframe. Use "Open External" for those sites.</div>
+
+      <!-- Status -->
+      <div class="browser-note">Some websites block embedding. Use ↗ to open in your system browser.</div>
     </div>
   </div>
 
@@ -1744,6 +1771,7 @@
 <script src="js/dream-gallery.js"></script>
 <script src="js/diary.js"></script>
 <script src="js/document-digest.js"></script>
+<script src="js/browser-app.js"></script>
 
 <!-- Star Field Animation -->
 <script>

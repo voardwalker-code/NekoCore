@@ -16,6 +16,9 @@ const tabModel         = require('./tab-model');
 const navigation       = require('./navigation');
 const lifecycle        = require('./lifecycle');
 const downloadManager  = require('./download-manager');
+const historyStore     = require('./history-store');
+const bookmarkStore    = require('./bookmark-store');
+const sessionStore     = require('./session-store');
 
 module.exports = {
   name: MODULE_NAME,
@@ -25,4 +28,7 @@ module.exports = {
   navigation,
   lifecycle,
   downloadManager,
+  historyStore,
+  bookmarkStore,
+  sessionStore,
 };

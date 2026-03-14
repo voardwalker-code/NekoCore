@@ -6,6 +6,15 @@ Built with MA (Memory Architect v1).
 ## [Unreleased]
 
 ### Added
+- **NekoCore Browser Phase NB-3 — Browser Core MVP (complete)**
+  - `browser-host/history-store.js` — server-side browsing history persistence (500 max entries, search, clear)
+  - `browser-host/bookmark-store.js` — server-side bookmarks with deduplication by URL, add/remove/check
+  - `browser-host/session-store.js` — crash-safe tab session save/load/clear for session restore
+  - `server/routes/browser-routes.js` — full rewrite with 22+ endpoints: history CRUD, bookmarks CRUD, session save/restore, update-tab state
+  - `client/js/browser-app.js` — standalone multi-tab browser client (~420 lines): tab strip management, per-tab iframes, address bar navigation, back/forward/reload/home, URL normalization (auto-https, search-query fallback), bookmark toggle, downloads panel, session auto-save/restore, web search integration, compatibility shims for legacy app.js
+  - Multi-tab HTML structure with tab strip, frames container, downloads panel, bookmarks/history home cards
+  - CSS for tab strip, tab buttons (active/hover states), tab close/new, downloads panel with rows, history rows, empty states, frames container
+  - Old browser code extracted from app.js to standalone module
 - **NekoCore Browser Phase NB-2 — Technical Spike Implementation (complete)**
   - `browser-host/event-bus.js` — lightweight pub/sub with automatic timestamping and wildcard relay
   - `browser-host/tab-model.js` — tab create/switch/close with deterministic active-tab fallback (next → prev → null)

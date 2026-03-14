@@ -37,7 +37,18 @@ Progress update:
 12. NB-1 technical spike-prep gate is Done.
 13. NB-2 Technical Spike Implementation phase is now active.
 14. Completed NB-2-1 (browser-host/ module scaffold created; entry point verified).
-15. Next active slice is NB-2-2 (navigation POC).
+15. Completed NB-2-2 through NB-2-6 (event-bus, tab-model, navigation, lifecycle, download-manager, browser-routes wired, 23/23 acceptance tests pass).
+16. NB-2 Technical Spike is Done.
+17. NB-3 Browser Core MVP phase started and completed in a single pass:
+    - Server: history-store, bookmark-store, session-store (JSON file persistence)
+    - Routes: browser-routes.js rewritten with 22+ endpoints (history, bookmarks, session, update-tab)
+    - Client: browser-app.js — full multi-tab browser (tab strip, per-tab iframes, address bar navigation, bookmark toggle, downloads panel, session restore, web search)
+    - HTML: browser tab replaced with multi-tab structure (tab strip, frames container, downloads panel, bookmarks/history cards)
+    - CSS: tab strip, tab buttons, downloads panel, history rows, empty states, frames container
+    - Old inline browser code (~280 lines) extracted from app.js to standalone browser-app.js
+    - Browser init hook wired into applyWindowActivationEffects
+    - Require path fix for browser-routes → browser-host
+    - 23/23 spike acceptance tests still pass
 
 ## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
 

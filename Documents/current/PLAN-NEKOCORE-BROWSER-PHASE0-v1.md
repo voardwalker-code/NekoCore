@@ -96,6 +96,23 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 
 ---
 
+### Phase NB-3: Browser Core MVP
+
+**Goal:** Deliver a fully functional multi-tab browser inside the NekoCore desktop shell with address bar, navigation, history persistence, bookmarks, downloads panel, session restore, and web search — replacing the old single-iframe browser.
+**Status:** `Done`
+**Depends on:** Phase NB-2
+
+#### Slice Checklist
+
+- [x] NB-3-0: Server persistence stores — history-store, bookmark-store, session-store (JSON file persistence in server/data/)
+- [x] NB-3-1: Browser routes rewrite — 22+ HTTP endpoints for history CRUD, bookmarks CRUD, session save/restore, update-tab state
+- [x] NB-3-2: Client browser-app.js — standalone multi-tab browser client (tab management, per-tab iframes, URL normalization, navigation, bookmarks, downloads, session auto-save/restore, web search integration)
+- [x] NB-3-3: HTML template replacement — multi-tab structure with tab strip, frames container, downloads panel, bookmarks/history home cards
+- [x] NB-3-4: CSS — tab strip, tab buttons, downloads panel, history rows, frames container, empty states
+- [x] NB-3-5: Code extraction — old browser code removed from app.js, standalone browser-app.js loaded via script tag, compatibility shims, init hook in applyWindowActivationEffects
+
+---
+
 ## 6. Slice Definitions
 
 ### NB-0-0 — Phase 0 Plan Initialization
