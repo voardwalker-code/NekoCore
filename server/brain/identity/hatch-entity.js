@@ -148,7 +148,7 @@ class HatchEntity {
     console.log(`  ✓ Generated ${chapters.length} life chapters`);
 
     // Phase 3: Generate CORE LIFE MEMORIES (NEW SYSTEM - replaces 3000 memory generation)
-    const coreLifeGenerator = require('./core-life-generator');
+    const coreLifeGenerator = require('../core-life-generator');
     const genResult = await coreLifeGenerator.generateCoreLifeMemories(this.entityId, identity, callLLM);
     const memCount = genResult.count;
     const generatedMemories = genResult.memories;
