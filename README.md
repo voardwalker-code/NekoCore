@@ -291,6 +291,13 @@ For OpenRouter:
 npm start
 ```
 
+**Windows users** — if `npm start` doesn't work, run the server directly:
+
+```powershell
+cd server
+node server.js
+```
+
 Then open `http://localhost:3000` in your browser.
 
 ---
