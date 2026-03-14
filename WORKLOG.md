@@ -28,7 +28,9 @@ Progress update:
 3. Completed NB-0-2 (dependency approval and third-party notices policy).
 4. Completed NB-0-3 (browser data boundary and persistence defaults policy).
 5. Completed NB-0-4 (contributor provenance policy, DCO selected).
-6. Next active slice is NB-0-5 (Phase 0 exit review).
+6. Completed NB-0-5 (Phase 0 exit review).
+7. Phase NB-1 is now active.
+8. Next active slice is NB-1-0 (technical spike acceptance checks).
 
 ## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
 

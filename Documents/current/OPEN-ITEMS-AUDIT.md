@@ -111,7 +111,8 @@ Current browser phase status:
 3. NB-0-2 completed (dependency approval and third-party notices policy).
 4. NB-0-3 completed (browser data policy and persistence defaults).
 5. NB-0-4 completed (contributor provenance policy decision: DCO).
-6. NB-0-5 is the next active slice (Phase 0 exit review).
+6. NB-0-5 completed (Phase 0 exit review).
+7. NB-1 is now active; NB-1-0 is current slice (spike acceptance checks).
 
 ---
 
@@ -121,7 +122,7 @@ Current browser phase status:
 1. **Keep docs current per slice** — update WORKLOG snapshot/ledger and source-of-truth docs in lockstep with landed changes
 2. **Check `entities/` folder** — verify no personal data is committed that shouldn't be public
 3. **Add and publish docs currently staged in `Documents/current/`** — source-of-truth docs now expected to travel with repo pushes
-4. **Complete NB-0-5** — run Phase 0 exit review and unlock NB-1 spike-prep gate
+4. **Complete NB-1-0** — define technical spike acceptance checks for WebView2 host path
 
 ### Before any public release
 1. Repo hygiene sweep (secrets scan, gitignore, absolute paths, TODO/FIXME)

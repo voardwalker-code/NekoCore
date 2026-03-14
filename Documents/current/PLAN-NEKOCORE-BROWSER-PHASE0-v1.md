@@ -50,7 +50,7 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 ### Phase NB-0: Governance and Compliance Baseline
 
 **Goal:** Lock browser scope, legal guardrails, and contribution policy before host implementation.
-**Status:** `In Progress`
+**Status:** `Done`
 **Depends on:** none
 
 #### Slice Checklist
@@ -60,14 +60,14 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 - [x] NB-0-2: Dependency and third-party notices policy — define approval and release notice rules
 - [x] NB-0-3: Browser data policy — define history/cookies/extraction persistence defaults
 - [x] NB-0-4: Contributor provenance policy — select DCO or CLA and document enforcement path
-- [ ] NB-0-5: Phase 0 exit review — mark baseline approved and unlock Phase 1 technical spike
+- [x] NB-0-5: Phase 0 exit review — mark baseline approved and unlock Phase 1 technical spike
 
 ---
 
 ### Phase NB-1: Technical Spike Preparation Gate
 
 **Goal:** Prepare handoff criteria for WebView2 spike work.
-**Status:** `Planned`
+**Status:** `In Progress`
 **Depends on:** Phase NB-0
 
 #### Slice Checklist
@@ -238,14 +238,15 @@ Files changed (expected):
 | 2026-03-14 | NB-0-2 | Done | Dependency approval checklist and third-party notices policy documented |
 | 2026-03-14 | NB-0-3 | Done | Browser data boundary, persistence defaults, and consent model documented |
 | 2026-03-14 | NB-0-4 | Done | Contributor provenance policy selected as DCO and documented |
+| 2026-03-14 | NB-0-5 | Done | Phase 0 exit review completed; NB-1 unlocked and marked active |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
-- **Current phase:** NB-0 Governance and Compliance Baseline
-- **Current slice:** NB-0-5 — status: not started
-- **Last completed slice:** NB-0-4
-- **In-progress item:** none
+- **Current phase:** NB-1 Technical Spike Preparation Gate
+- **Current slice:** NB-1-0 — status: in progress
+- **Last completed slice:** NB-0-5
+- **In-progress item:** draft spike acceptance criteria and handoff checklist
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** run Phase 0 exit checklist and open NB-1 spike-prep gate
+- **Next action on resume:** finalize NB-1-0 acceptance checks and record in release docs

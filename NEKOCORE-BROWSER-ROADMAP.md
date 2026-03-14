@@ -216,6 +216,10 @@ Exit criteria:
 Estimated effort:
 1 to 3 days.
 
+Status update:
+1. Phase 0 baseline is complete (NB-0-0 through NB-0-5).
+2. Active work has moved to Phase 1 spike-prep criteria.
+
 ### Phase 1 - Technical Spike and Repo Layout
 
 Goal:

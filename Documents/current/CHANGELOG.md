@@ -9,6 +9,11 @@ Format: most recent first within each version block.
 
 ### 2026-03-14
 
+#### NekoCore Browser Phase 0 exit review completed (NB-0-5)
+- `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`: marked NB-0 phase done and unlocked NB-1.
+- Active slice moved to NB-1-0 (technical spike acceptance checks).
+- `Documents/current/OPEN-ITEMS-AUDIT.md` and `WORKLOG.md`: synced active phase state to NB-1.
+
 #### NekoCore Browser contributor provenance policy (NB-0-4)
 - `NEKOCORE-BROWSER-ROADMAP.md`: contributor provenance decision finalized to DCO.
 - Added DCO sign-off requirement and enforcement path notes.
