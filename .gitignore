@@ -13,7 +13,7 @@ server/data/sessions.json
 server/data/checkouts.json
 
 # Entity runtime data — generated when entities are created
-entities/
+/entities/
 
 # Root system memory — generated at runtime
 memories/
