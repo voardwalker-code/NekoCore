@@ -108,6 +108,60 @@ Acceptance rule:
 
 ---
 
+## Browser Bridge/API Contract Baseline (NB-1-2)
+
+This contract defines the initial browser bridge and API payload list for spike implementation.
+
+### Read endpoints
+
+1. `GET /api/browser/session`
+  - Response shape:
+  - `{ ok, requestId, session: { hostState, activeTabId, tabCount, updatedAt } }`
+2. `GET /api/browser/tabs`
+  - Response shape:
+  - `{ ok, requestId, tabs: [{ tabId, index, url, title, loading, canGoBack, canGoForward, lastEventAt }] }`
+3. `GET /api/browser/downloads`
+  - Response shape:
+  - `{ ok, requestId, downloads: [{ downloadId, state, url, suggestedFilename, bytesReceived, totalBytes, startedAt, endedAt? }] }`
+
+### Command endpoints
+
+1. `POST /api/browser/command/navigate`
+  - Request shape: `{ tabId, url, source }`
+2. `POST /api/browser/command/tab-create`
+  - Request shape: `{ openerTabId?, makeActive }`
+3. `POST /api/browser/command/tab-activate`
+  - Request shape: `{ tabId }`
+4. `POST /api/browser/command/tab-close`
+  - Request shape: `{ tabId }`
+5. `POST /api/browser/command/reload`
+  - Request shape: `{ tabId, hard }`
+
+### Event channels
+
+1. `browser.host.lifecycle`
+  - Event shape: `{ state, timestamp, reason? }`
+2. `browser.tab.lifecycle`
+  - Event shape: `{ tabId, state, timestamp, url?, title? }`
+3. `browser.navigation.state`
+  - Event shape: `{ tabId, url, loading, canGoBack, canGoForward, timestamp }`
+4. `browser.download.state`
+  - Event shape: `{ downloadId, state, timestamp, url?, suggestedFilename?, bytesReceived?, totalBytes? }`
+
+### Error envelopes
+
+1. API failure shape:
+  - `{ ok: false, code, message, requestId, retryable }`
+2. Bridge/event failure shape:
+  - `{ scope, code, message, requestId?, timestamp }`
+
+Contract rules:
+1. All browser command endpoints must return a request-scoped id for traceability.
+2. Event payloads must be additive-safe; new optional fields may be added without removing existing required fields.
+3. Unknown command or state values must return structured error envelopes, not plain strings.
+
+---
+
 ## Memory Schema (version 1)
 
 File: `server/contracts/memory-schema.js`

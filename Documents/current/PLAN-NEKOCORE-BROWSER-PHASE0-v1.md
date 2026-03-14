@@ -67,14 +67,14 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 ### Phase NB-1: Technical Spike Preparation Gate
 
 **Goal:** Prepare handoff criteria for WebView2 spike work.
-**Status:** `In Progress`
+**Status:** `Done`
 **Depends on:** Phase NB-0
 
 #### Slice Checklist
 
 - [x] NB-1-0: Define spike acceptance checks (navigation, tab model, lifecycle, download event visibility)
 - [x] NB-1-1: Define repo module boundaries for host/shared/contracts/routes
-- [ ] NB-1-2: Define initial bridge/API contract list for browser session and tab state
+- [x] NB-1-2: Define initial bridge/API contract list for browser session and tab state
 
 ---
 
@@ -307,6 +307,52 @@ Files changed (expected):
 
 ---
 
+### NB-1-2 — Bridge/API Contract List Baseline
+
+**Start criteria:** NB-1-1 done.
+
+**Work:**
+1. Define initial HTTP bridge endpoints for browser session and tab state.
+2. Define command payload contracts for navigate, tab create/switch/close, and refresh actions.
+3. Define event contracts for host lifecycle, tab lifecycle, navigation state, and download state.
+4. Define minimum error envelope contract for bridge/API failures.
+
+**Boundary markers:** `[BOUNDARY_OK]` `[CONTRACT_ENFORCED]`
+
+**Initial contract list (NB-1 baseline):**
+
+1. Read endpoints
+	- `GET /api/browser/session`: returns active session summary (host status, active tab id, tab count).
+	- `GET /api/browser/tabs`: returns ordered tab array with per-tab state.
+	- `GET /api/browser/downloads`: returns current download records and terminal states.
+2. Command endpoints
+	- `POST /api/browser/command/navigate`: body `{ tabId, url, source }`.
+	- `POST /api/browser/command/tab-create`: body `{ openerTabId?, makeActive }`.
+	- `POST /api/browser/command/tab-activate`: body `{ tabId }`.
+	- `POST /api/browser/command/tab-close`: body `{ tabId }`.
+	- `POST /api/browser/command/reload`: body `{ tabId, hard }`.
+3. Event channels
+	- `browser.host.lifecycle`: `{ state, timestamp, reason? }`.
+	- `browser.tab.lifecycle`: `{ tabId, state, timestamp, url?, title? }`.
+	- `browser.navigation.state`: `{ tabId, url, loading, canGoBack, canGoForward, timestamp }`.
+	- `browser.download.state`: `{ downloadId, state, timestamp, url?, suggestedFilename?, bytesReceived?, totalBytes? }`.
+4. Error envelope
+	- HTTP/API errors return `{ ok: false, code, message, requestId, retryable }`.
+	- Bridge event errors include `{ scope, code, message, requestId?, timestamp }`.
+
+**End criteria:**
+- Initial bridge/API contract list documented in source-of-truth docs.
+- Core request, state, event, and error shapes are explicit for NB-2 implementation.
+- NB-1-2 marked complete.
+
+Files changed (expected):
+- `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`
+- `NEKOCORE-BROWSER-ROADMAP.md`
+- `Documents/current/CONTRACTS-AND-SCHEMAS.md`
+- `Documents/current/RELEASE-NOTES.md`
+
+---
+
 ## 7. Test Plan
 
 | Test File | Slice | What It Verifies |
@@ -337,14 +383,15 @@ Files changed (expected):
 | 2026-03-14 | NB-0-5 | Done | Phase 0 exit review completed; NB-1 unlocked and marked active |
 | 2026-03-14 | NB-1-0 | Done | Spike acceptance checks defined for navigation, tabs, lifecycle, and download visibility |
 | 2026-03-14 | NB-1-1 | Done | Repo module boundary map defined for browser host/shared/contracts/routes separation |
+| 2026-03-14 | NB-1-2 | Done | Initial bridge/API contract list defined for session, tabs, commands, events, and error envelopes |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
 - **Current phase:** NB-1 Technical Spike Preparation Gate
-- **Current slice:** NB-1-2 — status: in progress
-- **Last completed slice:** NB-1-1
-- **In-progress item:** define initial bridge/API contract list for browser session and tab state
+- **Current slice:** none — NB-1 slice set complete
+- **Last completed slice:** NB-1-2
+- **In-progress item:** none
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** draft bridge contracts for tab/session/download/lifecycle API payloads
+- **Next action on resume:** run NB-1 exit handoff and open first NB-2 implementation slice

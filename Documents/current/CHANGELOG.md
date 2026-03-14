@@ -9,6 +9,12 @@ Format: most recent first within each version block.
 
 ### 2026-03-14
 
+#### NekoCore Browser bridge/API contract baseline defined (NB-1-2)
+- `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`: marked NB-1-2 complete and closed NB-1 slice set.
+- `Documents/current/CONTRACTS-AND-SCHEMAS.md`: added Browser Bridge/API Contract Baseline with endpoint, event, and error payload shapes.
+- `NEKOCORE-BROWSER-ROADMAP.md` and `Documents/current/RELEASE-NOTES.md`: synced NB-1-2 baseline decisions.
+- `WORKLOG.md` and `Documents/current/OPEN-ITEMS-AUDIT.md`: marked NB-1 technical spike-prep gate complete.
+
 #### NekoCore Browser repo module boundary map defined (NB-1-1)
 - `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`: marked NB-1-1 complete and moved active slice to NB-1-2.
 - `NEKOCORE-BROWSER-ROADMAP.md`: added NB-1-1 boundary ownership baseline.

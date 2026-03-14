@@ -49,6 +49,13 @@ The browser strategy now has a documented compliance-first roadmap based on embe
 2. `server/server.js` is reaffirmed as composition-only for browser integration wiring.
 3. Phase NB-1 remains active with NB-1-2 as the next slice (bridge/API contract list).
 
+### Browser Bridge/API Contract Baseline (NB-1-2)
+1. Initial endpoint set is now defined for browser session, tab state, and download state reads.
+2. Initial command contracts are now defined for navigate, tab create/activate/close, and reload operations.
+3. Event channel contracts are now defined for host lifecycle, tab lifecycle, navigation state, and download state.
+4. Standard error envelope contracts are now defined for API and bridge/event failures.
+5. NB-1 technical spike-prep slices are now complete.
+
 ### Breaking Changes
 None. Existing entities continue to work. New features activate only when explicitly used.
 

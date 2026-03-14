@@ -259,6 +259,13 @@ NB-1-1 module boundary map (completed):
 5. `client/js/browser/**` owns browser shell UI state and interaction flow only.
 6. `server/server.js` remains composition-only and may only wire browser modules.
 
+NB-1-2 bridge/API contract baseline (completed):
+
+1. Initial read endpoints defined for browser session, tabs, and downloads.
+2. Initial command endpoints defined for navigate, tab create/activate/close, and reload.
+3. Initial event channels defined for host lifecycle, tab lifecycle, navigation state, and download state.
+4. Standard error envelope shape defined for API and bridge-level failures.
+
 Suggested repo target:
 
 1. `browser-host/` for native or host runtime code.
