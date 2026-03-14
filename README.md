@@ -26,6 +26,12 @@ Each entity operates in full isolation — separate memory stores, personality t
 
 > **Core conviction:** an entity should be shaped by what it has experienced, not only by what it was told on day one.
 
+## Why NekoCore? Why Open Source?
+
+> Right now, AI feels like the moment the wheel was invented. But instead of building cars, most people are still waiting for a bigger, better wheel. We have barely begun to explore what we can build with what already exists.
+>
+> NekoCore exists because I wanted to see what I could build with this new wheel. I open-sourced it because I want to see what you can do with more!
+
 ---
 
 ## Release Snapshot — v0.6.0
