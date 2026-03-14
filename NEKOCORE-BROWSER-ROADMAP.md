@@ -71,6 +71,43 @@ These rules must remain true in every phase.
 7. Require contributor provenance for submitted code.
    Recommended: DCO or CLA before broad external contribution ramps up.
 
+## Dependency Approval and Third-Party Notices Policy (NB-0-2 Completed)
+
+This policy applies to all browser-related additions.
+
+### Dependency approval checklist
+
+A browser dependency may be added only if all checks pass:
+
+1. License is compatible with MIT distribution and paid-project use.
+2. Package is actively maintained and has no unresolved critical advisories.
+3. The dependency is required for browser capability, not convenience-only duplication.
+4. Security and update path are documented before merge.
+5. Dependency is recorded in release notes and notices tracking.
+
+### Blocked dependency classes
+
+Do not approve:
+
+1. Packages primarily intended for bypassing paywalls, DRM, or site security controls.
+2. Packages with unknown or incompatible licensing terms.
+3. Unmaintained packages with unresolved critical vulnerabilities.
+
+### Notices and attribution requirements
+
+For every distributed browser build:
+
+1. Include third-party notice bundle with license names and source links.
+2. Include engine/runtime notice requirements (WebView2, CEF, Electron, or equivalent if used).
+3. Include browser-host dependency list and versions used in the build.
+4. Keep notice bundle aligned with the exact shipped artifact version.
+
+### Candidate engine notice mapping
+
+1. WebView2: include Microsoft WebView2 redistribution and runtime notice requirements where applicable.
+2. CEF: include Chromium/CEF notices and bundled third-party attributions.
+3. Electron: include Electron and Chromium/Node notice requirements for packaged releases.
+
 ## Core Product Modes
 
 NekoCore Browser should support two top-level modes over the same browser surface.

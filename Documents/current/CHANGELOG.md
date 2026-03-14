@@ -9,6 +9,13 @@ Format: most recent first within each version block.
 
 ### 2026-03-14
 
+#### NekoCore Browser dependency and notices policy (NB-0-2)
+- `NEKOCORE-BROWSER-ROADMAP.md`: added dependency approval checklist and third-party notices policy.
+- Added blocked dependency classes and release attribution requirements.
+- Added engine notice mapping for WebView2/CEF/Electron-style runtime choices.
+- `Documents/current/CONTRACTS-AND-SCHEMAS.md`: added Browser Dependency Governance Contract.
+- `Documents/current/RELEASE-NOTES.md` and `Documents/current/OPEN-ITEMS-AUDIT.md`: synced NB-0-2 completion and next active slice.
+
 #### NekoCore Browser scope lock and non-goals (NB-0-1)
 - `NEKOCORE-BROWSER-ROADMAP.md`: status moved to `In Progress` and scope-lock section added.
 - Scope now explicitly binds implementation to app-on-engine direction.

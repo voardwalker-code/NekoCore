@@ -1,6 +1,6 @@
 # REM System — Contracts and Schemas
 
-Last updated: 2026-03-13
+Last updated: 2026-03-14
 
 Covers: memory schema governance, contributor contracts, worker output contract, turn signals, and how contracts enforce boundaries.
 
@@ -14,6 +14,29 @@ REM System is a multi-LLM pipeline with many independently-running modules writi
 - Memory records written in one format can't be read back correctly after a schema change
 
 Contracts enforce shapes at boundaries and let refactors happen safely inside a module as long as the boundary shape is preserved.
+
+---
+
+## Browser Dependency Governance Contract (NB-0-2)
+
+NekoCore Browser dependencies must pass this contract before merge.
+
+Required checks:
+1. License compatibility with MIT distribution and paid-project downstream use.
+2. Security review: no unresolved critical advisories.
+3. Maintenance review: active release cadence or clearly justified pin.
+4. Purpose review: dependency has clear browser-host requirement.
+5. Notices readiness: attribution requirements identified before release.
+
+Disallowed classes:
+1. Bypass-oriented tooling (DRM/paywall/security-header circumvention intent).
+2. Unknown, incompatible, or non-redistributable license terms.
+3. Unmaintained critical-risk dependencies.
+
+Release contract:
+1. Browser distributions must ship third-party notices for engine/runtime and bundled dependencies.
+2. Notices must map to exact released versions.
+3. Dependency additions must be reflected in release notes.
 
 ---
 

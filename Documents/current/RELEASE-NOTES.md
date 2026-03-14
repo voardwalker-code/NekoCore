@@ -27,6 +27,12 @@ The browser strategy now has a documented compliance-first roadmap based on embe
 2. No bypass-oriented features should be implemented (DRM, paywall, CSP/frame restriction circumvention).
 3. AI extraction and persistence should remain explicit and user-directed.
 
+### Browser Dependency and Notices Policy (NB-0-2)
+1. Browser dependencies now follow an approval checklist: license compatibility, maintenance/security health, required purpose, and notices readiness.
+2. Third-party notice bundles are required for distributed browser artifacts.
+3. Engine/runtime notice requirements must be included when using WebView2, CEF, Electron, or equivalent embedded-browser runtime.
+4. Dependency additions for browser-host work must be reflected in release documentation.
+
 ### Breaking Changes
 None. Existing entities continue to work. New features activate only when explicitly used.
 

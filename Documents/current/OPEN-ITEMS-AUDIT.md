@@ -103,12 +103,23 @@ These are in the roadmap but have no implementation yet. Not blocking anything �
 
 ---
 
+## 3A. Active NekoCore Browser Phase Status
+
+Current browser phase status:
+1. NB-0-0 completed (phase plan initialization).
+2. NB-0-1 completed (scope lock and non-goals).
+3. NB-0-2 completed (dependency approval and third-party notices policy).
+4. NB-0-3 is the next active slice (browser data policy).
+
+---
+
 ## 4. Summary — What Actually Needs Doing
 
 ### Immediate (housekeeping, no code)
 1. **Keep docs current per slice** — update WORKLOG snapshot/ledger and source-of-truth docs in lockstep with landed changes
 2. **Check `entities/` folder** — verify no personal data is committed that shouldn't be public
 3. **Add and publish docs currently staged in `Documents/current/`** — source-of-truth docs now expected to travel with repo pushes
+4. **Complete NB-0-3** — define browser-data versus REM-memory boundary and persistence defaults
 
 ### Before any public release
 1. Repo hygiene sweep (secrets scan, gitignore, absolute paths, TODO/FIXME)
