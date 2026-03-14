@@ -56,7 +56,7 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 #### Slice Checklist
 
 - [x] NB-0-0: Convert roadmap intent into executable phase plan — create this plan with checklist and stop/resume state
-- [ ] NB-0-1: Scope lock and non-goals — confirm engine-based browser direction and prohibited bypass features
+- [x] NB-0-1: Scope lock and non-goals — confirm engine-based browser direction and prohibited bypass features
 - [ ] NB-0-2: Dependency and third-party notices policy — define approval and release notice rules
 - [ ] NB-0-3: Browser data policy — define history/cookies/extraction persistence defaults
 - [ ] NB-0-4: Contributor provenance policy — select DCO or CLA and document enforcement path
@@ -234,14 +234,15 @@ Files changed (expected):
 | Date | Slice | Outcome | Notes |
 |------|-------|---------|-------|
 | 2026-03-14 | NB-0-0 | Done | Phase 0 executable plan created and set in progress |
+| 2026-03-14 | NB-0-1 | Done | Scope lock and non-goals documented in roadmap and source-of-truth docs |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
 - **Current phase:** NB-0 Governance and Compliance Baseline
-- **Current slice:** NB-0-1 — status: not started
-- **Last completed slice:** NB-0-0
+- **Current slice:** NB-0-2 — status: not started
+- **Last completed slice:** NB-0-1
 - **In-progress item:** none
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** finalize scope-lock and non-goals text for NB-0-1
+- **Next action on resume:** define dependency approval and third-party notices policy for NB-0-2

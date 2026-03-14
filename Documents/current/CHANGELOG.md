@@ -9,6 +9,12 @@ Format: most recent first within each version block.
 
 ### 2026-03-14
 
+#### NekoCore Browser scope lock and non-goals (NB-0-1)
+- `NEKOCORE-BROWSER-ROADMAP.md`: status moved to `In Progress` and scope-lock section added.
+- Scope now explicitly binds implementation to app-on-engine direction.
+- Out-of-scope rules made explicit: no custom engine work, no bypass-class features, no hidden persistence.
+- `Documents/current/VISION-AND-ROADMAP.md`: aligned to active scope-lock and non-goals statement.
+
 #### Interface-first shell update + browser UX pass (UI-Shell-2026-03-14)
 - `client/index.html`: start launcher and taskbar flows refined for easier discoverability; Users surface now includes direct logout action.
 - `client/js/app.js`: start menu category navigation, pinned-app behavior stability, and interaction race handling hardened.

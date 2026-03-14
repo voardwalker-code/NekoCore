@@ -22,6 +22,11 @@ Next action:
 1. Finalize scope lock and non-goals text in browser roadmap and source-of-truth docs.
 2. Complete dependency/notices policy and data-boundary policy before any browser-host implementation.
 
+Progress update:
+1. Completed NB-0-1 (scope lock and non-goals).
+2. Browser implementation direction is now explicitly locked to app-on-engine.
+3. Next active slice is NB-0-2 (dependency and third-party notices policy).
+
 ## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
 
 Status: `Planned`

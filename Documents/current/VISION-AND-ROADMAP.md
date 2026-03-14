@@ -11,6 +11,7 @@ This document consolidates the product direction and open-source release plan in
 Current execution note (2026-03-14):
 1. Near-term work is interface-first: make shell/app flows intuitive and reliable.
 2. Browser strategy follows `NEKOCORE-BROWSER-ROADMAP.md` (embedded-engine path with compliance guardrails).
+3. Browser scope lock is active: app-on-engine only, no bypass-class feature direction.
 
 Working phase statement:
 1. REM System (Recursive Echo Memory) is the core system we have now.
@@ -63,6 +64,17 @@ Therefore, current execution order is:
 1. Fix interface and interaction quality.
 2. Stabilize OS-like app flows and runtime lifecycle behavior.
 3. Expand NekoCore into deeper entity-driven orchestration.
+
+### Browser scope lock for this phase
+
+NekoCore Browser is locked to:
+1. Embedded-engine browser application direction.
+2. NekoCore-owned policy, UX, and LLM tooling layers.
+
+Explicit non-goals:
+1. No custom rendering engine work in this phase.
+2. No bypass features (DRM/paywall/CSP/frame-header circumvention).
+3. No silent persistence of page content without user-directed intent.
 
 ### Current goal
 

@@ -1,6 +1,6 @@
 # NekoCore Browser Roadmap Draft
 
-Status: Planned
+Status: In Progress
 Last updated: 2026-03-14
 Owner: NekoCore core project
 
@@ -20,6 +20,28 @@ NekoCore Browser is a browser application built on top of an existing browser en
 It is not a new rendering engine.
 It is not a DRM or paywall bypass tool.
 It is not a system for defeating site security headers.
+
+## Scope Lock (NB-0-1 Completed)
+
+This scope lock is binding for NekoCore Browser work.
+
+In-scope:
+
+1. Build a browser application layer on top of an embedded browser engine.
+2. Keep NekoCore-owned UX, policy, and LLM workflow layers.
+3. Support Human and LLM modes over one browser surface.
+
+Out-of-scope:
+
+1. Building a custom rendering engine.
+2. Any feature designed to bypass DRM, paywalls, CSP, X-Frame-Options, or equivalent security controls.
+3. Hidden persistence of page content without explicit user intent.
+
+Enforcement:
+
+1. Features violating out-of-scope rules are rejected.
+2. Browser route/policy changes must preserve this scope lock.
+3. Future contributor docs must mirror this section.
 
 ## Recommended Foundation
 
