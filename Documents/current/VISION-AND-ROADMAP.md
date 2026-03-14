@@ -1,5 +1,7 @@
 # REM System — Vision and Roadmap
 
+Last updated: 2026-03-14
+
 ---
 
 ## What Is This File
@@ -10,11 +12,17 @@ Current execution note (2026-03-14):
 1. Near-term work is interface-first: make shell/app flows intuitive and reliable.
 2. Browser strategy follows `NEKOCORE-BROWSER-ROADMAP.md` (embedded-engine path with compliance guardrails).
 
+Working phase statement:
+1. REM System (Recursive Echo Memory) is the core system we have now.
+2. The active phase is NekoCore: building the OS environment layer on top of REM.
+3. Interface quality is a prerequisite milestone, not optional polish. We identified that UX friction was slowing everything down and must be solved before the next phase.
+4. NekoCore OS is planned as a hybrid Human/LLM environment, with REM at the core.
+
 ---
 
-## Core Vision — Agent Echo
+## Core Vision — REM to NekoCore to AgentEcho
 
-### The Three-Phase Origin
+### Phase Progression
 
 **Phase 1: Hubslie**
 Proved that mixed human + LLM group-chat interaction can feel collaborative. A frontman-style orchestrator coordinating multiple agents for a single user goal was validated. Missing: deeper reasoning logic, reliable specialization and continuity at scale.
@@ -27,6 +35,66 @@ The Evolution Target:
 - **Persistent memory + personality** — entities carry who they are across sessions
 - **Orchestrated specialization** — task routing to the right entity for the job
 - **Task execution + companionship** — both function and relationship, in one coherent system
+
+**Phase 4: NekoCore OS Environment (current active phase)**
+The immediate build target:
+- **OS environment on top of REM** — NekoCore uses REM as its cognitive foundation
+- **Interface-first execution** — make every core flow intuitive, discoverable, and reliable
+- **Entity-centered operating model** — entity management and runtime orchestration become first-class OS capabilities
+
+**Phase 5: AgentEcho Evolution (target)**
+Where NekoCore grows next:
+- Start small, as Hubslie did, then scale toward a full AgentEcho orchestration model
+- Move from proof-of-concept entity management into workforce-style entity orchestration
+- Preserve Human + LLM hybrid operation while increasing autonomous coordination capability
+
+---
+
+## Current NekoCore Phase (Execution Focus)
+
+### Why interface work is first
+
+We identified a hard blocker:
+1. The interface was holding system capability back.
+2. Users could not reliably discover or use core features quickly.
+3. Without intuitive UX, expanding orchestration and entity workflows would create complexity debt.
+
+Therefore, current execution order is:
+1. Fix interface and interaction quality.
+2. Stabilize OS-like app flows and runtime lifecycle behavior.
+3. Expand NekoCore into deeper entity-driven orchestration.
+
+### Current goal
+
+Create a NekoCore OS environment that uses REM System to operate more efficiently.
+
+This means:
+1. Human users can operate in a clear desktop-style app shell.
+2. LLM entity cognition is persistent and context-aware through REM.
+3. The OS layer can manage entity lifecycle and system organization with lower friction.
+
+### Entity at the core of NekoCore OS
+
+Planned core behavior for the central entity:
+1. Track what exists in the system and where it lives.
+2. Understand how components are used.
+3. Audit and report system state.
+4. Create, edit, and delete entities.
+5. Act as the operational bridge between human workflows and LLM workflows.
+
+Note on current implementation status:
+1. Current entity creation and management is a proof of concept for this end goal.
+2. Capability will expand in phases as interface and runtime stability milestones are completed.
+
+### Single-Entity, Multi-LLM core
+
+NekoCore currently runs a 4-part multi-LLM AI stack as one entity pipeline:
+1. Subconscious (1A)
+2. Dream-Intuition (1D)
+3. Conscious (1C)
+4. Final Orchestrator
+
+This is treated as one cohesive entity mind, not four separate chatbots.
 
 ---
 
