@@ -9,6 +9,11 @@ Format: most recent first within each version block.
 
 ### 2026-03-14
 
+#### NekoCore Browser NB-1 exit review and NB-2 spike phase opened (NB-2-0)
+- `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`: marked NB-1 Done; added Phase NB-2 with slices NB-2-0 through NB-2-6.
+- `NEKOCORE-BROWSER-ROADMAP.md`: synced Phase 1 exit and NB-2 spike slice list.
+- `WORKLOG.md` and `Documents/current/OPEN-ITEMS-AUDIT.md`: advanced active phase to NB-2 and set NB-2-1 as next action.
+
 #### NekoCore Browser bridge/API contract baseline defined (NB-1-2)
 - `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`: marked NB-1-2 complete and closed NB-1 slice set.
 - `Documents/current/CONTRACTS-AND-SCHEMAS.md`: added Browser Bridge/API Contract Baseline with endpoint, event, and error payload shapes.

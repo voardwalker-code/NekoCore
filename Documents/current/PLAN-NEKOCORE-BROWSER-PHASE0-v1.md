@@ -78,6 +78,24 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 
 ---
 
+### Phase NB-2: Technical Spike Implementation
+
+**Goal:** Build a minimal working WebView2 browser host that passes NB-1-0 acceptance checks, validate repo boundaries, and produce the evidence package for NB-3 handoff.
+**Status:** `In Progress`
+**Depends on:** Phase NB-1
+
+#### Slice Checklist
+
+- [ ] NB-2-0: NB-1 exit review — close NB-1 gate, create NB-2 plan section, confirm readiness for spike code
+- [ ] NB-2-1: Host module scaffold — create `browser-host/` directory structure, package manifest, and entry point; verify build path runs
+- [ ] NB-2-2: Navigation POC — URL input, navigate, back/forward/refresh, navigation events on active tab
+- [ ] NB-2-3: Tab model POC — create/switch/close with deterministic active-tab logic and state sync
+- [ ] NB-2-4: Lifecycle and download events POC — host/tab lifecycle state transitions, download start/complete event emission
+- [ ] NB-2-5: Backend bridge wiring — `server/routes/browser-routes.js` wired to host module, session/tab/download read endpoints functional
+- [ ] NB-2-6: Spike acceptance run — execute NB-1-0 checklist against POC, produce pass/fail log, event trace, and residual-risk notes
+
+---
+
 ## 6. Slice Definitions
 
 ### NB-0-0 — Phase 0 Plan Initialization
@@ -353,6 +371,140 @@ Files changed (expected):
 
 ---
 
+### NB-2-0 — NB-1 Exit Review and NB-2 Gate Open
+
+**Start criteria:** NB-1-2 done and NB-1 slice set complete.
+
+**Work:**
+1. Confirm NB-1-0 through NB-1-2 are all complete and contracts are in source-of-truth docs.
+2. Mark NB-1 status `Done`.
+3. Add Phase NB-2 slice structure to plan with acceptance handoff criteria.
+4. Set NB-2-1 as the first active implementation slice.
+
+**Boundary markers:** `[BOUNDARY_OK]`
+
+**End criteria:**
+- NB-2-0 marked complete.
+- NB-2-1 becomes active.
+
+Files changed (expected):
+- `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`
+- `WORKLOG.md`
+- `Documents/current/OPEN-ITEMS-AUDIT.md`
+- `Documents/current/CHANGELOG.md`
+
+---
+
+### NB-2-1 — Host Module Scaffold
+
+**Start criteria:** NB-2-0 done.
+
+**Work:**
+1. Create `browser-host/` module root with `package.json` declaring correct name, version, and entry point.
+2. Create minimal entry point that can be required/imported without error.
+3. Verify build path runs on the target platform.
+
+**Boundary markers:** `[BOUNDARY_OK]` `[JS_OFFLOAD]`
+
+**End criteria:**
+- `browser-host/` directory exists with working scaffold.
+- Entry point loads without error.
+- NB-2-1 marked complete.
+
+---
+
+### NB-2-2 — Navigation POC
+
+**Start criteria:** NB-2-1 done.
+
+**Work:**
+1. Implement URL input → navigate on active tab.
+2. Implement back, forward, and refresh commands against active tab.
+3. Emit `browser.navigation.state` events with required fields.
+4. Produce explicit error state on navigation failure.
+
+**Boundary markers:** `[BOUNDARY_OK]` `[CONTRACT_ENFORCED]`
+
+**End criteria:**
+- Navigation acceptance checks from NB-1-0 pass for this group.
+- NB-2-2 marked complete.
+
+---
+
+### NB-2-3 — Tab Model POC
+
+**Start criteria:** NB-2-2 done.
+
+**Work:**
+1. Implement tab create with unique id and deterministic active-tab set.
+2. Implement tab switch that updates address/title/loading state.
+3. Implement tab close with deterministic active-tab fallback (next → previous → none).
+4. Emit `browser.tab.lifecycle` events.
+
+**Boundary markers:** `[BOUNDARY_OK]` `[CONTRACT_ENFORCED]`
+
+**End criteria:**
+- Tab model acceptance checks from NB-1-0 pass for this group.
+- NB-2-3 marked complete.
+
+---
+
+### NB-2-4 — Lifecycle and Download Events POC
+
+**Start criteria:** NB-2-3 done.
+
+**Work:**
+1. Emit `browser.host.lifecycle` states: `host_starting`, `host_ready`, `host_closing`.
+2. Emit `browser.tab.lifecycle` states for each tab transition.
+3. Emit explicit crash/error event path.
+4. Emit `browser.download.state` events with required fields on start/complete/failure.
+
+**Boundary markers:** `[BOUNDARY_OK]` `[CONTRACT_ENFORCED]`
+
+**End criteria:**
+- Lifecycle and download acceptance checks from NB-1-0 pass for this group.
+- NB-2-4 marked complete.
+
+---
+
+### NB-2-5 — Backend Bridge Wiring
+
+**Start criteria:** NB-2-4 done.
+
+**Work:**
+1. Create `server/routes/browser-routes.js` and register in `server/server.js`.
+2. Wire `GET /api/browser/session`, `GET /api/browser/tabs`, and `GET /api/browser/downloads` through to host state.
+3. Wire at least one command endpoint (`POST /api/browser/command/navigate`) end to end.
+
+**Boundary markers:** `[BOUNDARY_OK]` `[CONTRACT_ENFORCED]`
+
+**End criteria:**
+- Read endpoints return contract-compliant shapes.
+- Navigate command reaches the host and triggers navigation.
+- NB-2-5 marked complete.
+
+---
+
+### NB-2-6 — Spike Acceptance Run
+
+**Start criteria:** NB-2-5 done.
+
+**Work:**
+1. Run NB-1-0 acceptance checklist against latest POC build; record pass/fail per check.
+2. Capture event trace sample (one success run, one failure-path run).
+3. Write residual-risk note for any partial behavior accepted.
+4. Mark evidence package complete.
+
+**Boundary markers:** `[BOUNDARY_OK]`
+
+**End criteria:**
+- Acceptance report complete with all checks attempted.
+- Evidence package present and committed.
+- NB-2-6 marked complete.
+- NB-3 (Browser Core MVP) gate opened.
+
+---
+
 ## 7. Test Plan
 
 | Test File | Slice | What It Verifies |
@@ -384,14 +536,15 @@ Files changed (expected):
 | 2026-03-14 | NB-1-0 | Done | Spike acceptance checks defined for navigation, tabs, lifecycle, and download visibility |
 | 2026-03-14 | NB-1-1 | Done | Repo module boundary map defined for browser host/shared/contracts/routes separation |
 | 2026-03-14 | NB-1-2 | Done | Initial bridge/API contract list defined for session, tabs, commands, events, and error envelopes |
+| 2026-03-14 | NB-2-0 | Done | NB-1 exit review complete; Phase NB-2 spike defined with NB-2-1 through NB-2-6 slice structure |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
-- **Current phase:** NB-1 Technical Spike Preparation Gate
-- **Current slice:** none — NB-1 slice set complete
-- **Last completed slice:** NB-1-2
+- **Current phase:** NB-2 Technical Spike Implementation
+- **Current slice:** NB-2-1 — status: not started
+- **Last completed slice:** NB-2-0
 - **In-progress item:** none
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** run NB-1 exit handoff and open first NB-2 implementation slice
+- **Next action on resume:** create `browser-host/` module scaffold and verify entry point runs

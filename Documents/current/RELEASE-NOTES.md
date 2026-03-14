@@ -56,6 +56,11 @@ The browser strategy now has a documented compliance-first roadmap based on embe
 4. Standard error envelope contracts are now defined for API and bridge/event failures.
 5. NB-1 technical spike-prep slices are now complete.
 
+### NekoCore Browser NB-2 Technical Spike Phase Opened (NB-2-0)
+1. Phase NB-1 is closed (Done).
+2. Phase NB-2 Technical Spike Implementation is now active with six slices: host scaffold, navigation POC, tab model POC, lifecycle/download events POC, backend bridge wiring, and spike acceptance run.
+3. NB-2-1 (host module scaffold) is the first implementation slice.
+
 ### Breaking Changes
 None. Existing entities continue to work. New features activate only when explicitly used.
 

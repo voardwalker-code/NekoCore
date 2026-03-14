@@ -33,8 +33,10 @@ Progress update:
 8. Completed NB-1-0 (technical spike acceptance checks baseline).
 9. Completed NB-1-1 (repo module boundaries for host/shared/contracts/routes).
 10. Completed NB-1-2 (initial bridge/API contract list for browser session and tab state).
-11. NB-1 technical spike-prep gate is now complete.
-12. Next action is NB-1 exit handoff and NB-2 first implementation slice definition.
+11. Completed NB-2-0 (NB-1 exit review and NB-2 gate open).
+12. NB-1 technical spike-prep gate is Done.
+13. NB-2 Technical Spike Implementation phase is now active.
+14. Next active slice is NB-2-1 (host module scaffold).
 
 ## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
 

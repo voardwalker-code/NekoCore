@@ -265,7 +265,14 @@ NB-1-2 bridge/API contract baseline (completed):
 2. Initial command endpoints defined for navigate, tab create/activate/close, and reload.
 3. Initial event channels defined for host lifecycle, tab lifecycle, navigation state, and download state.
 4. Standard error envelope shape defined for API and bridge-level failures.
+NB-2 spike phase is now open (active):
 
+1. NB-2-1: host module scaffold.
+2. NB-2-2: navigation POC.
+3. NB-2-3: tab model POC.
+4. NB-2-4: lifecycle and download events POC.
+5. NB-2-5: backend bridge wiring.
+6. NB-2-6: spike acceptance run and evidence package.
 Suggested repo target:
 
 1. `browser-host/` for native or host runtime code.
