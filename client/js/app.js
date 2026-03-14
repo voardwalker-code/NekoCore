@@ -123,12 +123,12 @@ const START_MENU_SPECIAL_APPS = [
   },
   {
     id: 'themes-app',
-    tab: 'settings',
-    launchTab: 'settings',
+    tab: 'themes',
+    launchTab: 'themes',
     label: 'Themes',
     icon: '🎨',
     category: 'customization',
-    pinnable: false,
+    pinnable: true,
     description: 'Theme gallery'
   },
   {
@@ -302,6 +302,39 @@ function syncThemeSelectorUI(themeId) {
     button.classList.toggle('is-active', button.getAttribute('data-theme-option') === themeId);
   });
   updateShellThemeSummary(themeId);
+  renderThemeGallery();
+}
+
+function renderThemeGallery() {
+  const grid = document.getElementById('themeGalleryGrid');
+  if (!grid) return;
+  const currentId = getStoredThemeId();
+  grid.innerHTML = '';
+  const THEME_PREVIEWS = {
+    'system-default': { bg: 'linear-gradient(135deg,#1a1a2e 50%,#f5f5f5 50%)', fg: '#fff', accent: '#6c63ff' },
+    'light-default':  { bg: '#f5f5f5', fg: '#1a1a2e', accent: '#0078d4' },
+    'neko-default':   { bg: '#0f0f1a', fg: '#e0e0e0', accent: '#7c6aef' },
+    'sunset-terminal':{ bg: '#1c1017', fg: '#f0d0a0', accent: '#ff6b35' },
+    'frosted-orbit':  { bg: '#101828', fg: '#d0dff0', accent: '#38bdf8' },
+    'mac-sequoia':    { bg: '#1e1e2e', fg: '#cdd6f4', accent: '#89b4fa' },
+    'ubuntu-dash':    { bg: '#2c001e', fg: '#ffffff', accent: '#e95420' }
+  };
+  Object.entries(SHELL_THEMES).forEach(([id, theme]) => {
+    const p = THEME_PREVIEWS[id] || { bg: '#222', fg: '#eee', accent: '#888' };
+    const card = document.createElement('button');
+    card.className = 'theme-card' + (id === currentId ? ' is-active' : '');
+    card.type = 'button';
+    card.onclick = () => applyTheme(id);
+    card.innerHTML =
+      '<div class="theme-card-preview" style="background:' + p.bg + '">' +
+        '<div class="theme-card-bar" style="background:' + p.accent + '"></div>' +
+        '<div class="theme-card-line" style="background:' + p.fg + ';opacity:.5"></div>' +
+        '<div class="theme-card-line short" style="background:' + p.fg + ';opacity:.3"></div>' +
+      '</div>' +
+      '<div class="theme-card-label">' + theme.label + '</div>' +
+      (id === currentId ? '<div class="theme-card-badge">Active</div>' : '');
+    grid.appendChild(card);
+  });
 }
 
 function applyTheme(themeId) {

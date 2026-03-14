@@ -2051,6 +2051,55 @@ body.nav-collapsed .hdr { padding-left: initial; }
   color: var(--text-tertiary);
 }
 
+/* ── Theme Gallery ─────────────────────────────────── */
+.theme-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+.theme-card {
+  all: unset;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-default);
+  background: var(--surface-2);
+  overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+  position: relative;
+}
+.theme-card:hover { border-color: var(--text-tertiary); }
+.theme-card.is-active { border-color: var(--accent-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 30%, transparent); }
+.theme-card-preview {
+  height: 100px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.theme-card-bar { height: 8px; width: 40%; border-radius: 4px; }
+.theme-card-line { height: 4px; width: 65%; border-radius: 2px; }
+.theme-card-line.short { width: 40%; }
+.theme-card-label {
+  padding: 10px 14px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.theme-card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--accent-primary);
+  color: #fff;
+}
+
 /* Entity management */
 .entity-display {
   background: var(--surface-2);
