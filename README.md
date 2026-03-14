@@ -285,7 +285,50 @@ For OpenRouter:
 }
 ```
 
-### Start the Server
+### Recommended Model Configuration (Best Results)
+
+NekoCore routes each pipeline phase to a different model. This is the setup that gives the best results in practice — fast cheap models for the high-frequency phases, a strong model for the final voicing pass:
+
+```json
+{
+  "profiles": {
+    "BEST": {
+      "main": {
+        "type": "openrouter",
+        "model": "inception/mercury-2"
+      },
+      "subconscious": {
+        "type": "openrouter",
+        "model": "inception/mercury-2"
+      },
+      "dream": {
+        "type": "openrouter",
+        "model": "google/gemini-2.0-flash-lite-preview"
+      },
+      "background": {
+        "type": "openrouter",
+        "model": "google/gemini-2.0-flash-lite"
+      },
+      "orchestrator": {
+        "type": "openrouter",
+        "model": "anthropic/claude-sonnet-4-5"
+      }
+    }
+  }
+}
+```
+
+| Phase | Model | Why |
+|-------|-------|-----|
+| main / conscious (1C) | `inception/mercury-2` | Fast, strong reasoning |
+| subconscious (1A) | `inception/mercury-2` | Context assembly, memory retrieval |
+| dream (1D) | `google/gemini-2.0-flash-lite-preview` | Abstract association — cheap is fine |
+| background | `google/gemini-2.0-flash-lite` | Brain loop maintenance — high frequency |
+| orchestrator (final) | `anthropic/claude-sonnet-4-5` | Final voicing — quality matters here |
+
+Any OpenAI-compatible model works. For fully local (free): set all phases to an Ollama model like `mistral` or `llama3`.
+
+
 
 ```bash
 npm start
