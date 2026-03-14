@@ -6,6 +6,10 @@
 
 This document consolidates the product direction and open-source release plan into a single reference. It draws from `long-term-vision-agent-echo.md` and `open-source-release-playbook.md` (preserved unchanged in the parent `Documents/` folder).
 
+Current execution note (2026-03-14):
+1. Near-term work is interface-first: make shell/app flows intuitive and reliable.
+2. Browser strategy follows `NEKOCORE-BROWSER-ROADMAP.md` (embedded-engine path with compliance guardrails).
+
 ---
 
 ## Core Vision — Agent Echo

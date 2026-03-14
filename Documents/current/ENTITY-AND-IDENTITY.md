@@ -1,6 +1,8 @@
 # REM System — Entity and Identity
 
-Last updated: 2026-03-12
+Last updated: 2026-03-14
+
+Note: entity creation UX is now centered on the dedicated Creator app surface in the desktop shell.
 
 Covers: entity creation modes, identity philosophy, context assembly, entity runtime, file structure.
 

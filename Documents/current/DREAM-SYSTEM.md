@@ -1,6 +1,6 @@
 # REM System — Dream System
 
-Last updated: 2026-03-12
+Last updated: 2026-03-14
 
 Covers: live dream intuition (chat pipeline), offline dream maintenance (sleep cycle), maintenance selector, dream-link writer, and the split between the two.
 

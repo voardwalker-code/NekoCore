@@ -1,6 +1,6 @@
 # REM System — Authentication and User System
 
-Last updated: 2026-03-12
+Last updated: 2026-03-14
 
 Covers: authentication, sessions, per-entity user profiles, and per-user relationship tracking.
 
@@ -14,6 +14,7 @@ Covers: authentication, sessions, per-entity user profiles, and per-user relatio
 - `server/data/accounts.json` — account store (hashed)
 - `server/data/sessions.json` — session store
 - `client/js/login.js` — login UI
+- `client/index.html` + `client/js/app.js` — Users app surface and user actions
 
 ### Endpoints
 
@@ -27,6 +28,7 @@ Covers: authentication, sessions, per-entity user profiles, and per-user relatio
 - Passwords are hashed (bcrypt) before storage — plaintext never persisted
 - Login returns a session token stored in `sessions.json` with an expiry time
 - `GET /auth/session` validates the token against the session store — used by the client on load to decide whether to show the login screen
+- Users app now includes a direct logout action so session exit is available from the desktop shell account surface
 
 ---
 

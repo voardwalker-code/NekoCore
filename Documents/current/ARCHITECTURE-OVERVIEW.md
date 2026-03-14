@@ -1,7 +1,7 @@
 # REM System — Architecture Overview
 
 Version: 0.6.0
-Last updated: 2026-03-13
+Last updated: 2026-03-14
 
 ---
 
@@ -10,6 +10,17 @@ Last updated: 2026-03-13
 REM (Recursive Echo Memory) is a zero-dependency Node.js cognitive architecture that sits between a user interface and one or more LLM providers. It gives AI language model instances a persistent, evolving inner life — continuous memory, emotional baseline, belief formation, dreaming, and per-user relationship tracking that all survive across sessions.
 
 Core design conviction: an entity should be shaped by what it has experienced, not only by what it was told on day one.
+
+---
+
+## Current Direction Snapshot (2026-03-14)
+
+Current execution focus is interface-first usability and runtime reliability.
+
+1. Desktop shell flows are being refined so Apps, Users, Power, Browser, Creator, and Settings are easier to discover and use.
+2. Server runtime behavior is being hardened so startup/shutdown and dedicated WebUI window lifecycle are predictable.
+3. Browser capability is being advanced through an embedded-engine roadmap (`NEKOCORE-BROWSER-ROADMAP.md`), not by building a custom rendering engine.
+4. Legal/commercial guardrails are active: no DRM/paywall/security-header bypass feature direction.
 
 ---
 

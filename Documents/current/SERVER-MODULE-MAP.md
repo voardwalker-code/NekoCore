@@ -1,6 +1,6 @@
 # REM System — Server Module Map
 
-Last updated: 2026-03-12
+Last updated: 2026-03-14
 
 Reference for every server-side file and what it owns. Reflects the state after the Phase A Re-evaluation decomposition that reduced `server.js` from 2,396 lines to 1,290 lines (−46%).
 
@@ -45,6 +45,7 @@ After Phase A Re-evaluation: ~1,290 lines (was 2,396).
 | File | What it owns |
 |------|-------------|
 | `auth-service.js` | Account creation, login, session validation (bcrypt hashing, token generation) |
+| `auto-open-browser.js` | Browser runtime selection, dedicated launch/focus behavior, browser-open lock state, and dedicated window close helper |
 | `config-runtime.js` | `normalizeAspectRuntimeConfig`, `loadAspectRuntimeConfig`, `resolveProfileAspectConfigs`, `mapAspectKey`, `normalizeSubconsciousRuntimeConfig` — aspect/profile config resolution for multi-LLM routing |
 | `config-service.js` | Reading and writing `Config/ma-config.json`; default config generation |
 | `entity-runtime.js` | Entity state lifecycle — paths, storage backends, brain loop refs, SSE context, active user |
@@ -56,7 +57,7 @@ After Phase A Re-evaluation: ~1,290 lines (was 2,396).
 | `post-response-memory.js` | Async fire-and-forget after each response: memory encoding + relationship update |
 | `relationship-service.js` | Per-user relationship state (feeling/trust/rapport/beliefs), LLM-updated post-turn |
 | `response-postprocess.js` | Strips tool tags and formats final response text |
-| `runtime-lifecycle.js` | Server startup sequence, graceful shutdown |
+| `runtime-lifecycle.js` | Server startup sequence, graceful shutdown, dedicated WebUI window close + browser-open state reset |
 | `user-profiles.js` | Per-entity user registry: create/read/update/delete/set-active user profiles |
 
 ---
@@ -69,7 +70,7 @@ After Phase A Re-evaluation: ~1,290 lines (was 2,396).
 | `brain-routes.js` | Brain loop start/stop/status |
 | `chat-routes.js` | `POST /api/chat` — main conversation endpoint |
 | `cognitive-routes.js` | Sleep trigger, dream trigger, archive trigger |
-| `config-routes.js` | Runtime config read/write |
+| `config-routes.js` | Runtime config read/write + backup/restore endpoints |
 | `document-routes.js` | Document ingestion pipeline |
 | `entity-routes.js` | Entity CRUD, guided/character creation, user profiles, relationships |
 | `memory-routes.js` | Memory read/search/delete |
