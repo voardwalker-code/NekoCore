@@ -186,6 +186,8 @@ class EntityManager {
       // Paths are auto-created by entityPaths functions, but ensure archives/goals exist
       fs.mkdirSync(archivesPath, { recursive: true });
       fs.mkdirSync(goalsPath, { recursive: true });
+      fs.mkdirSync(indexPath, { recursive: true });
+      fs.mkdirSync(beliefsPath, { recursive: true });
 
       console.log(`  ✓ Created entity folder structure: ${entityId}`);
       return entityPath;
