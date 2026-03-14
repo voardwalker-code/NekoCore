@@ -44,7 +44,7 @@ const THEME_STORAGE_KEY = 'rem-ui-theme';
 const SHELL_THEMES = {
   'system-default': { id: 'system-default', label: 'System Default', href: '' },
   'light-default': { id: 'light-default', label: 'Light Mode', href: 'themes/light-default.css' },
-  'neko-default': { id: 'neko-default', label: 'Neko Default', href: 'themes/neko-default.css' },
+  'neko-default': { id: 'neko-default', label: 'NekoCore', href: 'themes/neko-default.css' },
   'sunset-terminal': { id: 'sunset-terminal', label: 'Sunset Terminal', href: 'themes/sunset-terminal.css' },
   'frosted-orbit': { id: 'frosted-orbit', label: 'Frosted Orbit', href: 'themes/frosted-orbit.css' },
   'mac-sequoia': { id: 'mac-sequoia', label: 'Mac Sequoia', href: 'themes/mac-sequoia.css' },
@@ -307,7 +307,7 @@ function renderThemeGallery() {
   const THEME_PREVIEWS = {
     'system-default': { bg: 'linear-gradient(135deg,#1a1a2e 50%,#f5f5f5 50%)', fg: '#fff', accent: '#6c63ff' },
     'light-default':  { bg: '#f5f5f5', fg: '#1a1a2e', accent: '#0078d4' },
-    'neko-default':   { bg: '#0f0f1a', fg: '#e0e0e0', accent: '#7c6aef' },
+    'neko-default':   { bg: '#04060d', fg: '#e4e4e7', accent: '#34d399' },
     'sunset-terminal':{ bg: '#1c1017', fg: '#f0d0a0', accent: '#ff6b35' },
     'frosted-orbit':  { bg: '#101828', fg: '#d0dff0', accent: '#38bdf8' },
     'mac-sequoia':    { bg: '#1e1e2e', fg: '#cdd6f4', accent: '#89b4fa' },

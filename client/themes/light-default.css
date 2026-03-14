@@ -32,4 +32,5 @@
   --start-surface: rgba(255, 255, 255, 0.93);
   --shortcut-bg: rgba(237, 243, 252, 0.88);
   --shortcut-bg-hover: rgba(225, 234, 249, 0.98);
+  --stars-opacity: 0;
 }

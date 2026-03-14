@@ -120,6 +120,9 @@
   --shortcut-border: rgba(255, 255, 255, 0.08);
   --shortcut-shadow: 0 18px 38px rgba(0, 0, 0, 0.2);
 
+  /* ── Stars Canvas ── */
+  --stars-opacity: 0.35;
+
   /* ── Transitions ── */
   --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);

@@ -1,13 +1,57 @@
+/* ══════════════════════════════════════════════════════════
+   NekoCore — Signature Theme
+   Deep-space + emerald — matching the NekoCore architecture deck
+   Stars, constellations, and comet visible through the desktop
+   ══════════════════════════════════════════════════════════ */
 :root {
+  /* ── Surfaces: deep space blacks from NekoCore.html ── */
+  --surface-0: #04060d;
+  --surface-1: #080d18;
+  --surface-2: #0d1526;
+  --surface-3: #111e33;
+
+  /* ── Borders: emerald glow ── */
+  --border-default:  rgba(52, 211, 153, 0.15);
+  --border-emphasis: rgba(52, 211, 153, 0.35);
+  --border-subtle:   rgba(52, 211, 153, 0.07);
+
+  /* ── Text ── */
+  --text-primary:   #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --text-tertiary:  #52525b;
+
+  /* ── Accent: Emerald ── */
+  --accent:        #34d399;
+  --accent-strong: #10b981;
+  --accent-subtle: rgba(52, 211, 153, 0.08);
+  --accent-muted:  rgba(52, 211, 153, 0.15);
+
+  /* ── Semantic ── */
+  --cyan:   #22d3ee;
+  --indigo: #818cf8;
+  --purple: #a855f7;
+  --pink:   #f472b6;
+  --orange: #fb923c;
+  --gold:   #fbbf24;
+  --teal:   #2dd4bf;
+
+  /* ── Desktop: deep-space wallpaper with emerald + cyan nebula ── */
   --desktop-wallpaper:
-    radial-gradient(circle at top left, rgba(34, 211, 238, 0.22), transparent 26%),
-    radial-gradient(circle at top right, rgba(16, 185, 129, 0.24), transparent 24%),
-    radial-gradient(circle at bottom center, rgba(129, 140, 248, 0.18), transparent 32%),
-    linear-gradient(180deg, #030712 0%, #08101d 46%, #04060d 100%);
-  --desktop-overlay: linear-gradient(135deg, rgba(4, 6, 13, 0.25), rgba(8, 16, 29, 0.72));
-  --taskbar-bg: rgba(8, 13, 24, 0.72);
-  --window-bg: rgba(8, 13, 24, 0.74);
-  --start-surface: rgba(8, 13, 24, 0.82);
-  --shortcut-bg: rgba(17, 30, 51, 0.72);
-  --shortcut-bg-hover: rgba(23, 39, 64, 0.84);
+    radial-gradient(ellipse at 20% 10%, rgba(52, 211, 153, 0.18), transparent 40%),
+    radial-gradient(ellipse at 80% 15%, rgba(34, 211, 238, 0.14), transparent 35%),
+    radial-gradient(ellipse at 50% 85%, rgba(129, 140, 248, 0.12), transparent 40%),
+    radial-gradient(ellipse at 10% 70%, rgba(168, 85, 247, 0.06), transparent 30%),
+    linear-gradient(180deg, #030712 0%, #060e1a 30%, #04060d 100%);
+  --desktop-overlay: linear-gradient(135deg, rgba(4, 6, 13, 0.12), rgba(8, 13, 24, 0.55));
+  --desktop-grid-line: rgba(52, 211, 153, 0.03);
+
+  /* ── Shell surfaces: glass over deep space ── */
+  --taskbar-bg: rgba(4, 6, 13, 0.78);
+  --window-bg: rgba(8, 13, 24, 0.82);
+  --start-surface: rgba(8, 13, 24, 0.88);
+  --shortcut-bg: rgba(13, 21, 38, 0.72);
+  --shortcut-bg-hover: rgba(17, 30, 51, 0.88);
+
+  /* ── Stars: fully visible — signature NekoCore look ── */
+  --stars-opacity: 0.85;
 }
