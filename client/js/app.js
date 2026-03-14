@@ -669,7 +669,7 @@ const OPENROUTER_ROLE_MODELS = {
   dream: {
     def: 'google/gemini-2.5-flash',
     models: [
-      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.0 Flash Lite ✓ Recommended — fast dream cycles' },
+      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.5 Flash ✓ Recommended — fast dream cycles' },
       { id: 'anthropic/claude-sonnet-4-5', l: 'Claude Sonnet 4.5 — creative synthesis' },
       { id: 'openai/gpt-4o', l: 'OpenAI GPT-4o — imaginative + coherent' },
       { id: 'google/gemini-2.5-pro', l: 'Gemini 2.5 Pro — narrative planning' },
@@ -4158,4 +4158,5 @@ function resetUserSwitcher() {
   if (label) label.textContent = 'User';
   closeUserPanel();
 }
+
 
