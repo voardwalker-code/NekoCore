@@ -1,0 +1,11 @@
+{
+  "name": "@nekocore/browser-host",
+  "version": "0.0.1",
+  "description": "NekoCore Browser embedded-engine host module.",
+  "main": "index.js",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

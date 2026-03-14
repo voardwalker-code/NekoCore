@@ -36,7 +36,8 @@ Progress update:
 11. Completed NB-2-0 (NB-1 exit review and NB-2 gate open).
 12. NB-1 technical spike-prep gate is Done.
 13. NB-2 Technical Spike Implementation phase is now active.
-14. Next active slice is NB-2-1 (host module scaffold).
+14. Completed NB-2-1 (browser-host/ module scaffold created; entry point verified).
+15. Next active slice is NB-2-2 (navigation POC).
 
 ## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
 

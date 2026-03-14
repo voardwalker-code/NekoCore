@@ -9,6 +9,12 @@ Format: most recent first within each version block.
 
 ### 2026-03-14
 
+#### NekoCore Browser host module scaffold created (NB-2-1)
+- Created `browser-host/package.json` (`@nekocore/browser-host` v0.0.1, MIT, Node >=18).
+- Created `browser-host/index.js` — minimal entry point exporting module name and version; boundary ownership comment included.
+- Verified `require('./browser-host')` loads without error on target platform.
+- Tracking docs synced: plan checklist, ledger, stop/resume, WORKLOG, OPEN-ITEMS all advanced to NB-2-2.
+
 #### NekoCore Browser NB-1 exit review and NB-2 spike phase opened (NB-2-0)
 - `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`: marked NB-1 Done; added Phase NB-2 with slices NB-2-0 through NB-2-6.
 - `NEKOCORE-BROWSER-ROADMAP.md`: synced Phase 1 exit and NB-2 spike slice list.

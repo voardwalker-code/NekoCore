@@ -116,7 +116,8 @@ Current browser phase status:
 8. NB-1-1 completed (repo module boundary map).
 9. NB-1-2 completed (bridge/API contract baseline).
 10. NB-2-0 completed (NB-1 exit review; NB-2 spike phase defined).
-11. NB-1 Done. NB-2 is now active; NB-2-1 is the current slice (host module scaffold).
+11. NB-2-1 completed (browser-host/ scaffold created and verified).
+12. NB-1 Done. NB-2 is active; NB-2-2 is the current slice (navigation POC).
 
 ---
 
@@ -126,7 +127,7 @@ Current browser phase status:
 1. **Keep docs current per slice** — update WORKLOG snapshot/ledger and source-of-truth docs in lockstep with landed changes
 2. **Check `entities/` folder** — verify no personal data is committed that shouldn't be public
 3. **Add and publish docs currently staged in `Documents/current/`** — source-of-truth docs now expected to travel with repo pushes
-4. **Complete NB-2-1** — create `browser-host/` module scaffold and verify entry point runs
+4. **Complete NB-2-2** — implement navigation POC with URL input, back/forward/refresh, and `browser.navigation.state` events
 
 ### Before any public release
 1. Repo hygiene sweep (secrets scan, gitignore, absolute paths, TODO/FIXME)
@@ -155,3 +156,4 @@ The prior seven tracked phases are confirmed Done:
 7. Runtime quality hardening — Done
 
 Current active development phase is NekoCore Browser NB-2 (technical spike implementation).
+Current active slice is NB-2-2 (navigation POC).

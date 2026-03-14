@@ -86,8 +86,8 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 
 #### Slice Checklist
 
-- [ ] NB-2-0: NB-1 exit review — close NB-1 gate, create NB-2 plan section, confirm readiness for spike code
-- [ ] NB-2-1: Host module scaffold — create `browser-host/` directory structure, package manifest, and entry point; verify build path runs
+- [x] NB-2-0: NB-1 exit review — close NB-1 gate, create NB-2 plan section, confirm readiness for spike code
+- [x] NB-2-1: Host module scaffold — create `browser-host/` directory structure, package manifest, and entry point; verify build path runs
 - [ ] NB-2-2: Navigation POC — URL input, navigate, back/forward/refresh, navigation events on active tab
 - [ ] NB-2-3: Tab model POC — create/switch/close with deterministic active-tab logic and state sync
 - [ ] NB-2-4: Lifecycle and download events POC — host/tab lifecycle state transitions, download start/complete event emission
@@ -537,14 +537,15 @@ Files changed (expected):
 | 2026-03-14 | NB-1-1 | Done | Repo module boundary map defined for browser host/shared/contracts/routes separation |
 | 2026-03-14 | NB-1-2 | Done | Initial bridge/API contract list defined for session, tabs, commands, events, and error envelopes |
 | 2026-03-14 | NB-2-0 | Done | NB-1 exit review complete; Phase NB-2 spike defined with NB-2-1 through NB-2-6 slice structure |
+| 2026-03-14 | NB-2-1 | Done | browser-host/ scaffold created with package.json and entry point; verified load on target platform |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
 - **Current phase:** NB-2 Technical Spike Implementation
-- **Current slice:** NB-2-1 — status: not started
-- **Last completed slice:** NB-2-0
+- **Current slice:** NB-2-2 — status: not started
+- **Last completed slice:** NB-2-1
 - **In-progress item:** none
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** create `browser-host/` module scaffold and verify entry point runs
+- **Next action on resume:** implement navigation POC on active tab with URL input, back/forward/refresh, and event emission
