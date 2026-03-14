@@ -9,6 +9,12 @@ Format: most recent first within each version block.
 
 ### 2026-03-14
 
+#### NekoCore Browser data boundary policy (NB-0-3)
+- `NEKOCORE-BROWSER-ROADMAP.md`: added browser-data vs REM-memory policy, persistence defaults, and explicit consent rules.
+- `Documents/current/CONTRACTS-AND-SCHEMAS.md`: added Browser Data Boundary Contract.
+- `README.md`: added Browser Data and Memory Policy section for contributor/user clarity.
+- `Documents/current/RELEASE-NOTES.md` and `Documents/current/OPEN-ITEMS-AUDIT.md`: synced NB-0-3 completion and next active slice.
+
 #### NekoCore Browser dependency and notices policy (NB-0-2)
 - `NEKOCORE-BROWSER-ROADMAP.md`: added dependency approval checklist and third-party notices policy.
 - Added blocked dependency classes and release attribution requirements.

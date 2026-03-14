@@ -375,6 +375,13 @@ NekoCore is intended to be safe for open-source collaboration and paid project u
 4. Do not silently persist page content into long-term memory without explicit user intent.
 5. Track third-party components and include required notices when packaging distributions.
 
+### Browser Data and Memory Policy
+
+1. Browser data and REM memory are separate by default.
+2. Visiting a page does not automatically write to REM memory.
+3. Browser analysis stays ephemeral unless a user explicitly saves it.
+4. Any browser-to-memory write should be user-confirmed and source-attributed.
+
 Browser note:
 The current in-shell browser app uses an embedded page model and some sites may block embedding by policy.
 

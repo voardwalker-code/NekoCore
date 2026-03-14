@@ -26,7 +26,8 @@ Progress update:
 1. Completed NB-0-1 (scope lock and non-goals).
 2. Browser implementation direction is now explicitly locked to app-on-engine.
 3. Completed NB-0-2 (dependency approval and third-party notices policy).
-4. Next active slice is NB-0-3 (browser data policy).
+4. Completed NB-0-3 (browser data boundary and persistence defaults policy).
+5. Next active slice is NB-0-4 (contributor provenance policy).
 
 ## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
 

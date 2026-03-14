@@ -108,6 +108,48 @@ For every distributed browser build:
 2. CEF: include Chromium/CEF notices and bundled third-party attributions.
 3. Electron: include Electron and Chromium/Node notice requirements for packaged releases.
 
+## Browser Data Policy (NB-0-3 Completed)
+
+This policy defines how browser data and REM memory data are separated.
+
+### Data boundary definitions
+
+1. Browser data:
+   - navigation history
+   - cookies and site storage
+   - tab/session state
+   - downloads and temporary browser cache
+2. REM memory data:
+   - explicit user-approved summaries, notes, or extracted artifacts
+   - entity memory records written through REM memory services
+
+Rule:
+1. Browser data is not REM memory by default.
+2. Nothing enters REM memory unless user action explicitly requests it.
+
+### Persistence defaults
+
+Default behavior for NekoCore Browser:
+
+1. Browser analysis outputs are ephemeral unless user saves them.
+2. Auto-ingest of page content into REM memory is disabled.
+3. Session/browser state persistence is local to browser runtime storage.
+4. Cross-entity memory writes from browser actions are disallowed by default.
+
+### Consent and write controls
+
+Any write action to REM memory requires:
+
+1. Clear action intent (save/export/create memory).
+2. User confirmation before write.
+3. Source traceability metadata in stored output (origin URL/title/time when available).
+
+### Prohibited behavior
+
+1. Silent background harvesting of page text into REM memory.
+2. Hidden long-term storage of browser content without explicit user instruction.
+3. Implicit write actions triggered only by viewing a page.
+
 ## Core Product Modes
 
 NekoCore Browser should support two top-level modes over the same browser surface.

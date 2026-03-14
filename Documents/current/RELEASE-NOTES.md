@@ -33,6 +33,12 @@ The browser strategy now has a documented compliance-first roadmap based on embe
 3. Engine/runtime notice requirements must be included when using WebView2, CEF, Electron, or equivalent embedded-browser runtime.
 4. Dependency additions for browser-host work must be reflected in release documentation.
 
+### Browser Data Boundary Policy (NB-0-3)
+1. Browser data and REM memory are now explicitly treated as separate stores.
+2. Browser analysis defaults to ephemeral; no silent auto-ingest into REM memory.
+3. Browser-to-memory writes require explicit user-directed action and confirmation.
+4. Saved browser artifacts should include source attribution metadata when available.
+
 ### Breaking Changes
 None. Existing entities continue to work. New features activate only when explicitly used.
 

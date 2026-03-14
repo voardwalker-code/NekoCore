@@ -40,6 +40,28 @@ Release contract:
 
 ---
 
+## Browser Data Boundary Contract (NB-0-3)
+
+This contract governs how browser-originated information may enter REM memory.
+
+Boundary rules:
+1. Browser data and REM memory are separate stores by default.
+2. Page visits, render events, and passive browsing must not create REM memories.
+3. REM writes require explicit user-directed save action.
+
+Required write fields for browser-to-REM save actions:
+1. Source URL (when available)
+2. Source title or page label (when available)
+3. Capture timestamp
+4. User action reason (summary, note, extract, compare, etc.)
+
+Default persistence behavior:
+1. Browser analysis output is ephemeral unless saved.
+2. Auto-ingest and silent persistence are disallowed.
+3. Cross-entity writes are blocked unless explicitly approved by policy.
+
+---
+
 ## Memory Schema (version 1)
 
 File: `server/contracts/memory-schema.js`
