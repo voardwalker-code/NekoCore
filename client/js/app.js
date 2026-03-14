@@ -660,16 +660,16 @@ const OPENROUTER_ROLE_MODELS = {
     def: 'inception/mercury-2',
     models: [
       { id: 'inception/mercury-2', l: 'Mercury-2 ✓ Recommended — memory/context tasks' },
-      { id: 'google/gemini-2.0-flash-lite', l: 'Gemini 2.0 Flash Lite — fast/cheap background' },
+      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.0 Flash Lite — fast/cheap background' },
       { id: 'google/gemini-2.5-flash', l: 'Gemini 2.5 Flash — strong background tasks' },
       { id: 'deepseek/deepseek-chat-v3-0324', l: 'DeepSeek V3 — long context value' },
       { id: 'openai/gpt-4o-mini', l: 'GPT-4o Mini — low-cost throughput' }
     ]
   },
   dream: {
-    def: 'google/gemini-2.0-flash-lite',
+    def: 'google/gemini-2.5-flash',
     models: [
-      { id: 'google/gemini-2.0-flash-lite', l: 'Gemini 2.0 Flash Lite ✓ Recommended — fast dream cycles' },
+      { id: 'google/gemini-2.5-flash', l: 'Gemini 2.0 Flash Lite ✓ Recommended — fast dream cycles' },
       { id: 'anthropic/claude-sonnet-4-5', l: 'Claude Sonnet 4.5 — creative synthesis' },
       { id: 'openai/gpt-4o', l: 'OpenAI GPT-4o — imaginative + coherent' },
       { id: 'google/gemini-2.5-pro', l: 'Gemini 2.5 Pro — narrative planning' },
@@ -699,25 +699,25 @@ const RECOMMENDED_MODEL_STACKS = {
   best: {
     main: 'anthropic/claude-sonnet-4-5',
     subconscious: 'inception/mercury-2',
-    dream: 'google/gemini-2.0-flash-lite',
+    dream: 'google/gemini-2.5-flash',
     orchestrator: 'anthropic/claude-sonnet-4-5'
   },
   fast: {
     main: 'inception/mercury-2',
     subconscious: 'inception/mercury-2',
-    dream: 'google/gemini-2.0-flash-lite',
+    dream: 'google/gemini-2.5-flash',
     orchestrator: 'inception/mercury-2'
   },
   cheap: {
     main: 'meta-llama/llama-3.3-70b-instruct:free',
-    subconscious: 'google/gemini-2.0-flash-lite',
-    dream: 'google/gemini-2.0-flash-lite',
+    subconscious: 'google/gemini-2.5-flash',
+    dream: 'google/gemini-2.5-flash',
     orchestrator: 'meta-llama/llama-3.3-70b-instruct:free'
   },
   hybrid: {
     main: 'deepseek/deepseek-chat-v3-0324',
     subconscious: 'inception/mercury-2',
-    dream: 'google/gemini-2.0-flash-lite',
+    dream: 'google/gemini-2.5-flash',
     orchestrator: 'deepseek/deepseek-chat-v3-0324'
   }
 };
@@ -4158,3 +4158,4 @@ function resetUserSwitcher() {
   if (label) label.textContent = 'User';
   closeUserPanel();
 }
+

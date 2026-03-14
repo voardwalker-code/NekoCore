@@ -303,11 +303,11 @@ NekoCore routes each pipeline phase to a different model. This is the setup that
       },
       "dream": {
         "type": "openrouter",
-        "model": "google/gemini-2.0-flash-lite-preview"
+        "model": "google/gemini-2.5-flash"
       },
       "background": {
         "type": "openrouter",
-        "model": "google/gemini-2.0-flash-lite"
+        "model": "google/gemini-2.5-flash"
       },
       "orchestrator": {
         "type": "openrouter",
@@ -322,8 +322,8 @@ NekoCore routes each pipeline phase to a different model. This is the setup that
 |-------|-------|-----|
 | main / conscious (1C) | `inception/mercury-2` | Fast, strong reasoning |
 | subconscious (1A) | `inception/mercury-2` | Context assembly, memory retrieval |
-| dream (1D) | `google/gemini-2.0-flash-lite-preview` | Abstract association — cheap is fine |
-| background | `google/gemini-2.0-flash-lite` | Brain loop maintenance — high frequency |
+| dream (1D) | `google/gemini-2.5-flash` | Abstract association — cheap is fine |
+| background | `google/gemini-2.5-flash` | Brain loop maintenance — high frequency |
 | orchestrator (final) | `anthropic/claude-sonnet-4-5` | Final voicing — quality matters here |
 
 Any OpenAI-compatible model works. For fully local (free): set all phases to an Ollama model like `mistral` or `llama3`.
@@ -458,4 +458,5 @@ NekoCore/
 MIT — see [LICENSE](LICENSE).
 
 NekoCore is open source. Use it, fork it, extend it, build on it.
+
 
