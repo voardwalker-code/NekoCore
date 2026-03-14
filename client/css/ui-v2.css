@@ -46,6 +46,7 @@ body::before {
   height: 100%;
   pointer-events: none;
   opacity: var(--stars-opacity, 0.35);
+  z-index: 1;
 }
 
 /* ============================================================
@@ -58,6 +59,8 @@ body::before {
   align-items: stretch;
   margin: 0 auto var(--space-6);
   max-width: 1520px;
+  position: relative;
+  z-index: 2;
 }
 
 .os-home-copy,
@@ -3664,6 +3667,7 @@ body {
   background: transparent;
   padding: 0;
   overflow: hidden;
+  z-index: 10;
 }
 
 .tab-content {
