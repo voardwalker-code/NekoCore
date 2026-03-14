@@ -89,7 +89,9 @@ function createBrowserRoutes(ctx) {
     }
 
     if (req.method === 'GET' && p === '/api/browser/bookmarks') {
-      json(res, apiHeaders, 200, { ok: true, bookmarks: bookmarkStore.getAll() });
+      const q = url.searchParams.get('q') || '';
+      const bookmarks = q ? bookmarkStore.search(q) : bookmarkStore.getAll();
+      json(res, apiHeaders, 200, { ok: true, bookmarks });
       return true;
     }
 
@@ -217,9 +219,25 @@ function createBrowserRoutes(ctx) {
         json(res, apiHeaders, 201, { ok: true, entry });
         return true;
       }
+      if (p === '/api/browser/history/delete') {
+        if (!body.id) { errEnvelope(res, apiHeaders, 400, 'MISSING_ID', 'id is required'); return true; }
+        const deleted = historyStore.deleteEntry(body.id);
+        json(res, apiHeaders, 200, { ok: true, deleted });
+        return true;
+      }
+      if (p === '/api/browser/history/delete-range') {
+        if (!body.startMs || !body.endMs) { errEnvelope(res, apiHeaders, 400, 'MISSING_RANGE', 'startMs and endMs are required'); return true; }
+        const count = historyStore.deleteByDateRange(body.startMs, body.endMs);
+        json(res, apiHeaders, 200, { ok: true, deletedCount: count });
+        return true;
+      }
       if (p === '/api/browser/history/clear') {
         historyStore.clear();
         json(res, apiHeaders, 200, { ok: true });
+        return true;
+      }
+      if (p === '/api/browser/history/export') {
+        json(res, apiHeaders, 200, { ok: true, entries: historyStore.exportAll() });
         return true;
       }
 
@@ -242,6 +260,32 @@ function createBrowserRoutes(ctx) {
         json(res, apiHeaders, 200, { ok: true });
         return true;
       }
+      if (p === '/api/browser/bookmarks/update') {
+        if (!body.id) { errEnvelope(res, apiHeaders, 400, 'MISSING_ID', 'id is required'); return true; }
+        const updated = bookmarkStore.update(body.id, body);
+        if (!updated) { errEnvelope(res, apiHeaders, 404, 'BOOKMARK_NOT_FOUND', 'Bookmark not found'); return true; }
+        json(res, apiHeaders, 200, { ok: true, bookmark: updated });
+        return true;
+      }
+      if (p === '/api/browser/bookmarks/clear') {
+        bookmarkStore.clear();
+        json(res, apiHeaders, 200, { ok: true });
+        return true;
+      }
+      if (p === '/api/browser/bookmarks/export') {
+        json(res, apiHeaders, 200, { ok: true, bookmarks: bookmarkStore.exportAll() });
+        return true;
+      }
+      if (p === '/api/browser/bookmarks/import') {
+        if (!Array.isArray(body.bookmarks)) { errEnvelope(res, apiHeaders, 400, 'INVALID_DATA', 'bookmarks array is required'); return true; }
+        const count = bookmarkStore.importBookmarks(body.bookmarks);
+        json(res, apiHeaders, 200, { ok: true, importedCount: count, bookmarks: bookmarkStore.getAll() });
+        return true;
+      }
+      if (p === '/api/browser/bookmarks/folders') {
+        json(res, apiHeaders, 200, { ok: true, folders: bookmarkStore.getFolders() });
+        return true;
+      }
 
       // Session sub-routes
       if (p === '/api/browser/session/save') {
@@ -259,6 +303,10 @@ function createBrowserRoutes(ctx) {
       if (p === '/api/browser/settings/reset') {
         const settings = settingsStore.reset();
         json(res, apiHeaders, 200, { ok: true, settings });
+        return true;
+      }
+      if (p === '/api/browser/settings/export') {
+        json(res, apiHeaders, 200, { ok: true, settings: settingsStore.getAll() });
         return true;
       }
 

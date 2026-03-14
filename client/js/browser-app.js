@@ -1,9 +1,10 @@
 /**
- * NekoCore Browser — Client Core (NB-4 Shell Integration)
+ * NekoCore Browser — Client Core (NB-5 Human Mode Completion)
  *
  * Multi-tab browser with address bar, history, bookmarks, downloads panel,
  * session restore, web search, settings integration, shell status reporting,
- * launch routing, and iframe fallback handling.
+ * launch routing, iframe fallback handling, bookmark manager, history manager,
+ * keyboard shortcuts, tab context menu, and import/export.
  *
  * Owns: browser shell UI state and user interaction wiring.
  * Must NOT contain: filesystem logic, host process management, or backend policy.
@@ -163,6 +164,74 @@ async function browserCloseTab(tabId) {
   }
   _browserUpdateTabStrip();
   _browserScheduleSessionSave();
+}
+
+// ─── Tab Context Menu ─────────────────────────────────────────────────────────
+let _browserContextMenuEl = null;
+
+function _browserShowTabContextMenu(tabId, x, y) {
+  _browserHideTabContextMenu();
+  const tab = _browserTabs.get(tabId);
+  if (!tab) return;
+  const menu = document.createElement('div');
+  menu.className = 'browser-context-menu';
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  const items = [
+    { label: 'Duplicate Tab', action: () => browserNewTab(tab.url, true) },
+    { label: 'Reload', action: () => { _browserActivateTabLocal(tabId); browserReload(); } },
+    { label: '─', separator: true },
+    { label: tab.pinned ? 'Unpin Tab' : 'Pin Tab', action: () => _browserTogglePin(tabId) },
+    { label: tab.muted ? 'Unmute Tab' : 'Mute Tab', action: () => _browserToggleMute(tabId) },
+    { label: '─', separator: true },
+    { label: 'Close Tab', action: () => browserCloseTab(tabId) },
+    { label: 'Close Other Tabs', action: () => _browserCloseOtherTabs(tabId) },
+  ];
+  items.forEach(item => {
+    if (item.separator) {
+      const sep = document.createElement('div');
+      sep.className = 'browser-context-sep';
+      menu.appendChild(sep);
+      return;
+    }
+    const btn = document.createElement('button');
+    btn.className = 'browser-context-item';
+    btn.textContent = item.label;
+    btn.onclick = () => { _browserHideTabContextMenu(); item.action(); };
+    menu.appendChild(btn);
+  });
+  document.body.appendChild(menu);
+  _browserContextMenuEl = menu;
+  // Close on click outside
+  setTimeout(() => {
+    document.addEventListener('click', _browserHideTabContextMenu, { once: true });
+  }, 10);
+}
+
+function _browserHideTabContextMenu() {
+  if (_browserContextMenuEl) {
+    _browserContextMenuEl.remove();
+    _browserContextMenuEl = null;
+  }
+}
+
+function _browserTogglePin(tabId) {
+  const tab = _browserTabs.get(tabId);
+  if (!tab) return;
+  tab.pinned = !tab.pinned;
+  _browserUpdateTabStrip();
+}
+
+function _browserToggleMute(tabId) {
+  const tab = _browserTabs.get(tabId);
+  if (!tab) return;
+  tab.muted = !tab.muted;
+  _browserUpdateTabStrip();
+}
+
+function _browserCloseOtherTabs(keepTabId) {
+  const toClose = [..._browserTabs.keys()].filter(id => id !== keepTabId);
+  toClose.forEach(id => browserCloseTab(id));
 }
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
@@ -355,21 +424,34 @@ function _browserUpdateTabStrip() {
   const strip = document.getElementById('browserTabs');
   if (!strip) return;
   strip.innerHTML = '';
-  for (const [id, tab] of _browserTabs) {
+  // Sort: pinned first
+  const sorted = [..._browserTabs.entries()].sort((a, b) => {
+    if (a[1].pinned && !b[1].pinned) return -1;
+    if (!a[1].pinned && b[1].pinned) return 1;
+    return 0;
+  });
+  for (const [id, tab] of sorted) {
     const btn = document.createElement('button');
-    btn.className = 'browser-tab-btn' + (id === _browserActiveTabId ? ' active' : '');
+    btn.className = 'browser-tab-btn' + (id === _browserActiveTabId ? ' active' : '') + (tab.pinned ? ' pinned' : '');
     btn.dataset.tabId = id;
+    // Context menu on right-click
+    btn.oncontextmenu = (e) => { e.preventDefault(); _browserShowTabContextMenu(id, e.clientX, e.clientY); };
+    const prefix = (tab.pinned ? '📌 ' : '') + (tab.muted ? '🔇 ' : '');
     const titleSpan = document.createElement('span');
     titleSpan.className = 'browser-tab-title';
-    titleSpan.textContent = tab.loading ? '⏳ Loading...' : _truncate(tab.title || 'New Tab', 24);
+    titleSpan.textContent = prefix + (tab.loading ? '⏳ Loading...' : _truncate(tab.title || 'New Tab', tab.pinned ? 12 : 24));
     titleSpan.title = tab.url || '';
     btn.appendChild(titleSpan);
-    const closeBtn = document.createElement('span');
-    closeBtn.className = 'browser-tab-close';
-    closeBtn.textContent = '✕';
-    closeBtn.onclick = (e) => { e.stopPropagation(); browserCloseTab(id); };
-    btn.appendChild(closeBtn);
+    if (!tab.pinned) {
+      const closeBtn = document.createElement('span');
+      closeBtn.className = 'browser-tab-close';
+      closeBtn.textContent = '✕';
+      closeBtn.onclick = (e) => { e.stopPropagation(); browserCloseTab(id); };
+      btn.appendChild(closeBtn);
+    }
     btn.onclick = () => browserActivateTab(id);
+    // Middle-click to close
+    btn.onauxclick = (e) => { if (e.button === 1) { e.preventDefault(); browserCloseTab(id); } };
     strip.appendChild(btn);
   }
 }
@@ -647,14 +729,418 @@ async function browserClearHistory() {
 
 async function browserClearBookmarks() {
   if (!confirm('Remove all bookmarks?')) return;
-  // Remove one by one via API (bookmark store has no clear-all)
-  for (const bm of [..._browserBookmarks]) {
-    await _browserApi('POST', '/api/browser/bookmarks/remove', { url: bm.url });
-  }
+  await _browserApi('POST', '/api/browser/bookmarks/clear', {});
   _browserBookmarks = [];
   _browserRenderHomeBookmarks();
   _browserUpdateBookmarkStar();
   if (typeof showNotification === 'function') showNotification('All bookmarks removed', 'success');
+}
+
+// ─── Bookmark Manager ─────────────────────────────────────────────────────────
+let _bmManagerOpen = false;
+let _bmManagerFilter = '';
+let _bmManagerFolder = '';
+
+function browserOpenBookmarkManager() {
+  _bmManagerOpen = true;
+  _bmManagerFilter = '';
+  _bmManagerFolder = '';
+  const panel = document.getElementById('browserBookmarkManager');
+  if (panel) { panel.classList.remove('hidden'); _bmRender(); }
+}
+
+function browserCloseBookmarkManager() {
+  _bmManagerOpen = false;
+  const panel = document.getElementById('browserBookmarkManager');
+  if (panel) panel.classList.add('hidden');
+}
+
+async function _bmRender() {
+  const listEl = document.getElementById('bmManagerList');
+  const folderEl = document.getElementById('bmManagerFolderFilter');
+  if (!listEl) return;
+  await _browserLoadBookmarks();
+  // Populate folder filter
+  if (folderEl) {
+    const folders = [...new Set(_browserBookmarks.map(b => b.folder || 'default'))];
+    folderEl.innerHTML = '<option value="">All Folders</option>';
+    folders.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f;
+      opt.textContent = f;
+      if (f === _bmManagerFolder) opt.selected = true;
+      folderEl.appendChild(opt);
+    });
+  }
+  // Filter bookmarks
+  let filtered = _browserBookmarks;
+  if (_bmManagerFolder) {
+    filtered = filtered.filter(b => (b.folder || 'default') === _bmManagerFolder);
+  }
+  if (_bmManagerFilter) {
+    const q = _bmManagerFilter.toLowerCase();
+    filtered = filtered.filter(b => b.url.toLowerCase().includes(q) || (b.title || '').toLowerCase().includes(q));
+  }
+  if (!filtered.length) {
+    listEl.innerHTML = '<div class="browser-empty-state">No bookmarks found.</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  filtered.forEach(bm => {
+    const row = document.createElement('div');
+    row.className = 'bm-manager-row';
+    row.innerHTML = `
+      <div class="bm-manager-info">
+        <div class="bm-manager-title">${_escHtml(_truncate(bm.title || bm.url, 50))}</div>
+        <div class="bm-manager-url">${_escHtml(_truncate(bm.url, 60))}</div>
+        <div class="bm-manager-folder">${_escHtml(bm.folder || 'default')}</div>
+      </div>
+      <div class="bm-manager-actions">
+        <button class="btn-sm" title="Open" data-action="open">↗</button>
+        <button class="btn-sm" title="Edit" data-action="edit">✏</button>
+        <button class="btn-sm btn-danger-sm" title="Delete" data-action="delete">🗑</button>
+      </div>
+    `;
+    row.querySelector('[data-action="open"]').onclick = () => { browserCloseBookmarkManager(); browserNavigate(bm.url); };
+    row.querySelector('[data-action="edit"]').onclick = () => _bmStartEdit(bm, row);
+    row.querySelector('[data-action="delete"]').onclick = () => _bmDelete(bm.id);
+    listEl.appendChild(row);
+  });
+}
+
+function _bmFilterChanged() {
+  const searchEl = document.getElementById('bmManagerSearch');
+  _bmManagerFilter = searchEl ? searchEl.value : '';
+  _bmRender();
+}
+
+function _bmFolderChanged() {
+  const folderEl = document.getElementById('bmManagerFolderFilter');
+  _bmManagerFolder = folderEl ? folderEl.value : '';
+  _bmRender();
+}
+
+function _bmStartEdit(bm, row) {
+  const infoEl = row.querySelector('.bm-manager-info');
+  if (!infoEl) return;
+  infoEl.innerHTML = `
+    <input class="bm-edit-input" value="${_escHtml(bm.title || '')}" placeholder="Title" data-field="title">
+    <input class="bm-edit-input" value="${_escHtml(bm.url || '')}" placeholder="URL" data-field="url">
+    <input class="bm-edit-input" value="${_escHtml(bm.folder || 'default')}" placeholder="Folder" data-field="folder">
+  `;
+  const actionsEl = row.querySelector('.bm-manager-actions');
+  if (actionsEl) {
+    actionsEl.innerHTML = `
+      <button class="btn-sm btn-success-sm" data-action="save">✓</button>
+      <button class="btn-sm" data-action="cancel">✕</button>
+    `;
+    actionsEl.querySelector('[data-action="save"]').onclick = async () => {
+      const title = row.querySelector('[data-field="title"]').value.trim();
+      const url = row.querySelector('[data-field="url"]').value.trim();
+      const folder = row.querySelector('[data-field="folder"]').value.trim() || 'default';
+      await _browserApi('POST', '/api/browser/bookmarks/update', { id: bm.id, title, url, folder });
+      await _browserLoadBookmarks();
+      _bmRender();
+    };
+    actionsEl.querySelector('[data-action="cancel"]').onclick = () => _bmRender();
+  }
+}
+
+async function _bmDelete(id) {
+  await _browserApi('POST', '/api/browser/bookmarks/remove', { id });
+  _browserBookmarks = _browserBookmarks.filter(b => b.id !== id);
+  _bmRender();
+  _browserUpdateBookmarkStar();
+  _browserRenderHomeBookmarks();
+}
+
+async function bmAddBookmarkFromManager() {
+  const urlEl = document.getElementById('bmAddUrl');
+  const titleEl = document.getElementById('bmAddTitle');
+  const folderEl = document.getElementById('bmAddFolder');
+  const url = urlEl ? urlEl.value.trim() : '';
+  const title = titleEl ? titleEl.value.trim() : '';
+  const folder = folderEl ? folderEl.value.trim() : 'default';
+  if (!url) { if (typeof showNotification === 'function') showNotification('URL is required', 'error'); return; }
+  await _browserApi('POST', '/api/browser/bookmarks/add', { url, title: title || url, folder });
+  if (urlEl) urlEl.value = '';
+  if (titleEl) titleEl.value = '';
+  await _browserLoadBookmarks();
+  _bmRender();
+  _browserRenderHomeBookmarks();
+  _browserUpdateBookmarkStar();
+}
+
+// ─── History Manager ──────────────────────────────────────────────────────────
+let _histManagerOpen = false;
+let _histManagerFilter = '';
+let _histManagerEntries = [];
+
+function browserOpenHistoryManager() {
+  _histManagerOpen = true;
+  _histManagerFilter = '';
+  const panel = document.getElementById('browserHistoryManager');
+  if (panel) { panel.classList.remove('hidden'); _histRender(); }
+}
+
+function browserCloseHistoryManager() {
+  _histManagerOpen = false;
+  const panel = document.getElementById('browserHistoryManager');
+  if (panel) panel.classList.add('hidden');
+}
+
+async function _histRender() {
+  const listEl = document.getElementById('histManagerList');
+  if (!listEl) return;
+  try {
+    const q = _histManagerFilter || '';
+    const res = await _browserApi('GET', '/api/browser/history' + (q ? '?q=' + encodeURIComponent(q) : ''));
+    _histManagerEntries = (res.ok && res.entries) ? res.entries : [];
+  } catch { _histManagerEntries = []; }
+  if (!_histManagerEntries.length) {
+    listEl.innerHTML = '<div class="browser-empty-state">No history entries found.</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  // Group by date
+  const groups = {};
+  _histManagerEntries.forEach(entry => {
+    const d = new Date(entry.visitedAt);
+    const key = d.toLocaleDateString();
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(entry);
+  });
+  for (const [date, entries] of Object.entries(groups)) {
+    const header = document.createElement('div');
+    header.className = 'hist-manager-date';
+    header.textContent = date;
+    listEl.appendChild(header);
+    entries.forEach(entry => {
+      const row = document.createElement('div');
+      row.className = 'hist-manager-row';
+      const time = new Date(entry.visitedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      row.innerHTML = `
+        <span class="hist-manager-time">${time}</span>
+        <div class="hist-manager-info">
+          <button class="browser-result-title" type="button">${_escHtml(_truncate(entry.title || entry.url, 50))}</button>
+          <div class="browser-result-url">${_escHtml(_truncate(entry.url, 60))}</div>
+        </div>
+        <button class="btn-sm btn-danger-sm hist-delete" title="Delete">🗑</button>
+      `;
+      row.querySelector('.browser-result-title').onclick = () => { browserCloseHistoryManager(); browserNavigate(entry.url); };
+      row.querySelector('.hist-delete').onclick = () => _histDeleteEntry(entry.id);
+      listEl.appendChild(row);
+    });
+  }
+}
+
+function _histFilterChanged() {
+  const searchEl = document.getElementById('histManagerSearch');
+  _histManagerFilter = searchEl ? searchEl.value : '';
+  _histRender();
+}
+
+async function _histDeleteEntry(id) {
+  await _browserApi('POST', '/api/browser/history/delete', { id });
+  _histRender();
+  _browserRenderHomeHistory();
+}
+
+async function histClearAll() {
+  if (!confirm('Clear all browsing history?')) return;
+  await _browserApi('POST', '/api/browser/history/clear', {});
+  _histRender();
+  _browserRenderHomeHistory();
+  if (typeof showNotification === 'function') showNotification('History cleared', 'success');
+}
+
+async function histDeleteToday() {
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  await _browserApi('POST', '/api/browser/history/delete-range', { startMs: startOfDay, endMs: Date.now() });
+  _histRender();
+  _browserRenderHomeHistory();
+  if (typeof showNotification === 'function') showNotification("Today's history cleared", 'success');
+}
+
+// ─── Import / Export ──────────────────────────────────────────────────────────
+async function browserExportBookmarks() {
+  try {
+    const res = await _browserApi('POST', '/api/browser/bookmarks/export', {});
+    if (!res.ok) return;
+    const blob = new Blob([JSON.stringify(res.bookmarks, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'nekocore-bookmarks.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    if (typeof showNotification === 'function') showNotification('Bookmarks exported', 'success');
+  } catch { if (typeof showNotification === 'function') showNotification('Export failed', 'error'); }
+}
+
+function browserImportBookmarks() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const bookmarks = Array.isArray(data) ? data : (data.bookmarks || []);
+      const res = await _browserApi('POST', '/api/browser/bookmarks/import', { bookmarks });
+      if (res.ok) {
+        _browserBookmarks = res.bookmarks || [];
+        _browserRenderHomeBookmarks();
+        _browserUpdateBookmarkStar();
+        if (_bmManagerOpen) _bmRender();
+        if (typeof showNotification === 'function') showNotification(`Imported ${res.importedCount} bookmarks`, 'success');
+      }
+    } catch { if (typeof showNotification === 'function') showNotification('Import failed — invalid JSON file', 'error'); }
+  };
+  input.click();
+}
+
+async function browserExportSettings() {
+  try {
+    const res = await _browserApi('POST', '/api/browser/settings/export', {});
+    if (!res.ok) return;
+    const blob = new Blob([JSON.stringify(res.settings, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'nekocore-browser-settings.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    if (typeof showNotification === 'function') showNotification('Settings exported', 'success');
+  } catch { if (typeof showNotification === 'function') showNotification('Export failed', 'error'); }
+}
+
+function browserImportSettings() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const settings = JSON.parse(text);
+      const res = await _browserApi('POST', '/api/browser/settings/update', settings);
+      if (res.ok && res.settings) {
+        _browserSettings = res.settings;
+        BROWSER_HOMEPAGE = _browserSettings.homepage || 'https://neko-core.com';
+        _browserPopulateSettingsUI();
+        if (typeof showNotification === 'function') showNotification('Settings imported', 'success');
+      }
+    } catch { if (typeof showNotification === 'function') showNotification('Import failed — invalid JSON file', 'error'); }
+  };
+  input.click();
+}
+
+async function browserExportHistory() {
+  try {
+    const res = await _browserApi('POST', '/api/browser/history/export', {});
+    if (!res.ok) return;
+    const blob = new Blob([JSON.stringify(res.entries, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'nekocore-history.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    if (typeof showNotification === 'function') showNotification('History exported', 'success');
+  } catch { if (typeof showNotification === 'function') showNotification('Export failed', 'error'); }
+}
+
+// ─── Keyboard Shortcuts ───────────────────────────────────────────────────────
+function _browserHandleKeydown(e) {
+  // Only handle when browser tab is active
+  const browserTab = document.getElementById('tab-browser');
+  if (!browserTab || browserTab.classList.contains('hidden') || browserTab.style.display === 'none') return;
+  // Don't capture when typing in non-browser inputs
+  const tag = (e.target.tagName || '').toLowerCase();
+  const isBrowserInput = e.target.id === 'browserUrlInput' || e.target.id === 'browserSearchQuery';
+
+  const ctrl = e.ctrlKey || e.metaKey;
+
+  if (ctrl && e.key === 't') {
+    e.preventDefault();
+    browserNewTab();
+    return;
+  }
+  if (ctrl && e.key === 'w') {
+    e.preventDefault();
+    if (_browserActiveTabId) browserCloseTab(_browserActiveTabId);
+    return;
+  }
+  if (ctrl && e.key === 'l') {
+    e.preventDefault();
+    const urlInput = document.getElementById('browserUrlInput');
+    if (urlInput) { urlInput.focus(); urlInput.select(); }
+    return;
+  }
+  if (ctrl && e.key === 'r') {
+    e.preventDefault();
+    browserReload();
+    return;
+  }
+  if (ctrl && e.key === 'd') {
+    e.preventDefault();
+    browserToggleBookmark();
+    return;
+  }
+  if (ctrl && e.shiftKey && e.key === 'B') {
+    e.preventDefault();
+    browserOpenBookmarkManager();
+    return;
+  }
+  if (ctrl && e.key === 'h') {
+    e.preventDefault();
+    browserOpenHistoryManager();
+    return;
+  }
+  if (ctrl && e.key === 'j') {
+    e.preventDefault();
+    browserToggleDownloads();
+    return;
+  }
+  // Tab switching: Ctrl+1-9
+  if (ctrl && e.key >= '1' && e.key <= '9') {
+    e.preventDefault();
+    const idx = parseInt(e.key) - 1;
+    const tabIds = [..._browserTabs.keys()];
+    if (idx < tabIds.length) browserActivateTab(tabIds[idx]);
+    return;
+  }
+  // Alt+Left/Right for back/forward
+  if (e.altKey && e.key === 'ArrowLeft') {
+    e.preventDefault();
+    browserGoBack();
+    return;
+  }
+  if (e.altKey && e.key === 'ArrowRight') {
+    e.preventDefault();
+    browserGoForward();
+    return;
+  }
+  // Escape closes managers/overlays
+  if (e.key === 'Escape') {
+    if (_bmManagerOpen) { browserCloseBookmarkManager(); e.preventDefault(); return; }
+    if (_histManagerOpen) { browserCloseHistoryManager(); e.preventDefault(); return; }
+    _browserHideTabContextMenu();
+    return;
+  }
+  // F5 reload
+  if (e.key === 'F5' && !ctrl) {
+    e.preventDefault();
+    browserReload();
+    return;
+  }
+  // Enter in URL bar = navigate
+  if (isBrowserInput && e.key === 'Enter') {
+    // Already handled by inline handler, skip
+    return;
+  }
 }
 
 // ─── Shell Launch Routing ─────────────────────────────────────────────────────
@@ -813,6 +1299,9 @@ async function initBrowserApp() {
   // Start periodic status reporting (for task manager)
   _browserStatusTimer = setInterval(_browserReportStatus, 3000);
 
+  // Register keyboard shortcuts
+  document.addEventListener('keydown', _browserHandleKeydown);
+
   // Hook into SSE if available
   if (typeof window._browserSSERegistered === 'undefined') {
     window._browserSSERegistered = true;
@@ -836,11 +1325,25 @@ function showBrowserPageView() { _browserShowPageView(); }
 function showBrowserResultsView() { _browserShowResultsView(); }
 function openBrowserExternal() { browserOpenExternal(); }
 
-// ─── Exports for shell integration (NB-4) ────────────────────────────────────
+// ─── Exports for shell integration (NB-5) ────────────────────────────────────
 // openInBrowser(url) — launch routing: opens browser window and navigates
 // browserCleanup() — graceful shutdown: save session synchronously
 // browserSaveSettingsFromUI() — save settings from Advanced tab form
 // browserResetSettings() — reset to defaults
 // browserClearHistory() — clear all history
 // browserClearBookmarks() — clear all bookmarks
-// _browserReportStatus() — update task manager browser card
+// browserOpenBookmarkManager() — open bookmark manager panel
+// browserCloseBookmarkManager() — close bookmark manager panel
+// browserOpenHistoryManager() — open history manager panel
+// browserCloseHistoryManager() — close history manager panel
+// browserExportBookmarks() — export bookmarks as JSON file
+// browserImportBookmarks() — import bookmarks from JSON file
+// browserExportSettings() — export settings as JSON file
+// browserImportSettings() — import settings from JSON file
+// browserExportHistory() — export history as JSON file
+// bmAddBookmarkFromManager() — add bookmark from manager form
+// _bmFilterChanged() — bookmark manager search handler
+// _bmFolderChanged() — bookmark manager folder filter handler
+// _histFilterChanged() — history manager search handler
+// histClearAll() — clear all history from manager
+// histDeleteToday() — delete today's history from manager

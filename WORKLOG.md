@@ -61,6 +61,19 @@ Progress update:
     - Client: search engine setting wired into URL normalization (Google/DuckDuckGo/Bing)
     - CSS: blocked overlay, taskbar badge, position:relative on pinned-app buttons
     - 23/23 spike acceptance tests still pass
+19. NB-5 Human Mode Completion phase completed in a single pass:
+    - Server: history-store upgraded (deleteEntry, deleteByDateRange, exportAll, importEntries)
+    - Server: bookmark-store upgraded (search, update, clear, exportAll, importBookmarks, getFolders)
+    - Routes: 10 new endpoints (history delete/delete-range/export, bookmarks update/clear/export/import/folders, settings export)
+    - Client: bookmark manager panel (search, folder filter, inline edit, add form, delete per-item)
+    - Client: history manager panel (search, grouped by date, per-entry delete, delete today, clear all)
+    - Client: tab context menu (right-click: duplicate, reload, pin/unpin, mute/unmute, close, close others)
+    - Client: middle-click tab to close, pinned tabs (sorted first, no close button, visual indicator)
+    - Client: keyboard shortcuts (Ctrl+T/W/L/R/D/H/J, Ctrl+Shift+B, Ctrl+1-9, Alt+Left/Right, F5, Escape)
+    - Client: import/export bookmarks (JSON), import/export settings (JSON), export history (JSON)
+    - HTML: bookmark/history manager panels, toolbar with manager buttons, shortcuts bar, import/export buttons in Advanced tab
+    - CSS: context menu, manager panels, manager rows, edit inputs, action buttons, shortcuts bar, pinned tab style
+    - 23/23 spike acceptance tests still pass
 
 ## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
 

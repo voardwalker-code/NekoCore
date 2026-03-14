@@ -6,6 +6,17 @@ Built with MA (Memory Architect v1).
 ## [Unreleased]
 
 ### Added
+- **NekoCore Browser Phase NB-5 — Human Mode Completion (complete)**
+  - Bookmark Manager: full-screen panel with search, folder filter, inline edit (title/URL/folder), add form, per-item delete, and import/export
+  - History Manager: full-screen panel with search, grouped by date, per-entry delete, clear today, clear all, and export
+  - Tab context menu: right-click for duplicate tab, reload, pin/unpin, mute/unmute, close, close other tabs
+  - Tab UX polish: middle-click to close, pinned tabs (sorted first, no close button, shorter title), mute indicator
+  - Keyboard shortcuts: Ctrl+T (new tab), Ctrl+W (close tab), Ctrl+L (address bar), Ctrl+R (reload), Ctrl+D (bookmark), Ctrl+Shift+B (bookmark manager), Ctrl+H (history), Ctrl+J (downloads), Ctrl+1-9 (switch tabs), Alt+Left/Right (back/forward), F5 (reload), Esc (close managers)
+  - Import/export: bookmarks as JSON, settings as JSON, history as JSON — available in manager panels and Advanced tab
+  - Server store upgrades: history deleteEntry/deleteByDateRange/exportAll/importEntries; bookmarks search/update/clear/exportAll/importBookmarks/getFolders
+  - 10 new API endpoints for history, bookmarks, and settings CRUD
+  - Shortcuts reference bar in browser footer
+  - New CSS: context menu, manager panels, edit mode, action buttons, date-grouped history, shortcuts bar
 - **NekoCore Browser Phase NB-4 — Shell Integration (complete)**
   - `browser-host/settings-store.js` — browser settings persistence (homepage, search engine, session restore, external link behavior)
   - Settings API endpoints: GET/update/reset for browser settings, GET /api/browser/status for shell status reporting

@@ -134,6 +134,27 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 
 ---
 
+### Phase NB-5: Human Mode Completion
+
+**Goal:** Make the browser usable as a real daily driver before adding AI behavior. Full CRUD managers for bookmarks and history, tab UX polish, keyboard shortcuts, and import/export.
+**Status:** `Done`
+**Depends on:** Phase NB-4
+
+#### Slice Checklist
+
+- [x] NB-5-0: History store upgrade — deleteEntry, deleteByDateRange, exportAll, importEntries added to history-store.js
+- [x] NB-5-1: Bookmark store upgrade — search, update, clear, exportAll, importBookmarks, getFolders added to bookmark-store.js
+- [x] NB-5-2: New API endpoints — 10 new routes: history delete/delete-range/export, bookmarks update/clear/export/import/folders, settings export
+- [x] NB-5-3: Bookmark manager panel — full-screen overlay with search filter, folder filter, inline editing (title/URL/folder), add form, per-item delete, open/navigate action
+- [x] NB-5-4: History manager panel — full-screen overlay with search, entries grouped by date, per-entry delete, clear today, clear all
+- [x] NB-5-5: Tab context menu — right-click: duplicate tab, reload, pin/unpin, mute/unmute, close, close other tabs
+- [x] NB-5-6: Tab UX polish — middle-click close, pinned tabs sorted first with visual indicator, muted tab indicator, tab sorting (pinned → unpinned)
+- [x] NB-5-7: Keyboard shortcuts — Ctrl+T/W/L/R/D/H/J, Ctrl+Shift+B, Ctrl+1-9 tab switch, Alt+Left/Right back/forward, F5 reload, Esc close managers
+- [x] NB-5-8: Import/export — bookmarks export/import (JSON), settings export/import (JSON), history export (JSON), file picker dialogs
+- [x] NB-5-9: UI integration — manager buttons in toolbar, shortcuts bar in footer, import/export buttons in Advanced tab settings panel
+
+---
+
 ## 6. Slice Definitions
 
 ### NB-0-0 — Phase 0 Plan Initialization
@@ -583,14 +604,15 @@ Files changed (expected):
 | 2026-03-14 | NB-2-6 | Done | Spike acceptance: 23/23 tests pass covering navigation, tabs, lifecycle, downloads, and event shape |
 | 2026-03-14 | NB-3-0 – NB-3-5 | Done | Browser Core MVP: multi-tab browser with history, bookmarks, downloads, session restore, web search |
 | 2026-03-14 | NB-4-0 – NB-4-9 | Done | Shell Integration: settings store + API, launch routing, settings panel, task manager status, taskbar badge, graceful shutdown, iframe fallback, search engine integration |
+| 2026-03-14 | NB-5-0 – NB-5-9 | Done | Human Mode Completion: bookmark manager, history manager, tab context menu, pin/mute, keyboard shortcuts, import/export, store upgrades, 10 new API endpoints |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
-- **Current phase:** NB-4 Shell Integration — `Done`
-- **Current slice:** none (NB-4 complete)
-- **Last completed slice:** NB-4-9
+- **Current phase:** NB-5 Human Mode Completion — `Done`
+- **Current slice:** none (NB-5 complete)
+- **Last completed slice:** NB-5-9
 - **In-progress item:** none
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** Phase NB-5 planning (Human Mode Completion) or next roadmap phase
+- **Next action on resume:** Phase NB-6 planning (LLM Mode Foundation) or next roadmap phase

@@ -1349,14 +1349,16 @@
 
       <!-- Navigation Toolbar -->
       <div class="browser-toolbar">
-        <button class="btn bg text-xs-c" onclick="browserGoBack()" title="Back">←</button>
-        <button class="btn bg text-xs-c" onclick="browserGoForward()" title="Forward">→</button>
-        <button class="btn bg text-xs-c" onclick="browserReload()" title="Reload">⟳</button>
+        <button class="btn bg text-xs-c" onclick="browserGoBack()" title="Back (Alt+←)">←</button>
+        <button class="btn bg text-xs-c" onclick="browserGoForward()" title="Forward (Alt+→)">→</button>
+        <button class="btn bg text-xs-c" onclick="browserReload()" title="Reload (Ctrl+R)">⟳</button>
         <button class="btn bg text-xs-c" onclick="browserGoHome()" title="Home">⌂</button>
-        <input id="browserUrlInput" class="browser-url-input" type="text" placeholder="Search or enter URL..." onkeydown="if(event.key==='Enter')browserNavigateFromInput()">
+        <input id="browserUrlInput" class="browser-url-input" type="text" placeholder="Search or enter URL... (Ctrl+L)" onkeydown="if(event.key==='Enter')browserNavigateFromInput()">
         <button class="btn bp text-xs-c" onclick="browserNavigateFromInput()">Go</button>
-        <button class="btn bg text-xs-c" id="browserBookmarkBtn" onclick="browserToggleBookmark()" title="Bookmark">☆</button>
-        <button class="btn bg text-xs-c" onclick="browserToggleDownloads()" title="Downloads">⬇</button>
+        <button class="btn bg text-xs-c" id="browserBookmarkBtn" onclick="browserToggleBookmark()" title="Bookmark (Ctrl+D)">☆</button>
+        <button class="btn bg text-xs-c" onclick="browserOpenBookmarkManager()" title="Bookmark Manager (Ctrl+Shift+B)">📑</button>
+        <button class="btn bg text-xs-c" onclick="browserOpenHistoryManager()" title="History (Ctrl+H)">🕐</button>
+        <button class="btn bg text-xs-c" onclick="browserToggleDownloads()" title="Downloads (Ctrl+J)">⬇</button>
         <button class="btn bg text-xs-c" onclick="browserOpenExternal()" title="Open in external browser">↗</button>
       </div>
 
@@ -1415,6 +1417,58 @@
           <button class="btn bg text-xs-c" onclick="browserToggleDownloads()">✕</button>
         </div>
         <div id="browserDownloadsList"></div>
+      </div>
+
+      <!-- Bookmark Manager Panel -->
+      <div class="browser-manager-panel hidden" id="browserBookmarkManager">
+        <div class="browser-manager-header">
+          <h3>📑 Bookmark Manager</h3>
+          <div class="browser-manager-actions">
+            <button class="btn bg text-xs-c" onclick="browserExportBookmarks()" title="Export bookmarks">Export</button>
+            <button class="btn bg text-xs-c" onclick="browserImportBookmarks()" title="Import bookmarks">Import</button>
+            <button class="btn bg text-xs-c" onclick="browserCloseBookmarkManager()">✕</button>
+          </div>
+        </div>
+        <div class="browser-manager-toolbar">
+          <input id="bmManagerSearch" class="browser-manager-search" type="text" placeholder="Search bookmarks..." oninput="_bmFilterChanged()">
+          <select id="bmManagerFolderFilter" class="browser-manager-select" onchange="_bmFolderChanged()">
+            <option value="">All Folders</option>
+          </select>
+        </div>
+        <div class="browser-manager-add-row">
+          <input id="bmAddUrl" class="bm-add-input" type="text" placeholder="URL">
+          <input id="bmAddTitle" class="bm-add-input" type="text" placeholder="Title">
+          <input id="bmAddFolder" class="bm-add-input bm-add-folder" type="text" placeholder="Folder" value="default">
+          <button class="btn bp text-xs-c" onclick="bmAddBookmarkFromManager()">Add</button>
+        </div>
+        <div id="bmManagerList" class="browser-manager-list"></div>
+      </div>
+
+      <!-- History Manager Panel -->
+      <div class="browser-manager-panel hidden" id="browserHistoryManager">
+        <div class="browser-manager-header">
+          <h3>🕐 History</h3>
+          <div class="browser-manager-actions">
+            <button class="btn bg text-xs-c" onclick="browserExportHistory()" title="Export history">Export</button>
+            <button class="btn bg text-xs-c btn-warn-sm" onclick="histDeleteToday()">Clear Today</button>
+            <button class="btn bg text-xs-c btn-danger-sm" onclick="histClearAll()">Clear All</button>
+            <button class="btn bg text-xs-c" onclick="browserCloseHistoryManager()">✕</button>
+          </div>
+        </div>
+        <div class="browser-manager-toolbar">
+          <input id="histManagerSearch" class="browser-manager-search" type="text" placeholder="Search history..." oninput="_histFilterChanged()">
+        </div>
+        <div id="histManagerList" class="browser-manager-list"></div>
+      </div>
+
+      <!-- Keyboard Shortcuts Reference -->
+      <div class="browser-shortcuts-bar">
+        <span class="browser-shortcut-hint">Ctrl+T New Tab</span>
+        <span class="browser-shortcut-hint">Ctrl+W Close</span>
+        <span class="browser-shortcut-hint">Ctrl+L Address</span>
+        <span class="browser-shortcut-hint">Ctrl+D Bookmark</span>
+        <span class="browser-shortcut-hint">Ctrl+H History</span>
+        <span class="browser-shortcut-hint">Right-click tab for menu</span>
       </div>
 
       <!-- Status -->
@@ -1594,6 +1648,12 @@
         </div>
 
         <div class="flex gap-3 mt-5 justify-end flex-wrap">
+          <button class="btn bg" onclick="browserExportBookmarks()" title="Export bookmarks">Export Bookmarks</button>
+          <button class="btn bg" onclick="browserImportBookmarks()" title="Import bookmarks">Import Bookmarks</button>
+          <button class="btn bg" onclick="browserExportSettings()" title="Export browser settings">Export Settings</button>
+          <button class="btn bg" onclick="browserImportSettings()" title="Import browser settings">Import Settings</button>
+        </div>
+        <div class="flex gap-3 mt-3 justify-end flex-wrap">
           <button class="btn bg" onclick="browserClearHistory()" title="Clear browsing history">Clear History</button>
           <button class="btn bg" onclick="browserClearBookmarks()" title="Remove all bookmarks">Clear Bookmarks</button>
           <button class="btn bg" onclick="browserResetSettings()">Reset to Defaults</button>

@@ -78,6 +78,60 @@ function getAll() {
   return _bookmarks;
 }
 
+function search(query) {
+  _load();
+  const q = (query || '').toLowerCase();
+  if (!q) return _bookmarks;
+  return _bookmarks.filter(b => b.url.toLowerCase().includes(q) || (b.title || '').toLowerCase().includes(q));
+}
+
+function update(id, fields) {
+  _load();
+  const bm = _bookmarks.find(b => b.id === id);
+  if (!bm) return null;
+  if (fields.title != null) bm.title = fields.title;
+  if (fields.folder != null) bm.folder = fields.folder;
+  if (fields.url != null) bm.url = fields.url;
+  _save();
+  return bm;
+}
+
+function clear() {
+  _bookmarks = [];
+  _save();
+}
+
+function exportAll() {
+  _load();
+  return JSON.parse(JSON.stringify(_bookmarks));
+}
+
+function importBookmarks(bookmarks) {
+  _load();
+  if (!Array.isArray(bookmarks)) return 0;
+  let added = 0;
+  for (const b of bookmarks) {
+    if (!b.url) continue;
+    if (_bookmarks.some(existing => existing.url === b.url)) continue;
+    _bookmarks.push({
+      id: crypto.randomBytes(6).toString('hex'),
+      url: b.url,
+      title: b.title || b.url,
+      folder: b.folder || 'default',
+      addedAt: b.addedAt || Date.now(),
+    });
+    added++;
+  }
+  _save();
+  return added;
+}
+
+function getFolders() {
+  _load();
+  const folders = new Set(_bookmarks.map(b => b.folder || 'default'));
+  return [...folders];
+}
+
 function reset() { _bookmarks = []; _loaded = false; }
 
-module.exports = { add, remove, removeByUrl, isBookmarked, getAll, reset };
+module.exports = { add, remove, removeByUrl, isBookmarked, getAll, search, update, clear, exportAll, importBookmarks, getFolders, reset };
