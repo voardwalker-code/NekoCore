@@ -489,7 +489,7 @@ function _browserRenderSearchChips() {
     chip.className = 'browser-chip';
     chip.type = 'button';
     chip.textContent = q;
-    chip.onclick = () => { document.getElementById('browserSearchQuery').value = q; browserExecuteSearch(); };
+    chip.onclick = () => { browserExecuteSearch(q); };
     quickEl.appendChild(chip);
   });
   recentEl.innerHTML = '';
@@ -503,7 +503,7 @@ function _browserRenderSearchChips() {
     chip.className = 'browser-chip';
     chip.type = 'button';
     chip.textContent = q;
-    chip.onclick = () => { document.getElementById('browserSearchQuery').value = q; browserExecuteSearch(); };
+    chip.onclick = () => { browserExecuteSearch(q); };
     recentEl.appendChild(chip);
   });
 }
@@ -571,11 +571,10 @@ function _browserRememberSearch(query) {
   _browserSaveSearchHistory();
 }
 
-async function browserExecuteSearch() {
-  const input = document.getElementById('browserSearchQuery');
+async function browserExecuteSearch(queryArg) {
   const resultsEl = document.getElementById('browserSearchResultsList');
-  if (!input || !resultsEl) return;
-  const query = (input.value || '').trim();
+  if (!resultsEl) return;
+  const query = (typeof queryArg === 'string' ? queryArg : '').trim();
   if (!query) return;
   _browserRememberSearch(query);
   _browserShowResultsView();
@@ -1067,7 +1066,7 @@ function _browserHandleKeydown(e) {
   if (!browserTab || browserTab.classList.contains('hidden') || browserTab.style.display === 'none') return;
   // Don't capture when typing in non-browser inputs
   const tag = (e.target.tagName || '').toLowerCase();
-  const isBrowserInput = e.target.id === 'browserUrlInput' || e.target.id === 'browserSearchQuery';
+  const isBrowserInput = e.target.id === 'browserUrlInput';
 
   const ctrl = e.ctrlKey || e.metaKey;
 

@@ -4340,23 +4340,6 @@ body.popout-mode .os-side-dash {
   flex-wrap: wrap;
 }
 
-.browser-search-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.browser-search-input {
-  flex: 1;
-  min-width: 280px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border-default);
-  background: var(--surface-2);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-}
 
 .browser-search-results {
   flex: 1;
