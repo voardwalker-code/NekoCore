@@ -4846,6 +4846,7 @@ body.popout-mode .os-side-dash {
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
+.browser-manager-panel.hidden { display: none; }
 
 .browser-manager-header {
   display: flex;
@@ -5431,6 +5432,7 @@ body.popout-mode .app {
   overflow: hidden;
   box-shadow: -4px 0 16px rgba(0,0,0,.3);
 }
+.browser-llm-panel.hidden { display: none; }
 
 .llm-panel-header {
   display: flex;
@@ -5687,6 +5689,7 @@ body.popout-mode .app {
   background: rgba(0,0,0,.5);
   z-index: 70;
 }
+.llm-save-dialog.hidden { display: none; }
 .llm-save-content {
   background: var(--surface-1);
   border: 1px solid var(--border-default);
