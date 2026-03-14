@@ -3,6 +3,25 @@
 Status: active architecture refactor tracking.
 Last updated: 2026-03-14
 
+## Session Ledger - 2026-03-14 (NekoCore Browser Phase 0 Kickoff)
+
+Status: `In Progress`
+
+Purpose:
+1. Move from browser roadmap discussion to executable phase work.
+2. Start NekoCore Browser in a policy-first, compliance-safe path.
+3. Keep implementation aligned with Documentation Checkout Policy before host code begins.
+
+Kickoff outputs:
+1. Added `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md` as the executable phase plan.
+2. Set Phase NB-0 (Governance and Compliance Baseline) to `In Progress`.
+3. Marked NB-0-0 complete (phase plan initialization).
+4. Set next active slice to NB-0-1 (scope lock and non-goals).
+
+Next action:
+1. Finalize scope lock and non-goals text in browser roadmap and source-of-truth docs.
+2. Complete dependency/notices policy and data-boundary policy before any browser-host implementation.
+
 ## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
 
 Status: `Planned`
