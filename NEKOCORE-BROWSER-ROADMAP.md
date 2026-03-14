@@ -1,0 +1,322 @@
+# NekoCore Browser Roadmap Draft
+
+Status: Planned
+Last updated: 2026-03-14
+Owner: NekoCore core project
+
+## Purpose
+
+Build a real NekoCore Browser product that is:
+
+1. Open source and safe for community contribution.
+2. Commercial-friendly for paid projects.
+3. Editable and extensible by downstream users.
+4. Safe by design for both human browsing and LLM-assisted browsing.
+
+## Product Position
+
+NekoCore Browser is a browser application built on top of an existing browser engine.
+
+It is not a new rendering engine.
+It is not a DRM or paywall bypass tool.
+It is not a system for defeating site security headers.
+
+## Recommended Foundation
+
+Primary recommendation for the first implementation:
+
+1. Windows-first browser host using WebView2.
+2. NekoCore-owned browser UI and workflow layer.
+3. LLM features layered on top of normal browsing, not fused into the engine.
+
+Why this path:
+
+1. Lowest engineering cost for a real browser surface.
+2. Strongest path to a usable MVP inside the current Windows-heavy workflow.
+3. Keeps NekoCore code open and modifiable without taking on browser-engine maintenance.
+
+## Legal and Commercial Guardrails
+
+These rules must remain true in every phase.
+
+1. Keep NekoCore-owned code under a permissive license.
+   Current repo state is MIT. That is acceptable for paid and open use.
+2. Track all third-party components and licenses in a dedicated notices file.
+3. Do not implement features whose purpose is bypassing DRM, paywalls, CSP, frame restrictions, or site security controls.
+4. Keep page analysis and LLM extraction user-directed and transparent.
+5. Require explicit user action before saving page content into memory or project artifacts.
+6. Keep AI actions confirmable, auditable, and reversible where practical.
+7. Require contributor provenance for submitted code.
+   Recommended: DCO or CLA before broad external contribution ramps up.
+
+## Core Product Modes
+
+NekoCore Browser should support two top-level modes over the same browser surface.
+
+1. Human Mode
+   Standard browsing with tabs, history, downloads, bookmarks, settings, profiles.
+2. LLM Mode
+   Page summarization, ask-this-page, extract structured data, multi-page comparison, research sessions, safe task execution.
+
+## Architecture Principles
+
+1. Engine layer and AI layer stay separate.
+2. Browser host code stays isolated from REM cognitive pipeline code.
+3. Human browsing must work even if all LLM features are disabled.
+4. LLM actions must declare what page data they read and what outputs they store.
+5. Extension points must be documented so downstream users can replace models, prompts, policies, and UI pieces.
+
+## Phase Plan
+
+### Phase 0 - Governance, Scope, and Compliance Baseline
+
+Goal:
+Lock the legal, architectural, and contribution rules before code expansion.
+
+Steps:
+
+1. Confirm the browser will be an app built on an embedded engine, not a custom engine.
+2. Confirm Windows-first delivery and WebView2 as the initial host target.
+3. Create a dependency approval policy for browser-related additions.
+4. Create a third-party notices process for runtime and packaged artifacts.
+5. Decide contributor provenance workflow.
+   Recommended default: DCO for all PRs.
+6. Define prohibited feature classes.
+   Examples: DRM bypass, anti-paywall tooling, hidden scraping persistence, silent agent actions.
+7. Define privacy defaults for history, cookies, saved content, and LLM memory writes.
+8. Define what counts as browser data versus NekoCore memory data.
+
+Exit criteria:
+
+1. Governance rules documented.
+2. Browser scope and non-goals approved.
+3. Contribution policy chosen.
+
+Estimated effort:
+1 to 3 days.
+
+### Phase 1 - Technical Spike and Repo Layout
+
+Goal:
+Prove the host stack and establish file boundaries before feature work.
+
+Steps:
+
+1. Build a minimal WebView2 proof of concept outside the current iframe path.
+2. Validate navigation, address bar input, back, forward, refresh, new window handling, and download events.
+3. Decide whether the browser host lives as:
+   - a companion desktop app, or
+   - a dedicated runtime module launched by the current server.
+4. Define repo boundaries for:
+   - browser host,
+   - shared contracts,
+   - UI shell,
+   - LLM tools,
+   - persistence.
+5. Write contracts for browser session state, tab state, history records, and action requests.
+6. Define IPC or bridge rules between browser host and NekoCore backend.
+7. Decide how existing web UI apps map into the browser shell.
+
+Suggested repo target:
+
+1. `browser-host/` for native or host runtime code.
+2. `browser-shared/` for contracts and state schemas.
+3. `client/js/browser/` for browser-app UI logic if reused in web shell.
+4. `server/routes/browser-routes.js` for browser-specific APIs.
+
+Exit criteria:
+
+1. Host spike runs locally.
+2. Repo layout approved.
+3. Contracts list defined.
+
+Estimated effort:
+3 to 7 days.
+
+### Phase 2 - Browser Core MVP
+
+Goal:
+Ship a real browser core that replaces the iframe limitation for the MVP path.
+
+Steps:
+
+1. Implement browser window creation and lifecycle.
+2. Implement tab model and active-tab switching.
+3. Implement address bar, navigation controls, reload, stop, and home.
+4. Implement page title, favicon, loading state, and navigation events.
+5. Implement basic history persistence.
+6. Implement basic bookmarks persistence.
+7. Implement download event handling and a visible download panel.
+8. Implement blocked-popup and permission prompts.
+9. Implement crash-safe session restore for open tabs.
+10. Add a clean fallback path when embedded browsing fails.
+
+Exit criteria:
+
+1. Browser can navigate normal sites as a real browser surface.
+2. Session survives restart at a basic level.
+3. No dependency violates project licensing policy.
+
+Estimated effort:
+4 to 8 weeks.
+
+### Phase 3 - NekoCore Shell Integration
+
+Goal:
+Make the browser feel native to the NekoCore desktop shell and runtime.
+
+Steps:
+
+1. Replace or retire the iframe-based browser app path for supported environments.
+2. Add launch routing from the current shell into the new browser host.
+3. Preserve taskbar, windowing, and app-launch patterns already established in the shell.
+4. Add browser settings surfaces into Control Panel or Browser Settings.
+5. Expose browser status to telemetry and task manager surfaces.
+6. Add graceful shutdown hooks so browser state closes or restores predictably.
+7. Keep unsupported environments on a clear fallback path.
+
+Exit criteria:
+
+1. Browser launches from the existing NekoCore UX.
+2. Shutdown and restore behavior are predictable.
+3. Existing shell conventions remain intact.
+
+Estimated effort:
+2 to 4 weeks.
+
+### Phase 4 - Human Mode Completion
+
+Goal:
+Make the browser usable as a real daily driver before adding heavy AI behavior.
+
+Steps:
+
+1. Add multi-tab UX polish.
+2. Add profile support and per-profile storage boundaries.
+3. Add bookmark manager.
+4. Add history manager with delete controls.
+5. Add download manager.
+6. Add site permissions UI.
+7. Add search-engine settings and startup behavior settings.
+8. Add import and export for bookmarks and settings where practical.
+9. Add keyboard shortcuts and accessibility pass.
+
+Exit criteria:
+
+1. Human Mode works without any LLM dependency.
+2. Storage and profile boundaries are clear.
+3. Basic browser settings are manageable by the user.
+
+Estimated effort:
+4 to 8 weeks.
+
+### Phase 5 - LLM Mode Foundation
+
+Goal:
+Layer safe AI features on top of the browser without compromising normal browsing.
+
+Steps:
+
+1. Add explicit mode switch between Human Mode and LLM Mode.
+2. Add page summarization for the active page.
+3. Add ask-this-page chat grounded only in visible page content and declared extracted content.
+4. Add source citation and source preview in every browser-generated answer.
+5. Add user confirmation for any write action.
+   Examples: save notes, create memories, export snippets, run follow-up automation.
+6. Add a browser research session model separate from normal chat.
+7. Add structured extraction tools for tables, entities, links, and outlines.
+8. Add domain-aware policies for whether page content may be stored persistently.
+9. Add clear user controls for ephemeral analysis versus saved analysis.
+
+Exit criteria:
+
+1. LLM Mode is useful without being opaque.
+2. Stored outputs are intentional and attributable.
+3. User can understand what data the AI used.
+
+Estimated effort:
+4 to 8 weeks.
+
+### Phase 6 - Agent Browser Actions and Safety Layer
+
+Goal:
+Support higher-power browser actions without turning the system into unsafe automation.
+
+Steps:
+
+1. Define browser action contracts.
+   Examples: click, fill, open tab, extract, compare, save.
+2. Add confirmation checkpoints for impactful actions.
+3. Add allowlist and denylist policy hooks.
+4. Add action log and audit trail per session.
+5. Add rate limiting and runaway loop protection.
+6. Add user-visible previews before multi-step execution.
+7. Add scoped permissions for credentials, downloads, and file access.
+8. Add a kill switch for active agent actions.
+
+Exit criteria:
+
+1. Agent actions are inspectable and stoppable.
+2. Risky actions require explicit approval.
+3. Audit logs are available for debugging and trust.
+
+Estimated effort:
+3 to 6 weeks.
+
+### Phase 7 - Packaging, Distribution, and Community Readiness
+
+Goal:
+Make the browser safe to distribute, fork, and adopt commercially.
+
+Steps:
+
+1. Add release packaging for the supported target platforms.
+2. Add third-party notices bundle to release artifacts.
+3. Add browser-specific README and contributor guide.
+4. Add architecture diagrams and public extension points.
+5. Add automated tests for browser contracts, persistence, and action policy layers.
+6. Add a compatibility matrix for supported platforms and fallback behavior.
+7. Add issue templates for browser bugs, security reports, and extension requests.
+8. Add sample integrations that show how downstream users can customize prompts and tools without modifying the core browser host.
+
+Exit criteria:
+
+1. Community can build and run the browser.
+2. Commercial users can evaluate licensing and dependencies clearly.
+3. Extension points are documented.
+
+Estimated effort:
+2 to 4 weeks for initial release hardening.
+
+## Cross-Phase Guardrails
+
+These checks apply in every implementation slice.
+
+1. No new browser slice starts without updated docs and scope status.
+2. New dependencies require license review before merge.
+3. Browser host code must stay out of overloaded files.
+4. Browser APIs belong in dedicated route and contract modules.
+5. LLM features must be optional and disableable.
+6. Persistent storage defaults must be conservative.
+7. High-impact browser actions must be tested manually and logged in bug-test notes.
+
+## Rough Delivery Shape
+
+If executed in sequence by one strong contributor, a realistic Windows-first path is roughly:
+
+1. Planning and spike: 1 to 2 weeks.
+2. Core browser MVP: 1 to 2 months.
+3. Shell integration and Human Mode polish: 1 to 2 months.
+4. LLM Mode and safety systems: 1 to 2 months.
+
+Total realistic path to a serious Windows-first NekoCore Browser:
+3 to 6 months.
+
+Cross-platform and production-grade polish would extend beyond that.
+
+## Recommended Immediate Next Steps
+
+1. Approve this roadmap direction and non-goals.
+2. Decide whether to keep MIT as-is or introduce a DCO or CLA process for future contributors.
+3. Start Phase 0 with governance and dependency rules.
+4. Start Phase 1 with a Windows-only WebView2 spike in an isolated browser-host module.

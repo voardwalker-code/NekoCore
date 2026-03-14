@@ -3,6 +3,96 @@
 Status: active architecture refactor tracking.
 Last updated: 2026-03-14
 
+## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
+
+Status: `Planned`
+
+Purpose:
+1. Define a compliant path for a real NekoCore Browser product.
+2. Keep the work open-source friendly, commercial-friendly, and contributor-safe.
+3. Lock a phased plan before implementation starts.
+
+Planning outputs:
+1. Added `NEKOCORE-BROWSER-ROADMAP.md` as the source-of-truth draft for browser scope, guardrails, and phased delivery.
+2. Defined product position as a browser application built on an existing engine, not a custom rendering engine.
+3. Documented legal and commercial guardrails for licensing, contributor provenance, third-party notices, and prohibited bypass features.
+4. Broke work into seven phases:
+   - governance and compliance,
+   - technical spike and repo layout,
+   - browser core MVP,
+   - shell integration,
+   - human mode,
+   - LLM mode and safety,
+   - packaging and community readiness.
+
+Next recommended action:
+1. Review and approve the roadmap direction.
+2. Start Phase 0 decisions before any browser-host implementation begins.
+
+## Session Ledger — 2026-03-14 (Resilience + OS Window Runtime)
+
+Status: `Done`
+
+Slices completed:
+1. Full backup/restore feature landed (folder-based):
+   - Added APIs for backup/restore in `server/routes/config-routes.js`.
+   - Added manifest generation and restore safety snapshots.
+   - Added Advanced tab UI controls + handlers in `client/index.html` and `client/js/app.js`.
+   - Fixed safety snapshot recursion bug by storing pre-restore snapshots outside `server/data/`.
+
+2. Startup and WebUI auto-open behavior reworked to OS-style flow:
+   - Removed strict timer-driven lockout behavior.
+   - Added state-based open/switch behavior via lock-state + WebUI presence tracking.
+   - Added `POST /api/system/webui-presence` and client heartbeat/beacon reporting.
+
+3. Dedicated window launch behavior implemented cross-platform:
+   - Windows/macOS/Linux launcher paths now prefer dedicated app/kiosk window modes.
+   - Startup logs now explicitly report dedicated window launch/focus behavior.
+
+4. Strict runtime policy enforced per OS with hard failure:
+   - Default runtime policy: Windows=`edge`, macOS=`chrome`, Linux=`chrome`.
+   - Missing runtime now fails loudly (no silent fallback to normal tab open).
+   - Optional override supported via `REM_UI_RUNTIME`.
+
+5. Test coverage updates for launcher/runtime logic:
+   - Updated and expanded `tests/unit/auto-open-browser.test.js` for:
+     - dedicated launch command builders,
+     - state-based switching behavior,
+     - strict runtime missing failure behavior.
+
+Primary files touched this session:
+1. `server/routes/config-routes.js`
+2. `server/services/auto-open-browser.js`
+3. `server/server.js`
+4. `client/index.html`
+5. `client/js/app.js`
+6. `tests/unit/auto-open-browser.test.js`
+
+Verification outcome:
+1. Full automated suite green (`323 pass, 0 fail`) with additional isolated and recursive sweeps.
+
+## Test Verification — 2026-03-14
+
+Status: `Done`
+
+Scope:
+1. Full baseline suite (`unit + integration`) via package script.
+2. Explicit isolated runs for `unit` and `integration` scripts.
+3. Exhaustive recursive sweep of every `tests/**/*.test.js` file.
+
+Execution notes:
+1. PowerShell policy blocked direct `npm` execution (`npm.ps1` restricted); used `cmd /c npm ...` for script invocations.
+2. Test warnings about config/profile validation and mocked LLM fallback paths are expected in current fixtures and did not produce failures.
+
+Commands and outcomes:
+1. `cmd /c npm test` → `323 passed, 0 failed`.
+2. `cmd /c npm run test:unit` → `246 passed, 0 failed`.
+3. `cmd /c npm run test:integration` → `77 passed, 0 failed`.
+4. `node --test <all recursive tests>` (from `Get-ChildItem tests -Recurse -Filter *.test.js`) → `323 passed, 0 failed`.
+
+Conclusion:
+1. Automated test suite is green across baseline, isolated layers, and recursive exhaustive run.
+
 ## Documentation Checkout Policy
 
 Purpose:

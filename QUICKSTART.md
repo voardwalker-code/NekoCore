@@ -1,5 +1,64 @@
 # Quick Start: New Web UI Features
 
+## Current Direction
+
+The current focus is interface quality and usability.
+
+1. Keep the shell intuitive for new users.
+2. Keep app actions easy to discover.
+3. Keep account and power operations explicit.
+4. Keep browser actions simple while a real-browser roadmap is being planned.
+
+## Basic Use Right Now
+
+### 1. Start the server
+
+From project root:
+
+```bash
+npm start
+```
+
+If PowerShell policy blocks npm scripts, run:
+
+```powershell
+node server/server.js
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+### 2. Launch and use apps
+
+1. Open Apps from the taskbar.
+2. Pick a category to see related apps.
+3. Pin frequently used apps for one-click launch.
+4. Use Users for account actions.
+5. Use Power for Sleep, Restart UI, Sign out, and Shut Down Server.
+
+### 3. Use the Browser app
+
+1. Home starts at `https://neko-core.com`.
+2. Use Search Web for in-app search.
+3. Use Show Results to reopen minimized results.
+4. Use Search Home to jump back to search history and quick chips.
+5. Use Show Page to focus the active page.
+
+### 4. Create and manage entities
+
+1. Open Creator app to make new entities.
+2. Open Settings and Users to manage profile/session controls.
+3. Use Chat as the daily interaction surface.
+
+### 5. Safety and license notes
+
+1. NekoCore is MIT licensed.
+2. Do not add or ship bypass features for DRM/paywalls/site security headers.
+3. Keep AI extraction and memory writes user-directed.
+
 ## 🎯 Main Changes at a Glance
 
 ### Before (Old)

@@ -234,6 +234,18 @@ function createRuntimeLifecycle(deps = {}) {
         console.warn('  ⚠ Checkout cleanup error:', e.message);
       }
 
+      try {
+        if (typeof deps.closeDedicatedWebUiWindow === 'function') {
+          deps.closeDedicatedWebUiWindow({ windowTitle: 'REM-System', logger: console });
+          if (typeof deps.updateBrowserOpenState === 'function') {
+            deps.updateBrowserOpenState({ isOpen: false, source: 'shutdown' });
+          }
+          console.log('  ✓ Dedicated WebUI window close requested');
+        }
+      } catch (e) {
+        console.warn('  ⚠ Dedicated WebUI close error:', e.message);
+      }
+
       deps.broadcastSSE('server_shutdown', { message: 'Server shutting down — state saved' });
       console.log('  ✓ Graceful shutdown complete. Goodbye!');
     } catch (e) {

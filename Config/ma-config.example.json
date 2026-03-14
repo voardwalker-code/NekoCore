@@ -1,0 +1,46 @@
+{
+  "configVersion": 1,
+  "lastActive": "default-multi-llm",
+  "profiles": {
+    "default-multi-llm": {
+      "main": {
+        "type": "openrouter",
+        "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+        "apiKey": "",
+        "model": "openai/gpt-4o"
+      },
+      "subconscious": {
+        "type": "openrouter",
+        "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+        "apiKey": "",
+        "model": "anthropic/claude-sonnet-4"
+      },
+      "dream": {
+        "type": "openrouter",
+        "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+        "apiKey": "",
+        "model": "google/gemini-2.5-flash"
+      },
+      "orchestrator": {
+        "type": "openrouter",
+        "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+        "apiKey": "",
+        "model": "openai/gpt-4o"
+      },
+      "_activeTypes": {
+        "main": "openrouter",
+        "subconscious": "openrouter",
+        "dream": "openrouter",
+        "orchestrator": "openrouter"
+      }
+    }
+  },
+  "imageGeneration": {
+    "enabled": false,
+    "backend": "custom",
+    "endpoint": "",
+    "apiKey": "",
+    "model": "",
+    "size": "1024x1024"
+  }
+}

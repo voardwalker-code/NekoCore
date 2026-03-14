@@ -16,7 +16,27 @@
 <canvas id="stars"></canvas>
 
 <!-- ===== LOGIN OVERLAY ===== -->
-<div id="loginOverlay" style="display:flex;position:fixed;inset:0;z-index:10000;background:var(--bg,#0d0d12);align-items:center;justify-content:center;flex-direction:column;">
+<div id="bootOverlay" style="display:flex;position:fixed;inset:0;z-index:9998;background:radial-gradient(circle at top, rgba(92,255,180,.14), transparent 42%),linear-gradient(180deg, rgba(7,10,18,.94), rgba(4,6,12,.98));align-items:center;justify-content:center;flex-direction:column;gap:1rem;backdrop-filter:blur(10px);">
+  <div style="width:min(560px,92vw);padding:2rem 2rem 1.6rem;border-radius:1.2rem;border:1px solid rgba(140,255,208,.18);background:rgba(12,18,28,.88);box-shadow:0 28px 80px rgba(0,0,0,.45);">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;">
+      <div>
+        <div style="font-size:.78rem;letter-spacing:.22em;text-transform:uppercase;color:rgba(170,255,220,.72);">NekoCore OS</div>
+        <div id="bootTitle" style="margin-top:.4rem;font-size:1.9rem;font-weight:800;letter-spacing:-.04em;color:#f5fff9;">Welcome to NekoCore</div>
+      </div>
+      <div style="padding:.45rem .75rem;border-radius:999px;border:1px solid rgba(140,255,208,.18);font-size:.72rem;color:rgba(201,255,228,.78);background:rgba(15,25,38,.64);">Boot Sequence</div>
+    </div>
+    <div id="bootDetail" style="margin-top:.9rem;font-size:.95rem;line-height:1.6;color:rgba(218,237,228,.82);">Loading desktop shell…</div>
+    <div style="margin-top:1.25rem;height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;">
+      <div id="bootProgressBar" style="height:100%;width:8%;border-radius:999px;background:linear-gradient(90deg,#7cf7c3,#b9fff0);box-shadow:0 0 24px rgba(124,247,195,.45);transition:width .35s ease;"></div>
+    </div>
+    <div style="margin-top:.7rem;display:flex;justify-content:space-between;font-size:.72rem;color:rgba(180,207,197,.64);">
+      <span id="bootPhaseLabel">Initializing</span>
+      <span id="bootPercentLabel">8%</span>
+    </div>
+  </div>
+</div>
+
+<div id="loginOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:var(--bg,#0d0d12);align-items:center;justify-content:center;flex-direction:column;">
   <div style="background:var(--bg2,#13131a);border:1px solid var(--br,#2a2a3a);border-radius:1rem;padding:2rem;width:min(420px,92vw);box-shadow:0 24px 64px #0009;">
     <div style="text-align:center;margin-bottom:1.5rem;">
       <div style="font-size:2rem;font-weight:800;letter-spacing:-.04em;color:var(--ac,#7c6aff);">REM</div>
@@ -181,14 +201,14 @@
   </div>
 
   <div class="os-start-section">
+    <div class="os-start-section-title">Pinned</div>
+    <div class="os-launcher-grid os-start-pinned-grid" id="osStartPinnedGrid"></div>
+  </div>
+
+  <div class="os-start-section">
     <div class="os-start-section-title">All Apps</div>
-    <div class="os-launcher-grid" id="osAllTabsMenu"></div>
-    <div class="os-start-inline-actions" style="margin-top:10px">
-      <button class="btn bp text-xs-c" onclick="saveWindowLayout()">Save Layout</button>
-      <button class="btn bg text-xs-c" onclick="restoreWindowLayout()">Restore Layout</button>
-      <button class="btn bg text-xs-c" onclick="resetWindowLayout()">Reset Layout</button>
-      <button class="btn br text-xs-c" onclick="shutdownServer()" title="Power off server" aria-label="Power off server" style="font-weight:700">&#x23FB; Power</button>
-    </div>
+    <div class="os-start-category-grid" id="osStartCategoryGrid"></div>
+    <div class="os-start-category-apps" id="osStartCategoryApps"></div>
   </div>
 
   <div class="os-start-section os-start-two-column">
@@ -211,39 +231,6 @@
     </div>
   </div>
 
-  <div class="os-start-section">
-    <div class="os-start-section-title">Themes</div>
-    <div class="os-theme-picker">
-      <button class="os-theme-option" data-theme-option="system-default" onclick="applyTheme('system-default')">
-        <strong>System Default</strong>
-        <span>Auto dark/light from OS preference</span>
-      </button>
-      <button class="os-theme-option" data-theme-option="light-default" onclick="applyTheme('light-default')">
-        <strong>Light Mode</strong>
-        <span>Bright clean daytime shell</span>
-      </button>
-      <button class="os-theme-option" data-theme-option="neko-default" onclick="applyTheme('neko-default')">
-        <strong>Neko Default</strong>
-        <span>Deep-space emerald shell</span>
-      </button>
-      <button class="os-theme-option" data-theme-option="sunset-terminal" onclick="applyTheme('sunset-terminal')">
-        <strong>Sunset Terminal</strong>
-        <span>Warm amber command-center</span>
-      </button>
-      <button class="os-theme-option" data-theme-option="frosted-orbit" onclick="applyTheme('frosted-orbit')">
-        <strong>Frosted Orbit</strong>
-        <span>Cool glassy telemetry deck</span>
-      </button>
-      <button class="os-theme-option" data-theme-option="mac-sequoia" onclick="applyTheme('mac-sequoia')">
-        <strong>Mac Sequoia</strong>
-        <span>Soft glass gradients with mac-style accents</span>
-      </button>
-      <button class="os-theme-option" data-theme-option="ubuntu-dash" onclick="applyTheme('ubuntu-dash')">
-        <strong>Ubuntu Dash</strong>
-        <span>Warm Linux palette with a side launcher</span>
-      </button>
-    </div>
-  </div>
 </aside>
 
 <aside class="os-side-dash" id="osSideDash">
@@ -286,7 +273,7 @@
     </div>
     <button class="btn bd" onclick="resetAll()">Reset</button>
     <button class="btn bp" onclick="openVisualizer()" title="Open Neural Visualizer">◇ Visualizer</button>
-    <button class="btn br" onclick="shutdownServer()" title="Power off server" aria-label="Power off server" style="font-weight:700">&#x23FB;</button>
+    <button class="btn br power-btn" onclick="shutdownServer()" title="Power off server" aria-label="Power off server">&#x23FB;</button>
     <span id="accountBadge" style="display:none;align-items:center;gap:.4rem;font-size:.7rem;color:var(--tc);margin-left:.25rem;padding:.2rem .6rem;background:var(--bg2);border:1px solid var(--br);border-radius:.5rem;">
       <span style="color:var(--ac);">👤</span>
       <span id="accountUsername" style="font-weight:600;"></span>
@@ -393,7 +380,7 @@
 
   <div class="nav-divider" style="margin-top:auto"></div>
 
-  <button class="nav-item" onclick="shutdownServer()" title="Power off server" aria-label="Power off server" style="color:var(--accent-red)">
+  <button class="nav-item nav-power-btn" onclick="shutdownServer()" title="Power off server" aria-label="Power off server">
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.36 5.64a9 9 0 11-12.72 0"/></svg>
     <span class="nav-label">Power Off Server</span>
   </button>
@@ -1010,6 +997,22 @@
             <div class="health-desc">Rebuild semantic connections in memory graph</div>
             <button class="btn bg" onclick="rebuildTraceGraph()">Rebuild</button>
           </div>
+
+          <div class="health-card">
+            <div class="health-title">📦 Full Backup</div>
+            <div class="health-desc">Save config, runtime data, entities, and memories to a backup folder</div>
+            <input id="backupTargetFolder" type="text" placeholder="C:/Backups" style="width:100%;margin:.5rem 0;padding:.5rem;border-radius:8px;border:1px solid var(--border-default);background:var(--bg-secondary);color:var(--text-primary)">
+            <button class="btn bp" onclick="runSystemBackup(this)">Create Backup</button>
+            <div id="backupStatus" class="status-toast" style="margin-top:.75rem;display:none"></div>
+          </div>
+
+          <div class="health-card">
+            <div class="health-title">♻ Restore Backup</div>
+            <div class="health-desc">Restore config, runtime data, entities, and memories from a backup folder</div>
+            <input id="restoreSourceFolder" type="text" placeholder="C:/Backups/NekoCore-backup-YYYYMMDD-HHMMSS" style="width:100%;margin:.5rem 0;padding:.5rem;border-radius:8px;border:1px solid var(--border-default);background:var(--bg-secondary);color:var(--text-primary)">
+            <button class="btn bg" onclick="runSystemRestore(this)">Restore Backup</button>
+            <div id="restoreStatus" class="status-toast" style="margin-top:.75rem;display:none"></div>
+          </div>
         </div>
       </div>
 
@@ -1330,15 +1333,54 @@
   <div class="tab-content" id="tab-browser">
     <div class="browser-shell">
       <div class="browser-toolbar">
+        <button class="btn bg text-xs-c" onclick="openBrowserHome()">⌂</button>
         <button class="btn bg text-xs-c" onclick="browserGoBack()">←</button>
         <button class="btn bg text-xs-c" onclick="browserGoForward()">→</button>
         <button class="btn bg text-xs-c" onclick="browserReload()">⟳</button>
-        <input id="browserUrlInput" class="browser-url-input" type="text" value="https://example.com" placeholder="https://..." onkeydown="if(event.key==='Enter')navigateBrowserToInput()">
+        <input id="browserUrlInput" class="browser-url-input" type="text" value="https://neko-core.com" placeholder="https://..." onkeydown="if(event.key==='Enter')navigateBrowserToInput()">
         <button class="btn bp text-xs-c" onclick="navigateBrowserToInput()">Go</button>
         <button class="btn bg text-xs-c" onclick="openBrowserExternal()">Open External</button>
       </div>
-      <div class="browser-frame-wrap">
-        <iframe id="browserFrame" class="browser-frame" src="https://example.com" loading="lazy" referrerpolicy="no-referrer"></iframe>
+
+      <div class="browser-search-bar">
+        <input id="browserSearchQuery" class="browser-search-input" type="text" placeholder="Search the web from NekoCore Browser..." onkeydown="if(event.key==='Enter')executeBrowserSearch()">
+        <button class="btn bp text-xs-c" onclick="executeBrowserSearch()">Search Web</button>
+        <button class="btn bg text-xs-c" onclick="showBrowserResultsView()">Show Results</button>
+        <button class="btn bg text-xs-c" onclick="showBrowserHomeView()">Search Home</button>
+        <button class="btn bg text-xs-c" onclick="showBrowserPageView()">Show Page</button>
+      </div>
+
+      <div class="browser-home-wrap" id="browserHomeWrap">
+        <div class="browser-home-hero">
+          <div class="browser-home-kicker">NekoCore Browser</div>
+          <div class="browser-home-title">Search from your Neko workspace</div>
+          <div class="browser-home-sub">Quickly search the web, then open results in this app browser.</div>
+        </div>
+        <div class="browser-home-grid">
+          <section class="browser-home-card">
+            <div class="browser-home-card-title">Quick Searches</div>
+            <div id="browserQuickSearchChips" class="browser-chip-list"></div>
+          </section>
+          <section class="browser-home-card">
+            <div class="browser-home-card-title">Recent Searches</div>
+            <div id="browserRecentSearchChips" class="browser-chip-list"></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="browser-search-results hidden" id="browserSearchResultsWrap">
+        <div class="browser-results-title">
+          <span>Search Results</span>
+          <div class="browser-results-actions">
+            <button class="btn bg text-xs-c" id="browserResultsToggleBtn" onclick="toggleBrowserResultsMinimized()">Minimize</button>
+            <button class="btn bg text-xs-c" onclick="hideBrowserResults()">Close</button>
+          </div>
+        </div>
+        <div id="browserSearchResultsList" class="file-browser" style="max-height:100%;overflow:auto"></div>
+      </div>
+
+      <div class="browser-frame-wrap" id="browserFrameWrap">
+        <iframe id="browserFrame" class="browser-frame" src="https://neko-core.com" loading="lazy" referrerpolicy="no-referrer"></iframe>
       </div>
       <div class="browser-note">Some websites block embedding via iframe. Use "Open External" for those sites.</div>
     </div>
@@ -1516,6 +1558,7 @@
             <button class="btn bp" onclick="usersAppCreateUser()">Add User</button>
             <button class="btn bg" onclick="usersAppRefresh()">Refresh</button>
             <button class="btn bg" onclick="usersAppClearActive()">Clear Active</button>
+            <button class="btn bd" onclick="handleLogout()">Logout</button>
           </div>
         </div>
 
@@ -1535,10 +1578,24 @@
   <!-- ===== TASKBAR ===== -->
   <footer class="os-taskbar">
     <div class="os-taskbar-inner">
+      <div class="os-taskbar-left">
+        <button class="os-start-user os-taskbar-user" onclick="switchMainTab('users', this)" title="Open Users app" aria-label="Open Users app">
+          <span class="os-start-user-avatar">👤</span>
+          <span class="os-start-user-name" id="osStartUserName">NekoCore User</span>
+        </button>
+        <div class="os-start-power-wrap os-taskbar-power-wrap">
+          <button class="btn br power-btn os-start-power-btn os-taskbar-power-btn" id="osStartPowerButton" onclick="toggleStartPowerMenu()" aria-expanded="false" aria-haspopup="menu" title="Power options" aria-label="Power options">⏻</button>
+          <div class="os-start-power-menu" id="osStartPowerMenu" aria-hidden="true" role="menu">
+            <button class="os-start-power-item" role="menuitem" onclick="closeStartMenu()">🛌 Sleep (Close Menu)</button>
+            <button class="os-start-power-item" role="menuitem" onclick="restartShellUI()">🔄 Restart UI</button>
+            <button class="os-start-power-item" role="menuitem" onclick="if (typeof handleLogout === 'function') handleLogout(); closeStartMenu();">🚪 Sign out</button>
+            <button class="os-start-power-item danger" role="menuitem" onclick="shutdownServer()">⏻ Shut Down Server</button>
+          </div>
+        </div>
+      </div>
       <div class="os-taskbar-center" id="osTaskbarCenter">
-        <button class="os-start-button" id="osStartButton" onclick="toggleStartMenu()" aria-expanded="false">
-          <span>◧</span>
-          <span>Apps</span>
+        <button class="os-start-button" id="osStartButton" onclick="toggleStartMenu()" aria-expanded="false" aria-label="Open apps menu" title="Open apps menu">
+          <img class="os-start-button-icon" src="assets/NekoCat.svg" alt="" aria-hidden="true">
         </button>
         <div class="os-taskbar-pinned" id="osTaskbarPinned"></div>
         <div class="os-taskbar-overflow" id="osTaskbarOverflowWrap" style="display:none">
@@ -1588,10 +1645,6 @@
       <div class="setup-step active" id="setupStep1">1</div>
       <div class="setup-step-line"></div>
       <div class="setup-step" id="setupStep2">2</div>
-      <div class="setup-step-line"></div>
-      <div class="setup-step" id="setupStep3">3</div>
-      <div class="setup-step-line"></div>
-      <div class="setup-step" id="setupStep4">4</div>
     </div>
 
     <!-- Step 1: Configure Main LLM (Conscious Mind) -->
@@ -1642,113 +1695,15 @@
       </div>
     </div>
 
-    <!-- Step 2: Configure Subconscious LLM -->
+    <!-- Step 2: Ready to Go -->
     <div class="setup-panel" id="setupPanel2" style="display:none">
-      <h2 class="setup-panel-title">Subconscious Mind</h2>
-      <p class="text-secondary-c text-sm-c mb-4">Processes memories, extracts context, and reflects on experiences in the background.</p>
-      <div class="setup-provider-options">
-        <button class="setup-provider-btn" onclick="setupSelectProviderForAspect('subconscious', 'openrouter')">
-          <div class="setup-provider-icon">🌐</div>
-          <div class="setup-provider-name">OpenRouter</div>
-          <div class="setup-provider-desc">Cloud LLMs via API key</div>
-        </button>
-        <button class="setup-provider-btn" onclick="setupSelectProviderForAspect('subconscious', 'ollama')">
-          <div class="setup-provider-icon">🐋</div>
-          <div class="setup-provider-name">Ollama</div>
-          <div class="setup-provider-desc">Local LLMs on your machine</div>
-        </button>
-      </div>
-      <div class="setup-config-section" style="display:none;margin-top:1.5rem">
-        <div id="setupOpenrouter2" style="display:none">
-          <div class="fl mb-3">
-            <label>API Key</label>
-            <input type="password" id="setupOrKey2" placeholder="sk-or-...">
-          </div>
-          <div class="fl mb-3">
-            <label>Model</label>
-            <input type="text" id="setupOrModel2" list="setupOrModelList2" placeholder="openai/gpt-4o, anthropic/claude-sonnet-4, ...">
-            <datalist id="setupOrModelList2">
-              <option value="openai/gpt-4o"></option>
-              <option value="anthropic/claude-sonnet-4"></option>
-              <option value="google/gemini-2.5-flash"></option>
-              <option value="meta-llama/llama-3.3-70b-instruct"></option>
-              <option value="deepseek/deepseek-chat-v3-0324"></option>
-            </datalist>
-          </div>
-        </div>
-        <div id="setupOllama2" style="display:none">
-          <div class="fl mb-3">
-            <label>Ollama URL</label>
-            <input type="text" id="setupOllamaUrl2" value="http://localhost:11434">
-          </div>
-          <div class="fl mb-3">
-            <label>Model</label>
-            <input type="text" id="setupOllamaModel2" value="llama3" placeholder="llama3, mistral, etc.">
-          </div>
-        </div>
-        <button class="btn bp w-full mt-2" onclick="setupTestConnectionForAspect()">Test &amp; Continue</button>
-      </div>
-    </div>
-
-    <!-- Step 3: Configure Dream LLM -->
-    <div class="setup-panel" id="setupPanel3" style="display:none">
-      <h2 class="setup-panel-title">Dream Engine</h2>
-      <p class="text-secondary-c text-sm-c mb-4">Simulates experiences, consolidates learning, and evolves the entity during sleep cycles.</p>
-      <div class="setup-provider-options">
-        <button class="setup-provider-btn" onclick="setupSelectProviderForAspect('dream', 'openrouter')">
-          <div class="setup-provider-icon">🌐</div>
-          <div class="setup-provider-name">OpenRouter</div>
-          <div class="setup-provider-desc">Cloud LLMs via API key</div>
-        </button>
-        <button class="setup-provider-btn" onclick="setupSelectProviderForAspect('dream', 'ollama')">
-          <div class="setup-provider-icon">🐋</div>
-          <div class="setup-provider-name">Ollama</div>
-          <div class="setup-provider-desc">Local LLMs on your machine</div>
-        </button>
-      </div>
-      <div class="setup-config-section" style="display:none;margin-top:1.5rem">
-        <div id="setupOpenrouter3" style="display:none">
-          <div class="fl mb-3">
-            <label>API Key</label>
-            <input type="password" id="setupOrKey3" placeholder="sk-or-...">
-          </div>
-          <div class="fl mb-3">
-            <label>Model</label>
-            <input type="text" id="setupOrModel3" list="setupOrModelList3" placeholder="openai/gpt-4o, anthropic/claude-sonnet-4, ...">
-            <datalist id="setupOrModelList3">
-              <option value="openai/gpt-4o"></option>
-              <option value="anthropic/claude-sonnet-4"></option>
-              <option value="google/gemini-2.5-flash"></option>
-              <option value="meta-llama/llama-3.3-70b-instruct"></option>
-              <option value="deepseek/deepseek-chat-v3-0324"></option>
-            </datalist>
-          </div>
-        </div>
-        <div id="setupOllama3" style="display:none">
-          <div class="fl mb-3">
-            <label>Ollama URL</label>
-            <input type="text" id="setupOllamaUrl3" value="http://localhost:11434">
-          </div>
-          <div class="fl mb-3">
-            <label>Model</label>
-            <input type="text" id="setupOllamaModel3" value="llama3" placeholder="llama3, mistral, etc.">
-          </div>
-        </div>
-        <button class="btn bp w-full mt-2" onclick="setupTestConnectionForAspect()">Test &amp; Continue</button>
-      </div>
-    </div>
-
-    <!-- Step 4: Ready to Hatch -->
-    <div class="setup-panel" id="setupPanel4" style="display:none">
       <h2 class="setup-panel-title">Ready to Go</h2>
-      <p class="text-secondary-c text-sm-c mb-5">All cognitive systems configured. Save your settings and choose how to create your first entity.</p>
+      <p class="text-secondary-c text-sm-c mb-5">Your Main Mind is connected. The other cognitive roles will inherit this runtime until you customize them later in Settings.</p>
       <div class="summary-card">
         <div class="summary-row" style="margin-bottom:.5rem"><strong>Configuration Summary:</strong></div>
         <div class="summary-row">Main Mind: <span id="setupSummaryMain">Configured</span></div>
-        <div class="summary-row">Subconscious: <span id="setupSummarySub">Configured</span></div>
-        <div class="summary-row">Dream Engine: <span id="setupSummaryDream">Configured</span></div>
       </div>
-      <button class="btn bp w-full" onclick="setupFinish()">Save &amp; Choose Entity Type</button>
+      <button class="btn bp w-full" onclick="setupFinish()">Save &amp; Open Creator</button>
     </div>
 
     <div class="setup-status" id="setupStatus"></div>

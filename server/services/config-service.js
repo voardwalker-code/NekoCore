@@ -63,6 +63,15 @@ const IMAGE_GENERATION_DEFAULTS = {
   size: '1024x1024'
 };
 
+const DEFAULT_GLOBAL_CONFIG = {
+  configVersion: CURRENT_CONFIG_VERSION,
+  lastActive: 'default-multi-llm',
+  profiles: {
+    'default-multi-llm': {}
+  },
+  imageGeneration: IMAGE_GENERATION_DEFAULTS
+};
+
 class ConfigService {
   constructor() {
     this._defaultMaxTokens = 16000;
@@ -71,6 +80,10 @@ class ConfigService {
     this._migrateLegacyIfNeeded();
     this.refreshMaxTokensCache();
     this.refreshTokenLimitsCache();
+  }
+
+  _makeDefaultConfig() {
+    return JSON.parse(JSON.stringify(DEFAULT_GLOBAL_CONFIG));
   }
 
   _ensureConfigDir() {
@@ -100,30 +113,58 @@ class ConfigService {
     try {
       this._ensureConfigDir();
       this._migrateLegacyIfNeeded();
-      if (fs.existsSync(CONFIG_FILE)) {
-        let data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-        console.log(`  \u2713 Config loaded from ${CONFIG_FILE}`);
-        const preMigrateVersion = data.configVersion || 0;
-        data = this._runMigrations(data);
-        if (data.configVersion !== preMigrateVersion) {
-          // Auto-save after migration so the stamped version persists
-          this.save(data);
-        }
-        this._applyDefaults(data);
-        this.validateGlobalConfig(data);
-        return data;
-      } else {
-        console.log(`  \u2139 Config file not found at ${CONFIG_FILE} (will be created on first save)`);
-        return {};
+      if (!fs.existsSync(CONFIG_FILE)) {
+        const defaults = this._makeDefaultConfig();
+        this.save(defaults);
       }
+
+      let data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('Config root must be a JSON object');
+      }
+      console.log(`  \u2713 Config loaded from ${CONFIG_FILE}`);
+      const preMigrateVersion = data.configVersion || 0;
+      data = this._runMigrations(data);
+      if (data.configVersion !== preMigrateVersion) {
+        // Auto-save after migration so the stamped version persists
+        this.save(data);
+      }
+      const beforeDefaultsJson = JSON.stringify(data);
+      this._applyDefaults(data);
+      if (JSON.stringify(data) !== beforeDefaultsJson) {
+        this.save(data);
+      }
+      this.validateGlobalConfig(data);
+      return data;
     } catch (e) {
       console.error('  \u26A0 Could not read config:', e.message);
-      return {};
+      try {
+        const backupPath = `${CONFIG_FILE}.corrupt-${Date.now()}`;
+        if (fs.existsSync(CONFIG_FILE)) {
+          fs.copyFileSync(CONFIG_FILE, backupPath);
+          console.error(`  \u26A0 Backed up unreadable config to ${backupPath}`);
+        }
+        const defaults = this._makeDefaultConfig();
+        this.save(defaults);
+        return defaults;
+      } catch (repairErr) {
+        console.error('  \u26A0 Could not repair config:', repairErr.message);
+        return this._makeDefaultConfig();
+      }
     }
   }
 
   _applyDefaults(cfg) {
     if (!cfg || typeof cfg !== 'object') return cfg;
+    if (!cfg.profiles || typeof cfg.profiles !== 'object' || Array.isArray(cfg.profiles)) {
+      cfg.profiles = {};
+    }
+    if (!cfg.lastActive || typeof cfg.lastActive !== 'string') {
+      cfg.lastActive = 'default-multi-llm';
+    }
+    if (!cfg.profiles[cfg.lastActive]) {
+      cfg.profiles[cfg.lastActive] = {};
+    }
     if (!cfg.imageGeneration || typeof cfg.imageGeneration !== 'object') {
       cfg.imageGeneration = Object.assign({}, IMAGE_GENERATION_DEFAULTS);
     } else {

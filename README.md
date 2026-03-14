@@ -345,6 +345,35 @@ Then open `http://localhost:3000` in your browser.
 
 ---
 
+## Current Direction (March 2026)
+
+Current product direction is UI and UX first.
+
+1. Make the desktop shell intuitive for first-time users.
+2. Group actions into clear app surfaces instead of hidden controls.
+3. Keep core actions fast to find: Apps, Users, Power, Browser, Creator, Settings.
+4. Keep power and shutdown behavior predictable and safe.
+5. Keep browser capabilities practical today while planning a real embedded-browser path.
+
+The near-term effort is focused on interface clarity and ease of use before deeper feature expansion.
+
+---
+
+## Copyright and Community Safety
+
+NekoCore is intended to be safe for open-source collaboration and paid project use.
+
+1. Core code is MIT licensed.
+2. Avoid adding features designed to bypass DRM, paywalls, CSP, frame restrictions, or other site security controls.
+3. Keep AI content extraction user-directed and transparent.
+4. Do not silently persist page content into long-term memory without explicit user intent.
+5. Track third-party components and include required notices when packaging distributions.
+
+Browser note:
+The current in-shell browser app uses an embedded page model and some sites may block embedding by policy.
+
+---
+
 ## Usage
 
 ### Browser UI
@@ -358,6 +387,18 @@ Then open `http://localhost:3000` in your browser.
 | Diary | `/` (diary tab) | Entity self-reflection log |
 | Sleep Controls | `/` (sleep tab) | Trigger REM cycle, view sleep history |
 | Neural Visualizer | `/visualizer.html` | 3D WebGL cognitive state graph |
+
+### Desktop Shell Basics (Current)
+
+1. Click Apps to open categorized app launcher.
+2. Use pinned apps on the taskbar for one-click launch.
+3. Use Users for account actions, including logout.
+4. Use the power control for Sleep, Restart UI, Sign out, or Shut Down Server.
+5. In Browser app:
+  - Search Web to run in-app search
+  - Search Home to return to history and quick chips
+  - Show Results to restore minimized search results
+  - Show Page to focus the current web page view
 
 ### Creating an Entity
 

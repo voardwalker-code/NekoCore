@@ -54,6 +54,8 @@ const SHELL_THEMES = {
 let desktopShellInitialized = false;
 let shellClockTimer = null;
 let shellStatusTimer = null;
+let webUiPresenceTimer = null;
+let webUiPresenceStarted = false;
 let taskbarOverflowRaf = 0;
 const WINDOW_LAYOUT_STORAGE_KEY = 'rem-window-layout-v2';
 const PINNED_APPS_STORAGE_KEY = 'rem-pinned-apps-v1';
@@ -79,6 +81,85 @@ const WINDOW_APPS = [
   { tab: 'browser', label: 'Web Browser', icon: '🌐', w: 1080, h: 720 }
 ];
 
+const START_MENU_CATEGORY_ORDER = [
+  { id: 'communication', label: 'Communication' },
+  { id: 'workspace', label: 'Workspace' },
+  { id: 'statistics', label: 'Statistics' },
+  { id: 'customization', label: 'Customization' },
+  { id: 'system', label: 'System & Settings' },
+  { id: 'creation', label: 'Creation & Identity' }
+];
+
+const APP_CATEGORY_BY_TAB = {
+  chat: 'communication',
+  skills: 'communication',
+  workspace: 'workspace',
+  documents: 'workspace',
+  browser: 'workspace',
+  visualizer: 'statistics',
+  physical: 'statistics',
+  activity: 'statistics',
+  observability: 'statistics',
+  settings: 'system',
+  advanced: 'system',
+  users: 'system',
+  creator: 'creation',
+  entity: 'creation',
+  dreamgallery: 'creation',
+  lifediary: 'creation',
+  dreamdiary: 'creation'
+};
+
+const START_MENU_SPECIAL_APPS = [
+  {
+    id: 'control-panel',
+    tab: 'settings',
+    launchTab: 'settings',
+    label: 'Control Panel',
+    icon: '🛠️',
+    category: 'system',
+    pinnable: false,
+    description: 'Classic settings hub'
+  },
+  {
+    id: 'themes-app',
+    tab: 'settings',
+    launchTab: 'settings',
+    label: 'Themes',
+    icon: '🎨',
+    category: 'customization',
+    pinnable: false,
+    description: 'Theme gallery'
+  },
+  {
+    id: 'save-layout',
+    label: 'Save Layout',
+    icon: '💾',
+    category: 'customization',
+    pinnable: false,
+    description: 'Save current windows',
+    action: 'saveWindowLayout'
+  },
+  {
+    id: 'restore-layout',
+    label: 'Restore Layout',
+    icon: '🧩',
+    category: 'customization',
+    pinnable: false,
+    description: 'Restore saved layout',
+    action: 'restoreWindowLayout'
+  },
+  {
+    id: 'reset-layout',
+    label: 'Reset Layout',
+    icon: '🗑️',
+    category: 'customization',
+    pinnable: false,
+    description: 'Reset window positions',
+    action: 'resetWindowLayout'
+  }
+];
+
 const windowManager = {
   stage: null,
   windows: new Map(),
@@ -93,6 +174,9 @@ const windowManager = {
   }
 };
 let pinnedApps = [];
+let selectedStartCategoryId = '';
+let startCategoryViewMode = 'categories';
+let layoutResizeRaf = 0;
 let systemThemeMediaQuery = null;
 const pinnedDragState = {
   tab: null,
@@ -129,6 +213,46 @@ function lg(type, msg) {
   entry.innerHTML = '<span class="ts">' + new Date().toLocaleTimeString() + '</span><span class="mg">' + msg + '</span>';
   body.appendChild(entry);
   body.scrollTop = body.scrollHeight;
+}
+
+function waitMs(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function setBootOverlayState(title, detail, percent) {
+  const pct = Math.max(0, Math.min(100, Number(percent) || 0));
+  const titleEl = document.getElementById('bootTitle');
+  const detailEl = document.getElementById('bootDetail');
+  const phaseEl = document.getElementById('bootPhaseLabel');
+  const percentEl = document.getElementById('bootPercentLabel');
+  const barEl = document.getElementById('bootProgressBar');
+  if (titleEl) titleEl.textContent = title;
+  if (detailEl) detailEl.textContent = detail;
+  if (phaseEl) phaseEl.textContent = title;
+  if (percentEl) percentEl.textContent = pct + '%';
+  if (barEl) barEl.style.width = pct + '%';
+}
+
+function showBootOverlay() {
+  const overlay = document.getElementById('bootOverlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function hideBootOverlay() {
+  const overlay = document.getElementById('bootOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function getBootGreetingTitle() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+async function runBootStage(title, detail, percent, delayMs = 520) {
+  setBootOverlayState(title, detail, percent);
+  await waitMs(delayMs);
 }
 
 // ============================================================
@@ -475,6 +599,49 @@ function closeStartMenu() {
   }
   if (scrim) scrim.classList.remove('open');
   if (button) button.setAttribute('aria-expanded', 'false');
+  closeStartPowerMenu();
+}
+
+function updateStartUserChip() {
+  const nameEl = document.getElementById('osStartUserName');
+  if (!nameEl) return;
+
+  try {
+    const account = typeof getCurrentAccount === 'function' ? getCurrentAccount() : null;
+    if (account && (account.displayName || account.username)) {
+      nameEl.textContent = account.displayName || account.username;
+      return;
+    }
+  } catch (_) {}
+
+  const fallback = document.getElementById('accountUsername');
+  const fallbackName = fallback ? String(fallback.textContent || '').trim() : '';
+  nameEl.textContent = fallbackName || 'NekoCore User';
+}
+
+function closeStartPowerMenu() {
+  const powerMenu = document.getElementById('osStartPowerMenu');
+  const powerButton = document.getElementById('osStartPowerButton');
+  if (powerMenu) {
+    powerMenu.classList.remove('open');
+    powerMenu.setAttribute('aria-hidden', 'true');
+  }
+  if (powerButton) powerButton.setAttribute('aria-expanded', 'false');
+}
+
+function toggleStartPowerMenu(forceOpen) {
+  const powerMenu = document.getElementById('osStartPowerMenu');
+  const powerButton = document.getElementById('osStartPowerButton');
+  if (!powerMenu) return;
+  const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !powerMenu.classList.contains('open');
+  powerMenu.classList.toggle('open', shouldOpen);
+  powerMenu.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+  if (powerButton) powerButton.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+}
+
+function restartShellUI() {
+  closeStartMenu();
+  window.location.reload();
 }
 
 function toggleStartMenu(forceOpen) {
@@ -488,6 +655,28 @@ function toggleStartMenu(forceOpen) {
   menu.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
   scrim.classList.toggle('open', shouldOpen);
   if (button) button.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+  if (shouldOpen) {
+    startCategoryViewMode = 'categories';
+    updateStartUserChip();
+    buildLauncherMenu();
+  }
+}
+
+function openStartCategoryApps(categoryId) {
+  if (!categoryId) return;
+  selectedStartCategoryId = categoryId;
+  startCategoryViewMode = 'apps';
+  buildLauncherMenu();
+}
+
+function showStartCategories() {
+  startCategoryViewMode = 'categories';
+  buildLauncherMenu();
+}
+
+function showAllStartApps() {
+  startCategoryViewMode = 'all';
+  buildLauncherMenu();
 }
 
 function initDesktopShell() {
@@ -496,7 +685,10 @@ function initDesktopShell() {
 
   applyTheme(getStoredThemeId());
   initWindowManager();
+  loadBrowserSearchHistory();
+  renderBrowserSearchHome();
   loadPinnedApps();
+  updateStartUserChip();
   buildLauncherMenu();
   renderPinnedApps();
   updateShellClock();
@@ -515,6 +707,7 @@ function initDesktopShell() {
   shellClockTimer = window.setInterval(updateShellClock, 30000);
   shellStatusTimer = window.setInterval(syncShellStatusWidgets, 4000);
   window.setInterval(updateTaskManagerView, 1200);
+  startWebUiPresenceHeartbeat();
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeStartMenu();
@@ -523,12 +716,53 @@ function initDesktopShell() {
   document.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    if (target.closest('#osStartMenu') || target.closest('#osStartButton')) return;
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+    const clickedInStartMenu = path.includes(document.getElementById('osStartMenu'));
+    const clickedStartButton = path.includes(document.getElementById('osStartButton'));
+    const clickedTaskbarLeft = path.includes(document.querySelector('.os-taskbar-left'));
+
+    if (!target.closest('.os-start-power-wrap')) {
+      closeStartPowerMenu();
+    }
+    if (clickedInStartMenu || clickedStartButton || clickedTaskbarLeft) return;
     closeStartMenu();
   });
 
   window.addEventListener('beforeunload', () => {
     if (!windowManager.popoutTab) saveWindowLayout();
+    reportWebUiPresence(false, { beacon: true });
+  });
+}
+
+function reportWebUiPresence(isOpen, options = {}) {
+  const payload = JSON.stringify({
+    isOpen: !!isOpen,
+    url: window.location.origin
+  });
+
+  if (options.beacon && navigator.sendBeacon) {
+    const blob = new Blob([payload], { type: 'application/json' });
+    navigator.sendBeacon('/api/system/webui-presence', blob);
+    return;
+  }
+
+  fetch('/api/system/webui-presence', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: payload,
+    keepalive: !!options.keepalive
+  }).catch(() => {});
+}
+
+function startWebUiPresenceHeartbeat() {
+  if (webUiPresenceStarted) return;
+  webUiPresenceStarted = true;
+
+  reportWebUiPresence(true);
+  webUiPresenceTimer = window.setInterval(() => reportWebUiPresence(true), 15000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) reportWebUiPresence(true);
   });
 }
 
@@ -538,18 +772,25 @@ function getWindowApp(tabName) {
 }
 
 function loadPinnedApps() {
+  let hasStoredPins = false;
   try {
     const raw = localStorage.getItem(PINNED_APPS_STORAGE_KEY);
-    if (raw) {
+    if (raw !== null) {
+      hasStoredPins = true;
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         pinnedApps = parsed.filter((tab) => WINDOW_APPS.some((app) => app.tab === tab));
+      } else {
+        pinnedApps = [];
       }
     }
   } catch (_) {
     pinnedApps = [];
   }
-  if (!pinnedApps.length) pinnedApps = [...DEFAULT_PINNED_APPS];
+
+  // Only seed defaults on first run when no stored pin state exists.
+  // If users intentionally unpin everything, we keep that empty list.
+  if (!hasStoredPins && !pinnedApps.length) pinnedApps = [...DEFAULT_PINNED_APPS];
 }
 
 function savePinnedApps() {
@@ -582,6 +823,7 @@ function reorderPinnedApps(dragTab, beforeTab) {
   next.splice(insertAt, 0, dragTab);
   pinnedApps = next;
   savePinnedApps();
+  buildLauncherMenu();
   renderPinnedApps();
 }
 
@@ -656,7 +898,8 @@ function createPinnedButton(app, className) {
   button.className = className;
   button.setAttribute('data-tab', app.tab);
   button.title = app.label;
-  button.textContent = app.icon + ' ' + app.label;
+  button.setAttribute('aria-label', app.label);
+  button.innerHTML = '<span class="os-pinned-app-icon">' + app.icon + '</span>';
   button.onclick = function() { switchMainTab(app.tab, button); };
   button.draggable = true;
   button.addEventListener('dragstart', onPinnedDragStart);
@@ -819,6 +1062,15 @@ function getStageRect() {
   return windowManager.stage.getBoundingClientRect();
 }
 
+function scheduleLayoutResizeSignal(detail = {}) {
+  if (layoutResizeRaf) return;
+  layoutResizeRaf = requestAnimationFrame(() => {
+    layoutResizeRaf = 0;
+    try { window.dispatchEvent(new Event('resize')); } catch (_) {}
+    try { window.dispatchEvent(new CustomEvent('rem:layout-resized', { detail })); } catch (_) {}
+  });
+}
+
 function clampWindowRect(rect, minWidth = 460, minHeight = 320) {
   const stage = getStageRect();
   const width = Math.max(minWidth, Math.min(rect.width, stage.width));
@@ -836,6 +1088,7 @@ function setWindowRect(meta, rect) {
   meta.el.style.top = clamped.top + 'px';
   meta.el.style.width = clamped.width + 'px';
   meta.el.style.height = clamped.height + 'px';
+  scheduleLayoutResizeSignal({ tab: meta.tab, width: clamped.width, height: clamped.height });
 }
 
 function captureWindowRect(meta) {
@@ -1215,35 +1468,189 @@ function createWindowShell(tabName, tabElement) {
 }
 
 function buildLauncherMenu() {
-  const host = document.getElementById('osAllTabsMenu');
-  if (!host) return;
-  host.innerHTML = '';
+  const categoryHost = document.getElementById('osStartCategoryGrid');
+  const appsHost = document.getElementById('osStartCategoryApps');
+  const pinnedHost = document.getElementById('osStartPinnedGrid');
+  if (!categoryHost || !appsHost) return;
+  categoryHost.innerHTML = '';
+  appsHost.innerHTML = '';
 
-  WINDOW_APPS.forEach((app) => {
-    if (!windowManager.windows.has(app.tab)) return;
-    const button = document.createElement('button');
-    button.className = 'os-launcher-item';
-    button.setAttribute('data-tab', app.tab);
-    button.innerHTML = '<span class="launcher-app-label">' + app.icon + ' ' + app.label + '</span>';
-    const pin = document.createElement('span');
-    pin.className = 'launcher-pin-btn';
-    pin.setAttribute('role', 'button');
-    pin.setAttribute('tabindex', '0');
-    pin.textContent = isPinnedApp(app.tab) ? 'Unpin' : 'Pin';
-    pin.onclick = function(event) {
-      event.stopPropagation();
-      togglePinnedApp(app.tab);
-    };
-    pin.onkeydown = function(event) {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault();
-      event.stopPropagation();
-      togglePinnedApp(app.tab);
-    };
-    button.appendChild(pin);
-    button.onclick = function() { switchMainTab(app.tab, button); };
-    host.appendChild(button);
+  const allApps = WINDOW_APPS
+    .filter((app) => windowManager.windows.has(app.tab))
+    .map((app) => ({
+      ...app,
+      launchTab: app.tab,
+      category: APP_CATEGORY_BY_TAB[app.tab] || 'workspace',
+      pinnable: true,
+      description: ''
+    }));
+  const startApps = [...allApps, ...START_MENU_SPECIAL_APPS];
+
+  const categoryGroups = new Map();
+  startApps.forEach((app) => {
+    const key = app.category || 'workspace';
+    if (!categoryGroups.has(key)) categoryGroups.set(key, []);
+    categoryGroups.get(key).push(app);
   });
+
+  const availableCategories = START_MENU_CATEGORY_ORDER.filter((category) => (categoryGroups.get(category.id) || []).length > 0);
+  if (!selectedStartCategoryId || !categoryGroups.has(selectedStartCategoryId)) {
+    selectedStartCategoryId = availableCategories.length ? availableCategories[0].id : '';
+  }
+
+  if (pinnedHost) {
+    pinnedHost.innerHTML = '';
+    pinnedApps.forEach((tabName) => {
+      const app = allApps.find((item) => item.tab === tabName);
+      if (!app) return;
+      const button = document.createElement('button');
+      button.className = 'os-launcher-item os-start-pinned-app';
+      button.setAttribute('data-tab', app.launchTab);
+      button.innerHTML = '<span class="launcher-app-label">' + app.icon + ' ' + app.label + '</span><span class="launcher-pin-btn">Pinned</span>';
+      button.onclick = function() { switchMainTab(app.launchTab, button); };
+      pinnedHost.appendChild(button);
+    });
+  }
+
+  if (startCategoryViewMode === 'categories') {
+    categoryHost.style.display = '';
+    appsHost.style.display = '';
+    availableCategories.forEach((category) => {
+      const apps = categoryGroups.get(category.id) || [];
+      const card = document.createElement('button');
+      card.className = 'os-start-category-card';
+      card.setAttribute('type', 'button');
+      card.classList.toggle('on', category.id === selectedStartCategoryId);
+      card.innerHTML = [
+        '<span class="os-start-category-title">' + category.label + '</span>',
+        '<span class="os-start-category-preview">',
+        apps.slice(0, 4).map((app) => '<span class="os-start-category-app-icon" title="' + app.label + '">' + app.icon + '</span>').join(''),
+        '</span>'
+      ].join('');
+      card.onclick = function(clickEvent) {
+        clickEvent.stopPropagation();
+        openStartCategoryApps(category.id);
+      };
+      categoryHost.appendChild(card);
+    });
+  } else {
+    categoryHost.style.display = 'none';
+    appsHost.style.display = '';
+  }
+
+  const makeAppButton = (app) => {
+    const button = document.createElement('button');
+    button.className = 'os-launcher-item os-start-app-item';
+    if (app.launchTab) button.setAttribute('data-tab', app.launchTab);
+    const desc = app.description ? '<span class="launcher-app-meta">' + app.description + '</span>' : '';
+    button.innerHTML = '<span class="launcher-app-label">' + app.icon + ' ' + app.label + '</span>' + desc;
+
+    if (app.pinnable) {
+      const pin = document.createElement('span');
+      pin.className = 'launcher-pin-btn';
+      pin.setAttribute('role', 'button');
+      pin.setAttribute('tabindex', '0');
+      pin.textContent = isPinnedApp(app.tab) ? 'Unpin' : 'Pin';
+      pin.onclick = function(event) {
+        event.stopPropagation();
+        togglePinnedApp(app.tab);
+      };
+      pin.onkeydown = function(event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        event.stopPropagation();
+        togglePinnedApp(app.tab);
+      };
+      button.appendChild(pin);
+    }
+
+    if (app.action) {
+      button.onclick = function() {
+        const fn = window[app.action];
+        if (typeof fn === 'function') fn();
+        closeStartMenu();
+      };
+    } else {
+      button.onclick = function() { switchMainTab(app.launchTab, button); };
+    }
+    return button;
+  };
+
+  const selectedCategory = START_MENU_CATEGORY_ORDER.find((category) => category.id === selectedStartCategoryId);
+  const selectedApps = categoryGroups.get(selectedStartCategoryId) || [];
+
+  if (startCategoryViewMode === 'apps') {
+    const tools = document.createElement('div');
+    tools.className = 'os-start-inline-actions';
+    const back = document.createElement('button');
+    back.className = 'btn bg text-xs-c';
+    back.textContent = '← Back to Categories';
+    back.onclick = function(clickEvent) {
+      clickEvent.stopPropagation();
+      showStartCategories();
+    };
+    tools.appendChild(back);
+
+    const showAll = document.createElement('button');
+    showAll.className = 'btn bg text-xs-c';
+    showAll.textContent = 'Show All Apps';
+    showAll.onclick = function(clickEvent) {
+      clickEvent.stopPropagation();
+      showAllStartApps();
+    };
+    tools.appendChild(showAll);
+
+    appsHost.appendChild(tools);
+
+    const heading = document.createElement('div');
+    heading.className = 'os-start-section-title';
+    heading.textContent = (selectedCategory ? selectedCategory.label : 'Apps') + ' Apps';
+    appsHost.appendChild(heading);
+
+    const grid = document.createElement('div');
+    grid.className = 'os-launcher-grid os-launcher-grid-categorized';
+    selectedApps.forEach((app) => grid.appendChild(makeAppButton(app)));
+    appsHost.appendChild(grid);
+  } else if (startCategoryViewMode === 'all') {
+    const tools = document.createElement('div');
+    tools.className = 'os-start-inline-actions';
+    const back = document.createElement('button');
+    back.className = 'btn bg text-xs-c';
+    back.textContent = '← Back to Categories';
+    back.onclick = function(clickEvent) {
+      clickEvent.stopPropagation();
+      showStartCategories();
+    };
+    tools.appendChild(back);
+    appsHost.appendChild(tools);
+
+    const heading = document.createElement('div');
+    heading.className = 'os-start-section-title';
+    heading.textContent = 'All Apps';
+    appsHost.appendChild(heading);
+
+    const grid = document.createElement('div');
+    grid.className = 'os-launcher-grid os-launcher-grid-categorized';
+    startApps.forEach((app) => grid.appendChild(makeAppButton(app)));
+    appsHost.appendChild(grid);
+  } else {
+    const hint = document.createElement('div');
+    hint.className = 'os-start-section-title';
+    hint.textContent = 'Select a category to open apps';
+    appsHost.appendChild(hint);
+
+    const tools = document.createElement('div');
+    tools.className = 'os-start-inline-actions';
+    const showAll = document.createElement('button');
+    showAll.className = 'btn bg text-xs-c';
+    showAll.textContent = 'Show All Apps';
+    showAll.onclick = function(clickEvent) {
+      clickEvent.stopPropagation();
+      showAllStartApps();
+    };
+    tools.appendChild(showAll);
+    appsHost.appendChild(tools);
+  }
 }
 
 function serializeWindow(meta) {
@@ -1379,6 +1786,241 @@ function normalizeBrowserUrl(raw) {
   return 'https://' + trimmed;
 }
 
+const BROWSER_HOMEPAGE = 'https://neko-core.com';
+const BROWSER_SEARCH_HISTORY_KEY = 'rem-browser-search-history-v1';
+const BROWSER_TRENDING_QUERIES = [
+  'latest AI tools',
+  'javascript window resize observer',
+  'memory consolidation research',
+  'chrome app mode flags',
+  'node.js performance tuning',
+  'best prompt engineering guides'
+];
+let browserSearchHistory = [];
+
+function loadBrowserSearchHistory() {
+  try {
+    const raw = localStorage.getItem(BROWSER_SEARCH_HISTORY_KEY);
+    if (!raw) {
+      browserSearchHistory = [];
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    browserSearchHistory = Array.isArray(parsed) ? parsed.filter(Boolean).slice(0, 12) : [];
+  } catch (_) {
+    browserSearchHistory = [];
+  }
+}
+
+function saveBrowserSearchHistory() {
+  try {
+    localStorage.setItem(BROWSER_SEARCH_HISTORY_KEY, JSON.stringify(browserSearchHistory.slice(0, 12)));
+  } catch (_) {
+    // Ignore storage failures.
+  }
+}
+
+function rememberBrowserSearchQuery(query) {
+  const normalized = String(query || '').trim();
+  if (!normalized) return;
+  browserSearchHistory = [normalized, ...browserSearchHistory.filter((q) => q.toLowerCase() !== normalized.toLowerCase())].slice(0, 12);
+  saveBrowserSearchHistory();
+}
+
+function runBrowserQuickSearch(query) {
+  const input = document.getElementById('browserSearchQuery');
+  if (input) input.value = String(query || '');
+  executeBrowserSearch();
+}
+
+function renderBrowserSearchHome() {
+  const quickEl = document.getElementById('browserQuickSearchChips');
+  const recentEl = document.getElementById('browserRecentSearchChips');
+  if (!quickEl || !recentEl) return;
+
+  quickEl.innerHTML = '';
+  BROWSER_TRENDING_QUERIES.forEach((query) => {
+    const chip = document.createElement('button');
+    chip.className = 'browser-chip';
+    chip.type = 'button';
+    chip.textContent = query;
+    chip.onclick = function() { runBrowserQuickSearch(query); };
+    quickEl.appendChild(chip);
+  });
+
+  recentEl.innerHTML = '';
+  const recent = browserSearchHistory.slice(0, 8);
+  if (!recent.length) {
+    const empty = document.createElement('div');
+    empty.className = 'text-xs-c text-tertiary-c';
+    empty.textContent = 'No recent searches yet.';
+    recentEl.appendChild(empty);
+    return;
+  }
+
+  recent.forEach((query) => {
+    const chip = document.createElement('button');
+    chip.className = 'browser-chip';
+    chip.type = 'button';
+    chip.textContent = query;
+    chip.onclick = function() { runBrowserQuickSearch(query); };
+    recentEl.appendChild(chip);
+  });
+}
+
+function openBrowserHome() {
+  const input = document.getElementById('browserUrlInput');
+  const frame = document.getElementById('browserFrame');
+  if (input) input.value = BROWSER_HOMEPAGE;
+  if (frame) frame.src = BROWSER_HOMEPAGE;
+  showBrowserHomeView();
+}
+
+function hasBrowserSearchResults() {
+  const resultsEl = document.getElementById('browserSearchResultsList');
+  return !!(resultsEl && resultsEl.children && resultsEl.children.length > 0);
+}
+
+function updateBrowserResultsToggleButton() {
+  const wrap = document.getElementById('browserSearchResultsWrap');
+  const btn = document.getElementById('browserResultsToggleBtn');
+  if (!wrap || !btn) return;
+  btn.textContent = wrap.classList.contains('minimized') ? 'Expand' : 'Minimize';
+}
+
+function minimizeBrowserResults() {
+  const wrap = document.getElementById('browserSearchResultsWrap');
+  if (!wrap || !hasBrowserSearchResults()) return;
+  wrap.classList.remove('hidden');
+  wrap.classList.add('minimized');
+  updateBrowserResultsToggleButton();
+}
+
+function expandBrowserResults() {
+  const wrap = document.getElementById('browserSearchResultsWrap');
+  if (!wrap || !hasBrowserSearchResults()) return;
+  wrap.classList.remove('hidden');
+  wrap.classList.remove('minimized');
+  updateBrowserResultsToggleButton();
+}
+
+function hideBrowserResults() {
+  const wrap = document.getElementById('browserSearchResultsWrap');
+  if (!wrap) return;
+  wrap.classList.add('hidden');
+  wrap.classList.remove('minimized');
+  updateBrowserResultsToggleButton();
+}
+
+function toggleBrowserResultsMinimized() {
+  const wrap = document.getElementById('browserSearchResultsWrap');
+  if (!wrap) return;
+  if (wrap.classList.contains('minimized')) {
+    expandBrowserResults();
+  } else {
+    minimizeBrowserResults();
+  }
+}
+
+function showBrowserHomeView() {
+  const homeWrap = document.getElementById('browserHomeWrap');
+  const frameWrap = document.getElementById('browserFrameWrap');
+  const resultsWrap = document.getElementById('browserSearchResultsWrap');
+  if (homeWrap) homeWrap.classList.remove('hidden');
+  if (frameWrap) frameWrap.classList.add('hidden');
+  if (resultsWrap) hideBrowserResults();
+  renderBrowserSearchHome();
+}
+
+function showBrowserPageView(options = {}) {
+  const keepResultsMinimized = !!options.keepResultsMinimized;
+  const homeWrap = document.getElementById('browserHomeWrap');
+  const frameWrap = document.getElementById('browserFrameWrap');
+  if (homeWrap) homeWrap.classList.add('hidden');
+  if (frameWrap) frameWrap.classList.remove('hidden');
+  if (keepResultsMinimized && hasBrowserSearchResults()) {
+    minimizeBrowserResults();
+  } else {
+    hideBrowserResults();
+  }
+}
+
+function showBrowserResultsView() {
+  const homeWrap = document.getElementById('browserHomeWrap');
+  const frameWrap = document.getElementById('browserFrameWrap');
+  if (homeWrap) homeWrap.classList.add('hidden');
+  if (frameWrap) frameWrap.classList.add('hidden');
+  expandBrowserResults();
+}
+
+async function executeBrowserSearch() {
+  const input = document.getElementById('browserSearchQuery');
+  const resultsEl = document.getElementById('browserSearchResultsList');
+  if (!input || !resultsEl) return;
+
+  const query = String(input.value || '').trim();
+  if (!query) return;
+  rememberBrowserSearchQuery(query);
+  renderBrowserSearchHome();
+
+  showBrowserResultsView();
+  resultsEl.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:1rem">Searching...</div>';
+
+  try {
+    const res = await fetch('/api/skills/web-search/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+    if (!res.ok) throw new Error('Search failed');
+    const data = await res.json();
+    const results = Array.isArray(data.results) ? data.results : [];
+
+    if (!results.length) {
+      resultsEl.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:1rem">No results found</div>';
+      return;
+    }
+
+    resultsEl.innerHTML = '';
+    results.forEach((result) => {
+      const row = document.createElement('div');
+      row.style.padding = '.75rem';
+      row.style.borderBottom = '1px solid var(--border-default)';
+
+      const title = document.createElement('button');
+      title.className = 'browser-result-title';
+      title.type = 'button';
+      title.textContent = String(result.title || result.url || 'Untitled');
+      title.onclick = () => {
+        const urlInput = document.getElementById('browserUrlInput');
+        const frame = document.getElementById('browserFrame');
+        const next = normalizeBrowserUrl(result.url || '');
+        if (!next) return;
+        if (urlInput) urlInput.value = next;
+        if (frame) frame.src = next;
+        showBrowserPageView({ keepResultsMinimized: true });
+      };
+
+      const url = document.createElement('div');
+      url.className = 'browser-result-url';
+      url.textContent = String(result.url || '');
+
+      const snippet = document.createElement('div');
+      snippet.className = 'browser-result-snippet';
+      snippet.textContent = String(result.snippet || '');
+
+      row.appendChild(title);
+      row.appendChild(url);
+      row.appendChild(snippet);
+      resultsEl.appendChild(row);
+    });
+  } catch (err) {
+    resultsEl.innerHTML = '<div style="color:var(--danger);padding:1rem">' + String(err.message || err) + '</div>';
+  }
+
+  updateBrowserResultsToggleButton();
+}
+
 function navigateBrowserToInput() {
   const input = document.getElementById('browserUrlInput');
   const frame = document.getElementById('browserFrame');
@@ -1387,29 +2029,33 @@ function navigateBrowserToInput() {
   if (!url) return;
   input.value = url;
   frame.src = url;
+  showBrowserPageView();
 }
 
 function browserGoBack() {
   const frame = document.getElementById('browserFrame');
   if (!frame || !frame.contentWindow) return;
   try { frame.contentWindow.history.back(); } catch (_) { /* ignore cross-origin block */ }
+  showBrowserPageView();
 }
 
 function browserGoForward() {
   const frame = document.getElementById('browserFrame');
   if (!frame || !frame.contentWindow) return;
   try { frame.contentWindow.history.forward(); } catch (_) { /* ignore cross-origin block */ }
+  showBrowserPageView();
 }
 
 function browserReload() {
   const frame = document.getElementById('browserFrame');
   if (!frame) return;
   try { frame.contentWindow.location.reload(); } catch (_) { frame.src = frame.src; }
+  showBrowserPageView();
 }
 
 function openBrowserExternal() {
   const input = document.getElementById('browserUrlInput');
-  const url = normalizeBrowserUrl(input ? input.value : '');
+  const url = normalizeBrowserUrl(input ? input.value : BROWSER_HOMEPAGE);
   if (!url) return;
   window.open(url, '_blank', 'noopener');
 }
@@ -1600,7 +2246,20 @@ async function shutdownServer() {
   try {
     await fetch('/api/shutdown', { method: 'POST' });
   } catch (e) { /* connection will drop */ }
-  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#04060d;color:#a1a1aa;font-family:sans-serif;flex-direction:column;gap:1rem"><h1 style="color:#e4e4e7">Server Stopped</h1><p>You can close this tab. Run <code style="color:#34d399">npm start</code> to restart.</p></div>';
+
+  // Try to self-close the dedicated app window after shutdown completes.
+  setTimeout(() => {
+    try {
+      window.open('', '_self');
+      window.close();
+    } catch (_) {}
+  }, 220);
+
+  setTimeout(() => {
+    if (!document.hidden) {
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#04060d;color:#a1a1aa;font-family:sans-serif;flex-direction:column;gap:1rem"><h1 style="color:#e4e4e7">Server Stopped</h1><p>WebUI close was requested. If this window is still open, you can close it now. Run <code style="color:#34d399">npm start</code> to restart.</p></div>';
+    }
+  }, 500);
 }
 
 // ============================================================
@@ -1959,14 +2618,12 @@ function renderProfileChips() {
 }
 
 // ============================================================
-// SETUP WIZARD — Stepped process: Main → Subconscious → Dream → Hatch
+// SETUP WIZARD — Initial onboarding uses Main only.
 // ============================================================
 
 const SETUP_STEPS = {
   MAIN: 1,
-  SUBCONSCIOUS: 2,
-  DREAM: 3,
-  HATCH: 4
+  READY: 2
 };
 
 const LLM_ROLES = {
@@ -2431,34 +3088,19 @@ async function simpleSaveConfig() {
     }
   }
 
-  // Read advanced overrides (fall back to main model if blank)
-  const subModel = document.getElementById('simpleAdvSub')?.value?.trim() || mainModel;
-  const dreamModel = document.getElementById('simpleAdvDream')?.value?.trim() || mainModel;
-  const orchModel = document.getElementById('simpleAdvOrch')?.value?.trim() || mainModel;
-
   const statusKey = isOllama ? 'ollamaStatus' : 'orStatus';
   simpleShowStatus(statusKey, 'Saving...', 'var(--wn)');
 
   try {
-    // Save all 4 aspects to global profile via /api/entity-config
-    const aspects = [
-      { provider: 'main', model: mainModel },
-      { provider: 'subconscious', model: subModel },
-      { provider: 'dream', model: dreamModel },
-      { provider: 'orchestrator', model: orchModel }
-    ];
-
-    for (const a of aspects) {
-      const cfg = isOllama
-        ? { type: 'ollama', endpoint: mainEndpoint, model: a.model }
-        : { type: 'openrouter', endpoint: mainEndpoint, key: mainKey, model: a.model };
-      const resp = await fetch('/api/entity-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: a.provider, config: cfg })
-      });
-      if (!resp.ok) throw new Error('Failed to save ' + a.provider);
-    }
+    const cfg = isOllama
+      ? { type: 'ollama', endpoint: mainEndpoint, model: mainModel }
+      : { type: 'openrouter', endpoint: mainEndpoint, key: mainKey, model: mainModel };
+    const resp = await fetch('/api/entity-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'main', config: cfg })
+    });
+    if (!resp.ok) throw new Error('Failed to save main provider');
 
     // Update local active config
     activeConfig = {
@@ -2476,7 +3118,7 @@ async function simpleSaveConfig() {
     updateProviderUI(mainType, true, label);
 
     simpleShowStatus(statusKey, '✓ Connected — ' + mainModel, 'var(--em)');
-    lg('ok', 'All LLM configs saved: ' + mainType + ' / ' + mainModel);
+    lg('ok', 'Main provider saved: ' + mainType + ' / ' + mainModel + ' (other roles inherit until customized)');
 
     if (isApiConfigured()) hideSetupRequired();
   } catch (e) {
@@ -2493,11 +3135,9 @@ function simpleShowStatus(suffix, text, color) {
   }
 }
 
-// Store configs for each LLM aspect
+// Store configs for onboarding.
 let setupAspectConfigs = {
-  main: null,
-  subconscious: null,
-  dream: null
+  main: null
 };
 
 function applyOpenRouterModelSuggestions(fieldId, aspect = 'main') {
@@ -2547,9 +3187,10 @@ function showSetupWizard() {
   if (overlay) overlay.classList.add('active');
   setupActive = true;
   setupStep = SETUP_STEPS.MAIN;
-  setupAspectConfigs = { main: null, subconscious: null, dream: null };
+  setupAspectConfigs = { main: null };
+  setupData = { currentAspect: 'main', provider: null };
   updateSetupSteps(SETUP_STEPS.MAIN);
-  lg('info', 'Setup wizard opened — configuring LLM providers');
+  lg('info', 'Setup wizard opened — connect the Main Mind first');
 }
 
 function hideSetupWizard() {
@@ -2559,14 +3200,12 @@ function hideSetupWizard() {
 }
 
 function updateSetupSteps(step) {
-  // Update step indicators (1-4 for Main, Sub, Dream, Hatch)
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 2; i++) {
     const el = document.getElementById('setupStep' + i);
     if (!el) continue;
     el.className = 'setup-step' + (i < step ? ' done' : '') + (i === step ? ' active' : '');
   }
-  // Show active panel
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 2; i++) {
     const panel = document.getElementById('setupPanel' + i);
     if (panel) panel.style.display = (i === step) ? 'block' : 'none';
   }
@@ -2605,7 +3244,7 @@ function setupSelectProviderForAspect(aspect, type) {
   }
 
   // Show the config section
-  const configSection = document.querySelector('#setupPanel' + (aspect === 'main' ? 1 : (aspect === 'subconscious' ? 2 : 3)) + ' .setup-config-section');
+  const configSection = document.querySelector('#setupPanel1 .setup-config-section');
   if (configSection) configSection.style.display = 'block';
 
   document.getElementById('setupStatus').textContent = '';
@@ -2704,26 +3343,17 @@ async function setupTestConnectionForAspect() {
  * Advance to next setup step
  */
 function advanceSetupStep() {
-  setupStep++;
-  if (setupStep <= SETUP_STEPS.DREAM) {
-    // Clear form fields for next aspect
-    clearSetupFormFields();
-    updateSetupSteps(setupStep);
-    document.getElementById('setupStatus').textContent = '';
-    lg('info', 'Next step: ' + LLM_ROLES[getAspectForStep(setupStep)]);
-  } else {
-    setupStep = SETUP_STEPS.HATCH;
-    updateSetupSteps(SETUP_STEPS.HATCH);
-    updateSetupSummary();
-    document.getElementById('setupStatus').textContent = '';
-  }
+  setupStep = SETUP_STEPS.READY;
+  updateSetupSteps(SETUP_STEPS.READY);
+  updateSetupSummary();
+  document.getElementById('setupStatus').textContent = '';
 }
 
 /**
  * Clear form fields for the next setup aspect
  */
 function clearSetupFormFields() {
-  const suffix = setupStep === SETUP_STEPS.SUBCONSCIOUS ? '2' : (setupStep === SETUP_STEPS.DREAM ? '3' : '');
+  const suffix = '';
   
   const keyInputId = 'setupOrKey' + suffix;
   const modelSelectId = 'setupOrModel' + suffix;
@@ -2748,7 +3378,7 @@ function clearSetupFormFields() {
   });
   
   // Hide config section
-  const configSection = document.querySelector('#setupPanel' + setupStep + ' .setup-config-section');
+  const configSection = document.querySelector('#setupPanel1 .setup-config-section');
   if (configSection) configSection.style.display = 'none';
 }
 
@@ -2757,20 +3387,10 @@ function clearSetupFormFields() {
  */
 function updateSetupSummary() {
   const summaryMain = document.getElementById('setupSummaryMain');
-  const summarySub = document.getElementById('setupSummarySub');
-  const summaryDream = document.getElementById('setupSummaryDream');
   
   if (summaryMain && setupAspectConfigs.main) {
     const model = (setupAspectConfigs.main.model || setupAspectConfigs.main.ollamaModel || '').split('/').pop();
     summaryMain.textContent = setupAspectConfigs.main.type + ' (' + model + ')';
-  }
-  if (summarySub && setupAspectConfigs.subconscious) {
-    const model = (setupAspectConfigs.subconscious.model || setupAspectConfigs.subconscious.ollamaModel || '').split('/').pop();
-    summarySub.textContent = setupAspectConfigs.subconscious.type + ' (' + model + ')';
-  }
-  if (summaryDream && setupAspectConfigs.dream) {
-    const model = (setupAspectConfigs.dream.model || setupAspectConfigs.dream.ollamaModel || '').split('/').pop();
-    summaryDream.textContent = setupAspectConfigs.dream.type + ' (' + model + ')';
   }
 }
 
@@ -2778,8 +3398,7 @@ function updateSetupSummary() {
  * Get the LLM aspect for a given setup step
  */
 function getAspectForStep(step) {
-  const aspects = { 1: 'main', 2: 'subconscious', 3: 'dream' };
-  return aspects[step] || 'main';
+  return step === SETUP_STEPS.READY ? 'main' : 'main';
 }
 
 /**
@@ -2798,7 +3417,7 @@ function previousSetupStep() {
  */
 async function setupFinish() {
   const statusEl = document.getElementById('setupStatus');
-  const btn = document.querySelector('#setupPanel' + SETUP_STEPS.HATCH + ' .btn');
+  const btn = document.querySelector('#setupPanel' + SETUP_STEPS.READY + ' .btn');
   if (btn) {
     btn.disabled = true;
     btn.textContent = 'Saving...';
@@ -2807,38 +3426,51 @@ async function setupFinish() {
   statusEl.style.color = 'var(--wn)';
 
   try {
-    // Save all three aspect configs to main config
+    const mainConfig = setupAspectConfigs.main;
+    if (!mainConfig) throw new Error('Main provider config is missing');
+
+    const profileName = savedConfig.lastActive || 'default-multi-llm';
+    const existing = savedConfig.profiles[profileName] || {};
     const profile = {
-      main: setupAspectConfigs.main,
-      subconscious: setupAspectConfigs.subconscious,
-      dream: setupAspectConfigs.dream,
+      ...existing,
+      main: mainConfig,
+      _activeType: mainConfig.type,
       _activeTypes: {
-        main: setupAspectConfigs.main?.type,
-        subconscious: setupAspectConfigs.subconscious?.type,
-        dream: setupAspectConfigs.dream?.type
+        ...(existing._activeTypes || {}),
+        main: mainConfig.type
       }
     };
 
-    savedConfig.profiles['default-multi-llm'] = profile;
-    savedConfig.lastActive = 'default-multi-llm';
+    if (mainConfig.type === 'openrouter') {
+      profile.apikey = {
+        endpoint: mainConfig.endpoint,
+        key: mainConfig.key,
+        model: mainConfig.model
+      };
+    } else if (mainConfig.type === 'ollama') {
+      profile.ollama = {
+        url: mainConfig.ollamaUrl,
+        model: mainConfig.ollamaModel
+      };
+    }
+
+    savedConfig.profiles[profileName] = profile;
+    savedConfig.lastActive = profileName;
     await persistConfig();
 
     // Set main provider as active for UI
-    if (setupAspectConfigs.main) {
-      const m = setupAspectConfigs.main;
-      if (m.type === 'openrouter') {
-        activeConfig = { type: 'openrouter', endpoint: m.endpoint, apiKey: m.key, model: m.model };
-        updateProviderUI('openrouter', true, 'OpenRouter (' + m.model.split('/').pop() + ')');
-      } else {
-        activeConfig = { type: 'ollama', endpoint: m.ollamaUrl, model: m.ollamaModel };
-        updateProviderUI('ollama', true, 'Ollama (' + m.ollamaModel + ')');
-      }
+    const m = setupAspectConfigs.main;
+    if (m.type === 'openrouter') {
+      activeConfig = { type: 'openrouter', endpoint: m.endpoint, apiKey: m.key, model: m.model };
+      updateProviderUI('openrouter', true, 'OpenRouter (' + m.model.split('/').pop() + ')');
+    } else {
+      activeConfig = { type: 'ollama', endpoint: m.ollamaUrl, model: m.ollamaModel };
+      updateProviderUI('ollama', true, 'Ollama (' + m.ollamaModel + ')');
     }
 
     hideSetupWizard();
-    lg('ok', 'LLM configuration saved. Choose how to create your first entity.');
+    lg('ok', 'Main provider saved. Advanced roles will inherit it until you customize them later.');
 
-    // Show entity creation options (Random, Blank, Guided, Character) instead of auto-hatching
     showHatchScreen();
 
     refreshSidebarEntities();
@@ -2876,6 +3508,16 @@ function _startApp() {
       setupPasteDetection();
     }
 
+    showBootOverlay();
+    await runBootStage(getBootGreetingTitle(), 'Launching the desktop shell...', 10, 420);
+
+    let authBootstrap = { authenticated: false, hasAccounts: false, account: null };
+    try {
+      authBootstrap = await getAuthBootstrap();
+    } catch (_) {}
+
+    await runBootStage('Installing updates', 'Checking local runtime files and saved preferences...', 34, 520);
+
     // 1. Try loading saved config
     try {
       const resp = await fetch(CONFIG_API);
@@ -2889,6 +3531,24 @@ function _startApp() {
       }
     } catch (e) {
       lg('warn', 'Config not loaded: ' + e.message);
+    }
+
+    await runBootStage('Getting things ready', 'Preparing your workspace and restoring shell state...', 62, 620);
+
+    if (authBootstrap.authenticated && authBootstrap.account) {
+      _onAuthSuccess(authBootstrap.account);
+      await runBootStage('Welcome back', 'Session restored for ' + (authBootstrap.account.displayName || authBootstrap.account.username || 'user') + '.', 76, 280);
+    } else {
+      await runBootStage(
+        authBootstrap.hasAccounts ? 'Sign in to continue' : 'Create your user',
+        authBootstrap.hasAccounts
+          ? 'Use your local account to enter NekoCore.'
+          : 'Create your first local account to begin.',
+        78,
+        320
+      );
+      await beginAuthFlow(authBootstrap.hasAccounts ? 'login' : 'register');
+      await runBootStage('User ready', 'Account linked. Finalizing startup...', 86, 260);
     }
 
     // 2. Try auto-connecting from saved config
@@ -2911,13 +3571,17 @@ function _startApp() {
 
     // 3. If no active provider → show setup wizard
     if (!activeConfig) {
-      lg('info', 'No provider configured — showing setup wizard');
+      await runBootStage('Connect your Main Mind', 'Choose OpenRouter or Ollama for the initial setup.', 94, 280);
+      hideBootOverlay();
+      lg('info', 'No provider configured — showing main-provider setup');
       showSetupWizard();
       refreshSidebarEntities();
       return;
     }
 
     // 4. Provider connected — show empty chat, user picks entity from sidebar
+    await runBootStage('Ready', 'Desktop online. Open Creator to hatch your first entity.', 100, 220);
+    hideBootOverlay();
     lg('info', 'Ready — select or create an entity from the sidebar');
     refreshSidebarEntities();
   })();
@@ -2985,7 +3649,7 @@ function switchMainTab(tabName, el) {
     return;
   }
 
-  document.querySelectorAll('.tab-btn, .nav-item, .os-shortcut, .os-launcher-item, .os-pinned-app, .os-dash-app, .os-overflow-app').forEach((button) => {
+  document.querySelectorAll('.tab-btn, .nav-item, .os-shortcut, .os-launcher-item, .os-start-pinned-app, .os-start-app-item, .os-pinned-app, .os-dash-app, .os-overflow-app').forEach((button) => {
     button.classList.remove('on');
   });
 
@@ -4350,6 +5014,13 @@ async function createNewEntity() { showNewEntityDialog(); }
 
 async function checkAndPromptUserName() {
   try {
+    const knownAccountName = (typeof getDisplayName === 'function' && getDisplayName())
+      || (typeof getUsername === 'function' && getUsername())
+      || '';
+    if (knownAccountName) {
+      return false;
+    }
+
     // If entity already has user profiles, the new user switcher handles identity — skip old modal
     if (currentEntityId) {
       const usersResp = await fetch('/api/users');
@@ -4745,6 +5416,109 @@ async function rebuildTraceGraph() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Rebuild';
+  }
+}
+
+async function runSystemBackup(buttonEl) {
+  const statusEl = document.getElementById('backupStatus');
+  const inputEl = document.getElementById('backupTargetFolder');
+  const targetFolder = (inputEl?.value || '').trim();
+
+  if (!targetFolder) {
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.textContent = 'Please enter a backup target folder path.';
+    }
+    return;
+  }
+
+  if (buttonEl) {
+    buttonEl.disabled = true;
+    buttonEl.textContent = 'Creating Backup...';
+  }
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Creating backup...';
+  }
+
+  try {
+    const resp = await fetch('/api/system/backup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetFolder })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data.ok) throw new Error(data.error || 'Backup failed');
+
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = `✓ Backup created:<br>${data.backupDir}`;
+    }
+    lg('ok', 'Backup created at ' + data.backupDir);
+  } catch (e) {
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.textContent = '✗ ' + e.message;
+    }
+    lg('err', 'Backup failed: ' + e.message);
+  } finally {
+    if (buttonEl) {
+      buttonEl.disabled = false;
+      buttonEl.textContent = 'Create Backup';
+    }
+  }
+}
+
+async function runSystemRestore(buttonEl) {
+  const statusEl = document.getElementById('restoreStatus');
+  const inputEl = document.getElementById('restoreSourceFolder');
+  const sourceFolder = (inputEl?.value || '').trim();
+
+  if (!sourceFolder) {
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.textContent = 'Please enter a backup source folder path.';
+    }
+    return;
+  }
+
+  const ok = window.confirm('Restore will overwrite current runtime data (config, server data, entities, memories). Continue?');
+  if (!ok) return;
+
+  if (buttonEl) {
+    buttonEl.disabled = true;
+    buttonEl.textContent = 'Restoring...';
+  }
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Restoring backup...';
+  }
+
+  try {
+    const resp = await fetch('/api/system/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceFolder })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data.ok) throw new Error(data.error || 'Restore failed');
+
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = `✓ Restore complete.<br>Safety snapshot: ${data.safetySnapshot}<br>Reload page now. Server restart recommended.`;
+    }
+    lg('ok', 'Restore completed from ' + data.restoredFrom);
+  } catch (e) {
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.textContent = '✗ ' + e.message;
+    }
+    lg('err', 'Restore failed: ' + e.message);
+  } finally {
+    if (buttonEl) {
+      buttonEl.disabled = false;
+      buttonEl.textContent = 'Restore Backup';
+    }
   }
 }
 

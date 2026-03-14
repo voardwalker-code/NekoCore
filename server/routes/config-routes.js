@@ -4,6 +4,68 @@
 
 function createConfigRoutes(ctx) {
   const { fs, path } = ctx;
+  const PROJECT_ROOT = path.join(__dirname, '..', '..');
+  const SERVER_DATA_DIR = path.join(PROJECT_ROOT, 'server', 'data');
+  const CONFIG_DIR = path.join(PROJECT_ROOT, 'Config');
+  const CONFIG_FILE = path.join(CONFIG_DIR, 'ma-config.json');
+  const ENTITIES_DIR = path.join(PROJECT_ROOT, 'entities');
+  const MEMORIES_DIR = path.join(PROJECT_ROOT, 'memories');
+  const BACKUP_MANIFEST = 'backup-manifest.json';
+
+  function isValidObject(v) {
+    return !!v && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function timestampTag() {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  }
+
+  function copyPathIfExists(src, dest) {
+    if (!fs.existsSync(src)) return;
+    const stat = fs.statSync(src);
+    if (stat.isDirectory()) {
+      fs.cpSync(src, dest, { recursive: true, force: true });
+    } else {
+      const parent = path.dirname(dest);
+      if (!fs.existsSync(parent)) fs.mkdirSync(parent, { recursive: true });
+      fs.copyFileSync(src, dest);
+    }
+  }
+
+  function removePathIfExists(target) {
+    if (!fs.existsSync(target)) return;
+    fs.rmSync(target, { recursive: true, force: true });
+  }
+
+  function buildRestoreCandidates(backupDir) {
+    return {
+      configFile: path.join(backupDir, 'Config', 'ma-config.json'),
+      serverDataDir: path.join(backupDir, 'server', 'data'),
+      entitiesDir: path.join(backupDir, 'entities'),
+      memoriesDir: path.join(backupDir, 'memories')
+    };
+  }
+
+  function createSafetySnapshot() {
+    const snapshotsRoot = path.join(PROJECT_ROOT, 'restore-snapshots');
+    if (!fs.existsSync(snapshotsRoot)) fs.mkdirSync(snapshotsRoot, { recursive: true });
+    const snapshotDir = path.join(snapshotsRoot, `pre-restore-${timestampTag()}`);
+    fs.mkdirSync(snapshotDir, { recursive: true });
+
+    copyPathIfExists(CONFIG_FILE, path.join(snapshotDir, 'Config', 'ma-config.json'));
+    copyPathIfExists(SERVER_DATA_DIR, path.join(snapshotDir, 'server', 'data'));
+    copyPathIfExists(ENTITIES_DIR, path.join(snapshotDir, 'entities'));
+    copyPathIfExists(MEMORIES_DIR, path.join(snapshotDir, 'memories'));
+
+    fs.writeFileSync(path.join(snapshotDir, BACKUP_MANIFEST), JSON.stringify({
+      type: 'pre-restore-snapshot',
+      createdAt: new Date().toISOString(),
+      source: 'local-runtime'
+    }, null, 2), 'utf8');
+    return snapshotDir;
+  }
 
   async function dispatch(req, res, url, apiHeaders, readBody) {
     const p = url.pathname;
@@ -27,6 +89,9 @@ function createConfigRoutes(ctx) {
     if (p === '/api/workspace/read' && m === 'GET') { getWorkspaceRead(req, res, apiHeaders, url); return true; }
     if (p === '/api/workspace/write' && m === 'POST') { await postWorkspaceWrite(req, res, apiHeaders, readBody); return true; }
     if (p === '/api/workspace/delete' && m === 'POST') { await postWorkspaceDelete(req, res, apiHeaders, readBody); return true; }
+    if (p === '/api/system/backup' && m === 'POST') { await postSystemBackup(req, res, apiHeaders, readBody); return true; }
+    if (p === '/api/system/restore' && m === 'POST') { await postSystemRestore(req, res, apiHeaders, readBody); return true; }
+    if (p === '/api/system/webui-presence' && m === 'POST') { await postWebuiPresence(req, res, apiHeaders, readBody); return true; }
     return false;
   }
 
@@ -494,6 +559,132 @@ function createConfigRoutes(ctx) {
       res.end(JSON.stringify({ ok: true }));
     } catch (e) {
       res.writeHead(500, apiHeaders);
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+  }
+
+  async function postSystemBackup(req, res, apiHeaders, readBody) {
+    try {
+      const body = JSON.parse(await readBody(req));
+      const targetRoot = String(body.targetFolder || '').trim();
+      if (!targetRoot) throw new Error('targetFolder is required');
+
+      const resolvedTargetRoot = path.resolve(targetRoot);
+      if (!fs.existsSync(resolvedTargetRoot)) fs.mkdirSync(resolvedTargetRoot, { recursive: true });
+
+      const backupName = body.backupName
+        ? String(body.backupName).trim().replace(/[<>:"/\\|?*]/g, '_')
+        : `NekoCore-backup-${timestampTag()}`;
+      const backupDir = path.join(resolvedTargetRoot, backupName || `NekoCore-backup-${timestampTag()}`);
+      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+
+      copyPathIfExists(CONFIG_FILE, path.join(backupDir, 'Config', 'ma-config.json'));
+      copyPathIfExists(SERVER_DATA_DIR, path.join(backupDir, 'server', 'data'));
+      copyPathIfExists(ENTITIES_DIR, path.join(backupDir, 'entities'));
+      copyPathIfExists(MEMORIES_DIR, path.join(backupDir, 'memories'));
+
+      const manifest = {
+        type: 'NekoCore-backup',
+        createdAt: new Date().toISOString(),
+        backupName: path.basename(backupDir),
+        sourceRoot: PROJECT_ROOT,
+        contents: [
+          'Config/ma-config.json',
+          'server/data/',
+          'entities/',
+          'memories/'
+        ]
+      };
+      fs.writeFileSync(path.join(backupDir, BACKUP_MANIFEST), JSON.stringify(manifest, null, 2), 'utf8');
+
+      res.writeHead(200, apiHeaders);
+      res.end(JSON.stringify({ ok: true, backupDir, manifest }));
+    } catch (e) {
+      res.writeHead(400, apiHeaders);
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+  }
+
+  async function postSystemRestore(req, res, apiHeaders, readBody) {
+    try {
+      const body = JSON.parse(await readBody(req));
+      const sourceFolder = String(body.sourceFolder || '').trim();
+      if (!sourceFolder) throw new Error('sourceFolder is required');
+
+      const backupDir = path.resolve(sourceFolder);
+      if (!fs.existsSync(backupDir) || !fs.statSync(backupDir).isDirectory()) {
+        throw new Error('Backup folder not found: ' + backupDir);
+      }
+
+      const manifestPath = path.join(backupDir, BACKUP_MANIFEST);
+      if (fs.existsSync(manifestPath)) {
+        try {
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          if (!isValidObject(manifest)) throw new Error('invalid manifest object');
+        } catch {
+          throw new Error('Backup manifest is invalid');
+        }
+      }
+
+      const candidates = buildRestoreCandidates(backupDir);
+      const hasAny = Object.values(candidates).some(pth => fs.existsSync(pth));
+      if (!hasAny) {
+        throw new Error('No restorable data found in backup folder');
+      }
+
+      const safetySnapshot = createSafetySnapshot();
+
+      // Restore config
+      if (fs.existsSync(candidates.configFile)) {
+        if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { recursive: true });
+        fs.copyFileSync(candidates.configFile, CONFIG_FILE);
+      }
+
+      // Restore server data
+      if (fs.existsSync(candidates.serverDataDir)) {
+        removePathIfExists(SERVER_DATA_DIR);
+        copyPathIfExists(candidates.serverDataDir, SERVER_DATA_DIR);
+      }
+
+      // Restore entities + memories
+      if (fs.existsSync(candidates.entitiesDir)) {
+        removePathIfExists(ENTITIES_DIR);
+        copyPathIfExists(candidates.entitiesDir, ENTITIES_DIR);
+      }
+      if (fs.existsSync(candidates.memoriesDir)) {
+        removePathIfExists(MEMORIES_DIR);
+        copyPathIfExists(candidates.memoriesDir, MEMORIES_DIR);
+      }
+
+      // Refresh config caches if available
+      try { ctx.refreshMaxTokensCache && ctx.refreshMaxTokensCache(); } catch (_) {}
+      try { ctx.refreshTokenLimitsCache && ctx.refreshTokenLimitsCache(); } catch (_) {}
+
+      res.writeHead(200, apiHeaders);
+      res.end(JSON.stringify({
+        ok: true,
+        restoredFrom: backupDir,
+        safetySnapshot,
+        note: 'Restore complete. Reload UI and restart server if you need all in-memory state reset.'
+      }));
+    } catch (e) {
+      res.writeHead(400, apiHeaders);
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+  }
+
+  async function postWebuiPresence(req, res, apiHeaders, readBody) {
+    try {
+      const body = JSON.parse(await readBody(req));
+      const isOpen = body && body.isOpen !== false;
+      const url = String((body && body.url) || '').trim() || undefined;
+      if (typeof ctx.updateBrowserOpenState === 'function') {
+        ctx.updateBrowserOpenState({ isOpen, url, source: 'webui-presence' });
+      }
+      res.writeHead(200, apiHeaders);
+      res.end(JSON.stringify({ ok: true, isOpen }));
+    } catch (e) {
+      res.writeHead(400, apiHeaders);
       res.end(JSON.stringify({ ok: false, error: e.message }));
     }
   }

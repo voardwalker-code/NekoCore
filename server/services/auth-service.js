@@ -30,10 +30,20 @@ function loadAccounts() {
   ensureDataDir();
   if (!fs.existsSync(ACCOUNTS_FILE)) return [];
   try {
-    return JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf8'));
+    const parsed = JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf8'));
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === 'object') {
+      if (Array.isArray(parsed.accounts)) return parsed.accounts;
+      if (Array.isArray(parsed.users)) return parsed.users;
+    }
+    return [];
   } catch {
     return [];
   }
+}
+
+function hasAccounts() {
+  return loadAccounts().length > 0;
 }
 
 function saveAccounts(accounts) {
@@ -45,7 +55,8 @@ function loadPersistedSessions() {
   ensureDataDir();
   if (!fs.existsSync(SESSIONS_FILE)) return {};
   try {
-    return JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+    const parsed = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+    return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
   } catch {
     return {};
   }
@@ -178,6 +189,7 @@ module.exports = {
   createAccount,
   verifyAccount,
   getAccount,
+  hasAccounts,
   createSession,
   validateSession,
   destroySession

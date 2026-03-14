@@ -108,10 +108,10 @@ function resolveProfileAspectConfigs(profile) {
   // Multi-aspect format (profile.main / .subconscious / .dream / .orchestrator / .background)
   if (profile.main) {
     configs.main = normalizeAspectRuntimeConfig(profile.main);
-    configs.subconscious = normalizeAspectRuntimeConfig(profile.subconscious);
-    configs.dream = normalizeAspectRuntimeConfig(profile.dream);
-    configs.orchestrator = normalizeAspectRuntimeConfig(profile.orchestrator);
-    configs.background = normalizeAspectRuntimeConfig(profile.background);
+    configs.subconscious = normalizeAspectRuntimeConfig(profile.subconscious) || configs.main;
+    configs.dream = normalizeAspectRuntimeConfig(profile.dream) || normalizeAspectRuntimeConfig(profile.dreams) || configs.main;
+    configs.orchestrator = normalizeAspectRuntimeConfig(profile.orchestrator) || configs.main;
+    configs.background = normalizeAspectRuntimeConfig(profile.background) || configs.main;
     return configs;
   }
 
@@ -175,6 +175,17 @@ function createConfigRuntime({ getConfig } = {}) {
     const preferredProfileName = globalConfig?.lastActive;
     const profile = globalConfig?.profiles?.[preferredProfileName];
     if (profile) {
+      const profileMain = normalizeAspectRuntimeConfig(profile.main);
+      if (profileMain) {
+        if (aspect === 'main') return profileMain;
+        if (aspect === 'dream') {
+          return normalizeAspectRuntimeConfig(profile.dream)
+            || normalizeAspectRuntimeConfig(profile.dreams)
+            || profileMain;
+        }
+        return normalizeAspectRuntimeConfig(profile[aspect]) || profileMain;
+      }
+
       // Multi-aspect format
       const profileAspect = normalizeAspectRuntimeConfig(profile[aspect]);
       if (profileAspect) return profileAspect;
@@ -183,26 +194,24 @@ function createConfigRuntime({ getConfig } = {}) {
         if (profileDreamAlt) return profileDreamAlt;
       }
 
-      // Legacy single-provider format (main only)
-      if (aspect === 'main') {
-        const activeType = String(profile._activeType || '').toLowerCase();
-        if ((activeType === 'openrouter' || activeType === 'apikey') && profile.apikey) {
-          const legacyMain = normalizeAspectRuntimeConfig({
-            type: 'openrouter',
-            endpoint: profile.apikey.endpoint,
-            apiKey: profile.apikey.key,
-            model: profile.apikey.model
-          });
-          if (legacyMain) return legacyMain;
-        }
-        if (activeType === 'ollama' && profile.ollama) {
-          const legacyMain = normalizeAspectRuntimeConfig({
-            type: 'ollama',
-            endpoint: profile.ollama.url,
-            model: profile.ollama.model
-          });
-          if (legacyMain) return legacyMain;
-        }
+      // Legacy single-provider format (main only, reused for all aspects)
+      const activeType = String(profile._activeType || '').toLowerCase();
+      if ((activeType === 'openrouter' || activeType === 'apikey') && profile.apikey) {
+        const legacyMain = normalizeAspectRuntimeConfig({
+          type: 'openrouter',
+          endpoint: profile.apikey.endpoint,
+          apiKey: profile.apikey.key,
+          model: profile.apikey.model
+        });
+        if (legacyMain) return legacyMain;
+      }
+      if (activeType === 'ollama' && profile.ollama) {
+        const legacyMain = normalizeAspectRuntimeConfig({
+          type: 'ollama',
+          endpoint: profile.ollama.url,
+          model: profile.ollama.model
+        });
+        if (legacyMain) return legacyMain;
       }
     }
 

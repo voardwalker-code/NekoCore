@@ -26,8 +26,9 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const crypto = require('crypto');
-const { tryAutoOpenBrowser } = require('./services/auto-open-browser');
+const { tryAutoOpenBrowser, updateBrowserOpenState, closeDedicatedWebUiWindow } = require('./services/auto-open-browser');
 const authService = require('./services/auth-service');
+const entityPaths = require('./entityPaths');
 
 // Brain modules
 const BrainLoop = require('./brain/brain-loop');
@@ -105,14 +106,51 @@ const { createMemoryRetrieval } = require('./services/memory-retrieval');
 
 const PORT = process.env.PORT || 3847;
 const CLIENT_DIR = path.join(__dirname, '..', 'client');
+const SERVER_DATA_DIR = path.join(__dirname, 'data');
 
 const CONFIG_DIR = path.join(__dirname, '..', 'Config');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'ma-config.json');
 const LEGACY_CONFIG_FILE = path.join(__dirname, '..', 'ma-config.json');
+const DEFAULT_GLOBAL_CONFIG = {
+  configVersion: 1,
+  lastActive: 'default-multi-llm',
+  profiles: {
+    'default-multi-llm': {}
+  }
+};
 // Root memories/ is for system-level defaults only (default prompt template, system timeline logs).
 // Entity-specific data lives in entities/entity_<id>/memories/ — use entityPaths for those paths.
 const MEM_DIR = path.join(__dirname, '..', 'memories');
 const timelineLogger = new TimelineLogger({ baseDir: MEM_DIR });
+
+function makeDefaultGlobalConfig() {
+  return JSON.parse(JSON.stringify(DEFAULT_GLOBAL_CONFIG));
+}
+
+function normalizeGlobalConfigShape(raw) {
+  const cfg = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
+  if (!cfg.profiles || typeof cfg.profiles !== 'object' || Array.isArray(cfg.profiles)) {
+    cfg.profiles = {};
+  }
+  if (!cfg.lastActive || typeof cfg.lastActive !== 'string') {
+    cfg.lastActive = 'default-multi-llm';
+  }
+  if (!cfg.profiles[cfg.lastActive]) {
+    cfg.profiles[cfg.lastActive] = {};
+  }
+  if (!Number.isFinite(cfg.configVersion)) {
+    cfg.configVersion = 1;
+  }
+  return cfg;
+}
+
+function ensureGlobalConfigFile() {
+  ensureGlobalConfigDir();
+  if (fs.existsSync(CONFIG_FILE)) return;
+  const defaults = makeDefaultGlobalConfig();
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(defaults, null, 2), 'utf8');
+  console.log(`  ✓ Created default config file: ${CONFIG_FILE}`);
+}
 
 function ensureGlobalConfigDir() {
   try {
@@ -135,6 +173,177 @@ function migrateLegacyGlobalConfigIfNeeded() {
   } catch (e) {
     console.error('  ⚠ Could not migrate legacy global config:', e.message);
   }
+}
+
+function backupCorruptFile(filePath, label) {
+  try {
+    if (!fs.existsSync(filePath)) return;
+    const backupPath = `${filePath}.corrupt-${Date.now()}`;
+    fs.copyFileSync(filePath, backupPath);
+    console.error(`  ⚠ Backed up invalid ${label} to ${backupPath}`);
+  } catch (e) {
+    console.error(`  ⚠ Could not back up invalid ${label}:`, e.message);
+  }
+}
+
+function ensureDirectory(dirPath, label) {
+  if (fs.existsSync(dirPath)) return false;
+  fs.mkdirSync(dirPath, { recursive: true });
+  console.log(`  ✓ Restored ${label}: ${dirPath}`);
+  return true;
+}
+
+function ensureJsonFile(filePath, defaultValue, validator, label) {
+  try {
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 2), 'utf8');
+      console.log(`  ✓ Restored ${label}: ${filePath}`);
+      return true;
+    }
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    if (typeof validator === 'function' && !validator(parsed)) {
+      backupCorruptFile(filePath, label);
+      fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 2), 'utf8');
+      console.log(`  ✓ Repaired ${label}: ${filePath}`);
+      return true;
+    }
+    return false;
+  } catch (e) {
+    backupCorruptFile(filePath, label);
+    fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 2), 'utf8');
+    console.log(`  ✓ Repaired ${label}: ${filePath}`);
+    return true;
+  }
+}
+
+function ensureTextFile(filePath, content, label) {
+  if (fs.existsSync(filePath)) return false;
+  fs.writeFileSync(filePath, content, 'utf8');
+  console.log(`  ✓ Restored ${label}: ${filePath}`);
+  return true;
+}
+
+function buildDefaultEntityPersona(entity) {
+  const name = entity?.name || 'Entity';
+  const traits = Array.isArray(entity?.personality_traits) ? entity.personality_traits : [];
+  return {
+    userName: 'User',
+    userIdentity: '',
+    llmName: name,
+    llmStyle: 'adaptive and curious',
+    mood: 'curious',
+    emotions: 'ready, attentive',
+    tone: 'warm-casual',
+    userPersonality: 'Getting to know them',
+    llmPersonality: 'I am ' + name + '. My traits are: ' + traits.join(', ') + '.',
+    continuityNotes: 'Recovered default persona after startup preflight.',
+    dreamSummary: '',
+    sleepCount: 0,
+    lastSleep: null,
+    createdAt: entity?.created || new Date().toISOString()
+  };
+}
+
+function buildDefaultEntityPrompt(entity, persona) {
+  const name = entity?.name || persona?.llmName || 'Entity';
+  const traits = Array.isArray(entity?.personality_traits) ? entity.personality_traits : [];
+  return `YOU ARE ${String(name).toUpperCase()}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nYou are a persistent synthetic entity inside NekoCore.\n\nCORE IDENTITY\n- Name: ${name}\n- Traits: ${traits.join(', ') || 'curious, adaptive, reflective'}\n- Tone: ${persona?.tone || 'warm-casual'}\n- Style: ${persona?.llmStyle || 'adaptive and curious'}\n\nGUIDELINES\n- Stay in character and be consistent across sessions.\n- Use memory and continuity when available.\n- Be honest when context is missing.\n- Grow through conversation instead of resetting to generic assistant behavior.`;
+}
+
+function ensureEntityRuntimeState(entityId, entity) {
+  const entityRoot = entityPaths.getEntityRoot(entityId);
+  const memoryRoot = entityPaths.getMemoryRoot(entityId);
+  const requiredDirs = [
+    entityRoot,
+    memoryRoot,
+    entityPaths.getEpisodicMemoryPath(entityId),
+    entityPaths.getSemanticMemoryPath(entityId),
+    entityPaths.getLtmPath(entityId),
+    entityPaths.getDreamMemoryPath(entityId),
+    entityPaths.getDreamEpisodicPath(entityId),
+    entityPaths.getDreamSemanticPath(entityId),
+    entityPaths.getDreamCorePath(entityId),
+    entityPaths.getDreamIndexPath(entityId),
+    entityPaths.getConsciousMemoryPath(entityId),
+    entityPaths.getIndexPath(entityId),
+    entityPaths.getBeliefsPath(entityId),
+    entityPaths.getSkillsPath(entityId),
+    entityPaths.getQuarantinePath(entityId),
+    entityPaths.getPixelArtPath(entityId),
+    entityPaths.getMemoryImagesPath(entityId),
+    path.join(memoryRoot, 'archives'),
+    path.join(memoryRoot, 'goals'),
+    path.join(memoryRoot, 'logs'),
+    path.join(memoryRoot, 'users'),
+    path.join(memoryRoot, 'relationships')
+  ];
+
+  requiredDirs.forEach(dirPath => ensureDirectory(dirPath, 'entity runtime directory'));
+
+  const persona = buildDefaultEntityPersona(entity);
+  ensureJsonFile(
+    path.join(memoryRoot, 'persona.json'),
+    persona,
+    (value) => !!value && typeof value === 'object' && !Array.isArray(value),
+    'entity persona'
+  );
+  ensureTextFile(path.join(memoryRoot, 'system-prompt.txt'), buildDefaultEntityPrompt(entity, persona), 'entity system prompt');
+  ensureTextFile(entityPaths.getLifeDiaryPath(entityId), '# Life Diary\n\n', 'life diary');
+  ensureTextFile(entityPaths.getDreamDiaryPath(entityId), '# Dream Diary\n\n', 'dream diary');
+}
+
+function runStartupPreflight() {
+  console.log('  ℹ Running startup preflight...');
+
+  ensureGlobalConfigDir();
+  migrateLegacyGlobalConfigIfNeeded();
+  ensureGlobalConfigFile();
+  ensureMemoryDir();
+  ensureDirectory(path.join(MEM_DIR, 'logs'), 'system log directory');
+  ensureDirectory(path.join(MEM_DIR, 'archives'), 'system archive directory');
+
+  ensureDirectory(SERVER_DATA_DIR, 'server data directory');
+  ensureJsonFile(path.join(SERVER_DATA_DIR, 'accounts.json'), [], Array.isArray, 'accounts store');
+  ensureJsonFile(path.join(SERVER_DATA_DIR, 'sessions.json'), {}, (value) => !!value && typeof value === 'object' && !Array.isArray(value), 'sessions store');
+  ensureJsonFile(path.join(SERVER_DATA_DIR, 'checkouts.json'), {}, (value) => !!value && typeof value === 'object' && !Array.isArray(value), 'checkouts store');
+  ensureTextFile(path.join(SERVER_DATA_DIR, 'names_male.txt'), 'Alex\nKai\nMilo\n', 'male names seed');
+  ensureTextFile(path.join(SERVER_DATA_DIR, 'names_female.txt'), 'Nova\nLuna\nIris\n', 'female names seed');
+  ensureTextFile(path.join(SERVER_DATA_DIR, 'personality_traits.txt'), 'curious\nempathetic\nplayful\nreflective\nadaptive\n', 'personality traits seed');
+
+  ensureDirectory(entityPaths.ENTITIES_DIR, 'entities directory');
+
+  try {
+    const entityFolders = fs.readdirSync(entityPaths.ENTITIES_DIR)
+      .filter(name => {
+        const fullPath = path.join(entityPaths.ENTITIES_DIR, name);
+        try {
+          return fs.statSync(fullPath).isDirectory();
+        } catch {
+          return false;
+        }
+      });
+
+    for (const folderName of entityFolders) {
+      const canonicalId = entityPaths.normalizeEntityId(folderName);
+      if (!canonicalId) continue;
+
+      const entityFile = path.join(entityPaths.getEntityRoot(canonicalId), 'entity.json');
+      if (!fs.existsSync(entityFile)) continue;
+
+      try {
+        const entity = JSON.parse(fs.readFileSync(entityFile, 'utf8'));
+        ensureEntityRuntimeState(canonicalId, entity);
+      } catch (e) {
+        console.error(`  ⚠ Skipping entity preflight for ${folderName}: ${e.message}`);
+      }
+    }
+  } catch (e) {
+    console.error('  ⚠ Entity preflight scan failed:', e.message);
+  }
+
+  try {
+    loadConfig();
+  } catch (_) {}
 }
 
 // Entity-aware memory modules
@@ -604,17 +813,32 @@ function loadConfig() {
   try {
     ensureGlobalConfigDir();
     migrateLegacyGlobalConfigIfNeeded();
-    if (fs.existsSync(CONFIG_FILE)) {
-      const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-      console.log(`  ✓ Config loaded from ${CONFIG_FILE}`);
-      return data;
-    } else {
-      console.log(`  ℹ Config file not found at ${CONFIG_FILE} (will be created on first save)`);
-      return {};
+    ensureGlobalConfigFile();
+    const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Config root must be a JSON object');
     }
+    const normalized = normalizeGlobalConfigShape(data);
+    // Persist normalized shape so future boots have consistent profile keys.
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(normalized, null, 2), 'utf8');
+    console.log(`  ✓ Config loaded from ${CONFIG_FILE}`);
+    return normalized;
   } catch (e) {
     console.error('  ⚠ Could not read config:', e.message);
-    return {};
+    try {
+      const backupPath = `${CONFIG_FILE}.corrupt-${Date.now()}`;
+      if (fs.existsSync(CONFIG_FILE)) {
+        fs.copyFileSync(CONFIG_FILE, backupPath);
+        console.error(`  ⚠ Backed up unreadable config to ${backupPath}`);
+      }
+      const defaults = normalizeGlobalConfigShape(makeDefaultGlobalConfig());
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify(defaults, null, 2), 'utf8');
+      console.log(`  ✓ Recreated default config file: ${CONFIG_FILE}`);
+      return defaults;
+    } catch (repairErr) {
+      console.error('  ⚠ Could not repair config:', repairErr.message);
+      return normalizeGlobalConfigShape(makeDefaultGlobalConfig());
+    }
   }
 }
 
@@ -829,7 +1053,7 @@ async function processChatMessage(userMessage, chatHistory = []) {
     entity.skillsPrompt = skillManager.buildSkillsPrompt();
     // Inject workspace path so the entity knows about its workspace
     try {
-      const maConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'Config', 'ma-config.json'), 'utf8'));
+      const maConfig = loadConfig();
       if (maConfig.workspacePath) {
         entity.workspacePath = maConfig.workspacePath;
       }
@@ -1242,6 +1466,8 @@ const ctx = {
   // Helper functions
   loadConfig, saveConfig, refreshMaxTokensCache, refreshTokenLimitsCache, getTokenLimit,
   ensureMemoryDir, readBody,
+  updateBrowserOpenState,
+  closeDedicatedWebUiWindow,
   callLLMWithRuntime, loadAspectRuntimeConfig, normalizeAspectRuntimeConfig,
   resolveProfileAspectConfigs, getEntityMemoryRootIfActive,
   createCoreMemory, createSemanticKnowledge, getSemanticPreview, getChatlogContent,
@@ -1274,7 +1500,9 @@ const lifecycle = createRuntimeLifecycle({
   callLLMWithRuntime,
   getTokenLimit,
   contextConsolidator,
-  broadcastSSE
+  broadcastSSE,
+  closeDedicatedWebUiWindow,
+  updateBrowserOpenState
 });
 const startTelegramBot = lifecycle.startTelegramBot;
 const gracefulShutdown = lifecycle.gracefulShutdown;
@@ -1378,6 +1606,7 @@ const server = http.createServer(async (req, res) => {
 
 // Server startup — no entity auto-loaded; user selects or creates one via UI
 console.log('  ℹ No entity auto-loaded. User must select or create one via the UI.');
+runStartupPreflight();
 // Clear any stale checkouts from previous run
 const entityCheckout = require('./services/entity-checkout');
 entityCheckout.releaseAll();
@@ -1404,11 +1633,50 @@ if (typeof ctx.clearActiveEntity === 'function') ctx.clearActiveEntity();
   }
 })();
 
+server.on('error', (error) => {
+  if (!error || error.code !== 'EADDRINUSE') {
+    throw error;
+  }
+
+  const url = `http://localhost:${PORT}`;
+  console.log(`  ✖ Port ${PORT} is already in use. REM System may already be running.`);
+
+  const autoOpenResult = tryAutoOpenBrowser(url, {
+    logger: console,
+    fullscreen: true,
+    windowTitle: 'REM-System',
+    preferredRuntime: 'chrome'
+  });
+  if (autoOpenResult.reason === 'already-open-switching') {
+    console.log('  ℹ Switching focus to the existing dedicated WebUI window.');
+  } else if (autoOpenResult.reason === 'opened') {
+    console.log('  ℹ Opened the existing REM System URL in the dedicated WebUI runtime.');
+  }
+
+  console.log('  ℹ Stop the existing process or close the prior server before starting a new one.');
+  process.exit(1);
+});
+
 
 server.listen(PORT, () => {
-  // Auto-open browser once per guard window to avoid duplicate windows on restarts.
+  // Auto-open/focus browser in OS mode.
   const url = `http://localhost:${PORT}`;
-  tryAutoOpenBrowser(url, { logger: console });
+  const autoOpenResult = tryAutoOpenBrowser(url, {
+    logger: console,
+    fullscreen: true,
+    windowTitle: 'REM-System',
+    preferredRuntime: 'chrome'
+  });
+  if (autoOpenResult.reason === 'already-open-switching') {
+    console.log('  ℹ WebUI already open. Switching focus to existing dedicated window.');
+  } else if (autoOpenResult.reason === 'opened') {
+    console.log('  ✓ WebUI launched in dedicated OS window (fullscreen request sent).');
+  } else if (autoOpenResult.reason === 'disabled') {
+    console.log('  ℹ WebUI auto-open is disabled (REM_AUTO_OPEN_BROWSER=off).');
+  } else if (autoOpenResult.reason === 'runtime-missing' || autoOpenResult.reason === 'runtime-unsupported') {
+    console.log('  ✖ WebUI did not launch. Dedicated runtime is missing/unsupported.');
+    if (autoOpenResult.error) console.log('    ' + autoOpenResult.error);
+  }
 
   console.log('');
   console.log('  \u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510');

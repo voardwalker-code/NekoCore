@@ -35,11 +35,24 @@ function createAuthRoutes(ctx) {
     const p = url.pathname;
     const m = req.method;
 
+    if (p === '/api/auth/bootstrap' && m === 'GET')  { getBootstrap(req, res, apiHeaders);                 return true; }
     if (p === '/api/auth/register' && m === 'POST') { await postRegister(req, res, apiHeaders, readBody); return true; }
     if (p === '/api/auth/login'    && m === 'POST') { await postLogin(req, res, apiHeaders, readBody);    return true; }
     if (p === '/api/auth/logout'   && m === 'POST') { postLogout(req, res, apiHeaders);                   return true; }
     if (p === '/api/auth/me'       && m === 'GET')  { getMe(req, res, apiHeaders);                        return true; }
     return false;
+  }
+
+  function getBootstrap(req, res, apiHeaders) {
+    const accountId = req.accountId;
+    const account = accountId ? authService.getAccount(accountId) : null;
+    res.writeHead(200, apiHeaders);
+    res.end(JSON.stringify({
+      ok: true,
+      authenticated: !!account,
+      hasAccounts: authService.hasAccounts(),
+      account
+    }));
   }
 
   // ── POST /api/auth/register ───────────────────────────────

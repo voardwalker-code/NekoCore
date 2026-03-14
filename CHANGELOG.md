@@ -9,8 +9,21 @@ Built with MA (Memory Architect v1).
 - Standalone Entity Creator app surface (`client/create.html`, `client/js/create.js`) with embedded shell mode support
 - Creator window app integration in desktop shell (`tab-creator` + `WINDOW_APPS` entry)
 - Users window app (`tab-users`) with in-app profile management actions: create, set active, clear active, delete
+- Users app logout action for direct sign-out from the Users surface
 - Additional release/check-in controls in chat toolbar and entity profile view
 - Start menu power action (`⏻ Power`) and left-bottom sidebar power action (`Power Off Server`)
+- Start menu category launcher and taskbar UX refresh:
+  - apps grouped by category with pinned-first behavior
+  - taskbar apps switched to icon-first layout
+  - taskbar-left user and power controls
+- Browser app enhancements in desktop shell:
+  - homepage default set to `https://neko-core.com`
+  - in-browser web search panel with results/home/page view switching
+  - search history chips and minimized-results recovery controls
+- Browser window lifecycle improvements:
+  - graceful shutdown now closes dedicated WebUI browser window
+  - browser-open lock state is reset during server shutdown
+- Roadmap draft for real browser strategy and compliance-first rollout (`NEKOCORE-BROWSER-ROADMAP.md`)
 
 ### Changed
 - Documentation sync pass for source-of-truth docs (`Documents/current/ARCHITECTURE-OVERVIEW.md`, `PIPELINE-AND-ORCHESTRATION.md`, `MEMORY-SYSTEM.md`, `CONTRACTS-AND-SCHEMAS.md`, `OPEN-ITEMS-AUDIT.md`) to reflect v0.6.0 runtime behavior
@@ -21,6 +34,15 @@ Built with MA (Memory Architect v1).
 - Creator app layout tightened for shell parity and made scrollable in embedded mode to prevent form clipping
 - Release button visibility/state now server-synced via `/api/entities/current`, preventing checkout/check-in dead-ends from stale local state
 - Header stop-server control converted to icon-only power button (`⏻`)
+- Browser auto-open runtime behavior now prefers dedicated Chrome launch flow in server startup paths
+- Start menu interaction handling hardened to avoid category click close-race after rerender
+- Window manager resize signaling improved so app surfaces reflow after window resizing
+
+### Governance
+- Added browser direction and guardrails draft for open-source and commercial-safe evolution:
+  - build browser app on existing engine rather than custom rendering engine
+  - avoid DRM/paywall/security-header bypass features
+  - require transparent, user-directed AI content handling
 
 ## [0.6.0] - 2026-03-13
 

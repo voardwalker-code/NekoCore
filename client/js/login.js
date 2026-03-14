@@ -9,11 +9,28 @@ let _remAccountId   = null;
 let _remUsername    = null;
 let _remDisplayName = null;
 let _remAccountInfo = null;
+let _authWaiters    = [];
 
 function getAccountId()   { return _remAccountId;   }
 function getUsername()    { return _remUsername;     }
 function getDisplayName() { return _remDisplayName; }
 function getAccountInfo() { return _remAccountInfo; }
+
+function getCurrentAccount() {
+  if (!_remAccountId) return null;
+  return {
+    id: _remAccountId,
+    username: _remUsername,
+    displayName: _remDisplayName,
+    info: _remAccountInfo
+  };
+}
+
+function resolveAuthWaiters(account) {
+  const waiters = _authWaiters;
+  _authWaiters = [];
+  waiters.forEach(resolve => resolve(account));
+}
 
 // ── Tab switcher ──────────────────────────────────────────────────────────────
 function switchLoginTab(tab) {
@@ -62,11 +79,13 @@ function _updateAccountBadge(username) {
   const nameSpan  = document.getElementById('accountUsername');
   if (badge)    badge.style.display = '';
   if (nameSpan) nameSpan.textContent = username;
+  if (typeof updateStartUserChip === 'function') updateStartUserChip();
 }
 
 function _clearAccountBadge() {
   const badge = document.getElementById('accountBadge');
   if (badge) badge.style.display = 'none';
+  if (typeof updateStartUserChip === 'function') updateStartUserChip();
 }
 
 // ── On successful auth ────────────────────────────────────────────────────────
@@ -79,6 +98,27 @@ function _onAuthSuccess(account) {
   hideLoginOverlay();
   // Refresh entity list so the new user's entities are shown
   if (typeof refreshSidebarEntities === 'function') refreshSidebarEntities();
+  resolveAuthWaiters(getCurrentAccount());
+}
+
+async function getAuthBootstrap() {
+  try {
+    const resp = await fetch('/api/auth/bootstrap');
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok && data && data.ok) return data;
+  } catch (_) {}
+  return { ok: false, authenticated: false, hasAccounts: false, account: null };
+}
+
+function beginAuthFlow(preferredTab = 'login') {
+  switchLoginTab(preferredTab === 'register' ? 'register' : 'login');
+  clearLoginErrors();
+  showLoginOverlay();
+  const existing = getCurrentAccount();
+  if (existing) return Promise.resolve(existing);
+  return new Promise(resolve => {
+    _authWaiters.push(resolve);
+  });
 }
 
 // ── Login ─────────────────────────────────────────────────────────────────────
@@ -165,25 +205,20 @@ async function handleLogout() {
 }
 
 // ── Init: check for existing session on page load ────────────────────────────
-async function initLogin() {
+async function initLogin(options = {}) {
+  const { showOverlayOnFail = true } = options;
   try {
     const resp = await fetch('/api/auth/me');
     if (resp.ok) {
       const data = await resp.json().catch(() => ({}));
       if (data.ok && data.account) {
-        _remAccountId   = data.account.id;
-        _remUsername    = data.account.username;
-        _remDisplayName = data.account.displayName || '';
-        _remAccountInfo = data.account.info || '';
-        _updateAccountBadge(data.account.displayName || data.account.username);
-        hideLoginOverlay();
-        return true;
+        _onAuthSuccess(data.account);
+        return { authenticated: true, account: data.account };
       }
     }
   } catch (_) {}
-  // Not authenticated — show login overlay
-  showLoginOverlay();
-  return false;
+  if (showOverlayOnFail) showLoginOverlay();
+  return { authenticated: false, account: null };
 }
 
 // Allow Enter key to submit login/register forms
@@ -206,6 +241,4 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('authRegInfo')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') handleRegister();
   });
-  // Check session on load
-  initLogin();
 });

@@ -18,6 +18,11 @@ server/data/checkouts.json
 # Root system memory — generated at runtime
 memories/
 
+# Local backup and restore artifacts
+tmp-backups/
+restore-snapshots/
+server/data/restore-snapshots/
+
 # Server entity runtime state
 server/entity/
 
