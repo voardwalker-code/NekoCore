@@ -81,16 +81,59 @@ function createConfigRoutes(ctx) {
     return { type: 'openrouter', endpoint, apiKey, model };
   }
 
+  const REDACTED = '••••••••';
+
+  function redactKeys(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(redactKeys);
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if ((k === 'apiKey' || k === 'key') && typeof v === 'string' && v.length > 0) {
+        out[k] = REDACTED;
+      } else if (typeof v === 'object') {
+        out[k] = redactKeys(v);
+      } else {
+        out[k] = v;
+      }
+    }
+    return out;
+  }
+
+  function mergeKeysBack(incoming, stored) {
+    // When client POSTs config, restore any redacted values from the stored config on disk
+    if (!incoming || typeof incoming !== 'object') return incoming;
+    if (!stored || typeof stored !== 'object') return incoming;
+    if (Array.isArray(incoming)) return incoming;
+    const out = {};
+    for (const [k, v] of Object.entries(incoming)) {
+      if ((k === 'apiKey' || k === 'key') && v === REDACTED) {
+        out[k] = stored[k] || v;
+      } else if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+        out[k] = mergeKeysBack(v, stored[k] || {});
+      } else {
+        out[k] = v;
+      }
+    }
+    // Preserve stored keys that incoming didn't touch
+    for (const [k, v] of Object.entries(stored)) {
+      if (!(k in out)) out[k] = v;
+    }
+    return out;
+  }
+
   async function getConfig(req, res, apiHeaders) {
     const config = ctx.loadConfig();
     res.writeHead(200, apiHeaders);
-    res.end(JSON.stringify(config));
+    res.end(JSON.stringify(redactKeys(config)));
   }
 
   async function postConfig(req, res, apiHeaders, readBody) {
     try {
       const body = await readBody(req);
-      const data = JSON.parse(body);
+      const incoming = JSON.parse(body);
+      // Merge back any redacted keys from the currently stored config
+      const stored = ctx.loadConfig();
+      const data = mergeKeysBack(incoming, stored);
       ctx.saveConfig(data);
       ctx.refreshMaxTokensCache();
       ctx.refreshTokenLimitsCache();
