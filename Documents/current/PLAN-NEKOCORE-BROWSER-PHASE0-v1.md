@@ -59,7 +59,7 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 - [x] NB-0-1: Scope lock and non-goals — confirm engine-based browser direction and prohibited bypass features
 - [x] NB-0-2: Dependency and third-party notices policy — define approval and release notice rules
 - [x] NB-0-3: Browser data policy — define history/cookies/extraction persistence defaults
-- [ ] NB-0-4: Contributor provenance policy — select DCO or CLA and document enforcement path
+- [x] NB-0-4: Contributor provenance policy — select DCO or CLA and document enforcement path
 - [ ] NB-0-5: Phase 0 exit review — mark baseline approved and unlock Phase 1 technical spike
 
 ---
@@ -237,14 +237,15 @@ Files changed (expected):
 | 2026-03-14 | NB-0-1 | Done | Scope lock and non-goals documented in roadmap and source-of-truth docs |
 | 2026-03-14 | NB-0-2 | Done | Dependency approval checklist and third-party notices policy documented |
 | 2026-03-14 | NB-0-3 | Done | Browser data boundary, persistence defaults, and consent model documented |
+| 2026-03-14 | NB-0-4 | Done | Contributor provenance policy selected as DCO and documented |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
 - **Current phase:** NB-0 Governance and Compliance Baseline
-- **Current slice:** NB-0-4 — status: not started
-- **Last completed slice:** NB-0-3
+- **Current slice:** NB-0-5 — status: not started
+- **Last completed slice:** NB-0-4
 - **In-progress item:** none
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** choose and document contributor provenance policy (DCO or CLA) for NB-0-4
+- **Next action on resume:** run Phase 0 exit checklist and open NB-1 spike-prep gate

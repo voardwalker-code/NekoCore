@@ -110,7 +110,8 @@ Current browser phase status:
 2. NB-0-1 completed (scope lock and non-goals).
 3. NB-0-2 completed (dependency approval and third-party notices policy).
 4. NB-0-3 completed (browser data policy and persistence defaults).
-5. NB-0-4 is the next active slice (contributor provenance policy decision).
+5. NB-0-4 completed (contributor provenance policy decision: DCO).
+6. NB-0-5 is the next active slice (Phase 0 exit review).
 
 ---
 
@@ -120,7 +121,7 @@ Current browser phase status:
 1. **Keep docs current per slice** — update WORKLOG snapshot/ledger and source-of-truth docs in lockstep with landed changes
 2. **Check `entities/` folder** — verify no personal data is committed that shouldn't be public
 3. **Add and publish docs currently staged in `Documents/current/`** — source-of-truth docs now expected to travel with repo pushes
-4. **Complete NB-0-4** — choose contributor provenance policy (DCO or CLA)
+4. **Complete NB-0-5** — run Phase 0 exit review and unlock NB-1 spike-prep gate
 
 ### Before any public release
 1. Repo hygiene sweep (secrets scan, gitignore, absolute paths, TODO/FIXME)

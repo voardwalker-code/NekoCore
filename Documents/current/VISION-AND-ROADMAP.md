@@ -12,6 +12,7 @@ Current execution note (2026-03-14):
 1. Near-term work is interface-first: make shell/app flows intuitive and reliable.
 2. Browser strategy follows `NEKOCORE-BROWSER-ROADMAP.md` (embedded-engine path with compliance guardrails).
 3. Browser scope lock is active: app-on-engine only, no bypass-class feature direction.
+4. Contributor provenance baseline for browser phase is DCO.
 
 Working phase statement:
 1. REM System (Recursive Echo Memory) is the core system we have now.
@@ -225,6 +226,13 @@ git tag -a v0.6.0-prealpha -m "REM System 0.6.0-prealpha"
 git push origin main
 git push origin v0.6.0-prealpha
 ```
+
+### Browser Contributor Provenance (NB-0-4)
+
+Policy decision:
+1. Use DCO for contributor provenance in browser-phase work.
+2. Browser-related PRs require commit sign-offs.
+3. CLA is not selected at this phase.
 
 ---
 

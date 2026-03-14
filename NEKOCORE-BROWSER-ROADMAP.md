@@ -150,6 +150,26 @@ Any write action to REM memory requires:
 2. Hidden long-term storage of browser content without explicit user instruction.
 3. Implicit write actions triggered only by viewing a page.
 
+## Contributor Provenance Policy (NB-0-4 Completed)
+
+Decision:
+1. NekoCore Browser adopts DCO (Developer Certificate of Origin) for contribution provenance.
+
+Why DCO for this phase:
+1. Lower friction for open-source contributors than CLA in early growth stage.
+2. Clear contributor attestation per commit.
+3. Good alignment with MIT-licensed collaborative development.
+
+Contribution requirement:
+1. Contributors sign commits with DCO sign-off line.
+2. Sign-off format:
+   - Signed-off-by: Name <email@example.com>
+3. Maintainers should reject browser-related PRs without required sign-offs.
+
+Enforcement path:
+1. Add DCO guidance in contributor-facing docs.
+2. Add automated DCO check in CI as follow-up implementation work.
+
 ## Core Product Modes
 
 NekoCore Browser should support two top-level modes over the same browser surface.

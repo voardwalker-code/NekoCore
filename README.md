@@ -375,6 +375,12 @@ NekoCore is intended to be safe for open-source collaboration and paid project u
 4. Do not silently persist page content into long-term memory without explicit user intent.
 5. Track third-party components and include required notices when packaging distributions.
 
+### Contributor Provenance (Browser Phase)
+
+1. Browser-phase contribution provenance uses DCO (Developer Certificate of Origin).
+2. Browser-related commits should include Signed-off-by lines.
+3. This keeps contribution flow open while preserving clear authorship attestation.
+
 ### Browser Data and Memory Policy
 
 1. Browser data and REM memory are separate by default.

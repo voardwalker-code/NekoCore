@@ -9,6 +9,12 @@ Format: most recent first within each version block.
 
 ### 2026-03-14
 
+#### NekoCore Browser contributor provenance policy (NB-0-4)
+- `NEKOCORE-BROWSER-ROADMAP.md`: contributor provenance decision finalized to DCO.
+- Added DCO sign-off requirement and enforcement path notes.
+- `Documents/current/VISION-AND-ROADMAP.md` and `README.md`: synchronized DCO baseline for browser-phase contributions.
+- `Documents/current/OPEN-ITEMS-AUDIT.md`: marked NB-0-4 complete and moved next active slice to NB-0-5.
+
 #### NekoCore Browser data boundary policy (NB-0-3)
 - `NEKOCORE-BROWSER-ROADMAP.md`: added browser-data vs REM-memory policy, persistence defaults, and explicit consent rules.
 - `Documents/current/CONTRACTS-AND-SCHEMAS.md`: added Browser Data Boundary Contract.
