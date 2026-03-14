@@ -73,7 +73,7 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 #### Slice Checklist
 
 - [x] NB-1-0: Define spike acceptance checks (navigation, tab model, lifecycle, download event visibility)
-- [ ] NB-1-1: Define repo module boundaries for host/shared/contracts/routes
+- [x] NB-1-1: Define repo module boundaries for host/shared/contracts/routes
 - [ ] NB-1-2: Define initial bridge/API contract list for browser session and tab state
 
 ---
@@ -260,6 +260,53 @@ Files changed (expected):
 
 ---
 
+### NB-1-1 — Repo Module Boundary Map
+
+**Start criteria:** NB-1-0 done.
+
+**Work:**
+1. Define browser host ownership boundary and runtime responsibilities.
+2. Define shared contract/schema boundary for host-backend state exchange.
+3. Define backend route boundary for browser-facing APIs.
+4. Define policy boundary to prevent browser feature logic from leaking into composition/bootstrap modules.
+
+**Boundary markers:** `[BOUNDARY_OK]` `[JS_OFFLOAD]` `[CONTRACT_ENFORCED]`
+
+**Boundary map (authoritative for NB-1):**
+
+1. `browser-host/**` (new module root)
+	- Owns embedded-engine runtime lifecycle, window/tab primitives, navigation execution, and host event emission.
+	- Must not contain REM memory writes, entity orchestration logic, or route handlers.
+2. `browser-shared/**` (new module root)
+	- Owns serializable contracts for tab/session/download/lifecycle events and request payload schemas.
+	- Must remain engine-agnostic and UI-agnostic.
+3. `server/routes/browser-routes.js` (new route module)
+	- Owns HTTP API surface for browser state queries and explicit command requests.
+	- Must delegate business behavior to service modules; no embedded host logic.
+4. `server/services/browser/**` (new service area)
+	- Owns backend-side browser orchestration adapters and policy checks.
+	- Must not render UI and must not become route/controller code.
+5. `client/js/browser/**` (new UI area)
+	- Owns browser shell UI state and user interaction wiring.
+	- Must not contain filesystem logic, host process management, or backend business policy.
+6. `server/server.js`
+	- Composition/bootstrap only; may register browser routes and initialize browser service wiring.
+	- Must not host browser business logic blocks.
+
+**End criteria:**
+- Module boundary map documented in source-of-truth docs.
+- Ownership and non-ownership rules are explicit for each layer.
+- NB-1-1 marked complete.
+- NB-1-2 becomes active.
+
+Files changed (expected):
+- `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`
+- `NEKOCORE-BROWSER-ROADMAP.md`
+- `Documents/current/CONTRACTS-AND-SCHEMAS.md`
+- `Documents/current/SERVER-MODULE-MAP.md`
+
+---
+
 ## 7. Test Plan
 
 | Test File | Slice | What It Verifies |
@@ -289,14 +336,15 @@ Files changed (expected):
 | 2026-03-14 | NB-0-4 | Done | Contributor provenance policy selected as DCO and documented |
 | 2026-03-14 | NB-0-5 | Done | Phase 0 exit review completed; NB-1 unlocked and marked active |
 | 2026-03-14 | NB-1-0 | Done | Spike acceptance checks defined for navigation, tabs, lifecycle, and download visibility |
+| 2026-03-14 | NB-1-1 | Done | Repo module boundary map defined for browser host/shared/contracts/routes separation |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
 - **Current phase:** NB-1 Technical Spike Preparation Gate
-- **Current slice:** NB-1-1 — status: in progress
-- **Last completed slice:** NB-1-0
-- **In-progress item:** define repo module boundaries for browser host/shared/contracts/routes
+- **Current slice:** NB-1-2 — status: in progress
+- **Last completed slice:** NB-1-1
+- **In-progress item:** define initial bridge/API contract list for browser session and tab state
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** draft and lock module-boundary map for spike implementation files
+- **Next action on resume:** draft bridge contracts for tab/session/download/lifecycle API payloads

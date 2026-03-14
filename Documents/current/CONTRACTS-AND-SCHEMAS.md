@@ -85,6 +85,29 @@ Required output artifacts for NB-1 handoff:
 
 ---
 
+## Browser Module Boundary Contract (NB-1-1)
+
+This contract defines ownership boundaries for browser-host spike implementation modules.
+
+Ownership matrix:
+1. `browser-host/**` owns embedded-engine lifecycle, navigation execution, tab primitives, and host-side events.
+2. `browser-shared/**` owns serializable schema contracts and shared type definitions.
+3. `server/routes/browser-routes.js` owns request/response routing only.
+4. `server/services/browser/**` owns backend browser orchestration, command handlers, and policy checks.
+5. `client/js/browser/**` owns browser shell presentation state and user interaction flow.
+6. `server/server.js` owns composition/bootstrap wiring only.
+
+Boundary prohibitions:
+1. Browser business logic must not be added to `server/server.js`.
+2. Route modules must not contain host-process control implementations.
+3. UI modules must not contain filesystem access or backend orchestration.
+4. Shared contracts must not import engine-specific host SDK code.
+
+Acceptance rule:
+1. NB-1 implementation slices fail boundary review if ownership or prohibition rules are violated without same-slice extraction/remediation.
+
+---
+
 ## Memory Schema (version 1)
 
 File: `server/contracts/memory-schema.js`

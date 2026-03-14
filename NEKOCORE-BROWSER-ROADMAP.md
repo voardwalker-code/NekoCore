@@ -250,6 +250,15 @@ NB-1-0 acceptance baseline (completed):
 4. Download pipeline must emit observable start/complete/failure events with correlatable ids and source metadata.
 5. Spike handoff must include pass/fail log, event trace sample, and residual-risk notes.
 
+NB-1-1 module boundary map (completed):
+
+1. `browser-host/**` owns embedded-engine runtime and event emission; no REM memory or route logic.
+2. `browser-shared/**` owns engine-agnostic contracts for tab/session/download/lifecycle payloads.
+3. `server/routes/browser-routes.js` owns browser HTTP surface only; business behavior delegated to services.
+4. `server/services/browser/**` owns backend browser orchestration and policy checks.
+5. `client/js/browser/**` owns browser shell UI state and interaction flow only.
+6. `server/server.js` remains composition-only and may only wire browser modules.
+
 Suggested repo target:
 
 1. `browser-host/` for native or host runtime code.

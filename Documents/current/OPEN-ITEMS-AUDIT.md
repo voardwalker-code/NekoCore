@@ -113,7 +113,8 @@ Current browser phase status:
 5. NB-0-4 completed (contributor provenance policy decision: DCO).
 6. NB-0-5 completed (Phase 0 exit review).
 7. NB-1-0 completed (spike acceptance checks baseline).
-8. NB-1 is active; NB-1-1 is current slice (repo module boundaries).
+8. NB-1-1 completed (repo module boundary map).
+9. NB-1 is active; NB-1-2 is current slice (bridge/API contract list).
 
 ---
 
@@ -123,7 +124,7 @@ Current browser phase status:
 1. **Keep docs current per slice** — update WORKLOG snapshot/ledger and source-of-truth docs in lockstep with landed changes
 2. **Check `entities/` folder** — verify no personal data is committed that shouldn't be public
 3. **Add and publish docs currently staged in `Documents/current/`** — source-of-truth docs now expected to travel with repo pushes
-4. **Complete NB-1-1** — define repo module boundaries for host/shared/contracts/routes
+4. **Complete NB-1-2** — define initial bridge/API contracts for browser session and tab state
 
 ### Before any public release
 1. Repo hygiene sweep (secrets scan, gitignore, absolute paths, TODO/FIXME)

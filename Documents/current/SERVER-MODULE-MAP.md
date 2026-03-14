@@ -30,6 +30,21 @@ Markers used in notes/tickets:
 
 ---
 
+## Browser Module Boundary Map (NB-1-1)
+
+This section governs the upcoming browser host spike layout.
+
+| Module area | Ownership | Must NOT own |
+|-------------|-----------|--------------|
+| `browser-host/**` | Embedded-engine runtime lifecycle, navigation execution, tab/window primitives, host events | REM memory writes, API route logic, shell rendering |
+| `browser-shared/**` | Engine-agnostic contracts for tab/session/download/lifecycle payloads | Engine SDK bindings, UI rendering, route handlers |
+| `server/routes/browser-routes.js` | Browser HTTP endpoints (request validation, response shaping) | Embedded host process control internals, UI logic |
+| `server/services/browser/**` | Backend browser orchestration adapters and policy checks | Route declarations, DOM/UI rendering |
+| `client/js/browser/**` | Browser shell UI state, interaction handlers, telemetry display wiring | Filesystem/process control, backend business policy |
+| `server/server.js` | Composition/bootstrap wiring of browser modules | Browser business logic blocks |
+
+---
+
 ## server/server.js
 
 **Role: Composition and bootstrap only.**

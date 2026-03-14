@@ -9,6 +9,13 @@ Format: most recent first within each version block.
 
 ### 2026-03-14
 
+#### NekoCore Browser repo module boundary map defined (NB-1-1)
+- `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`: marked NB-1-1 complete and moved active slice to NB-1-2.
+- `NEKOCORE-BROWSER-ROADMAP.md`: added NB-1-1 boundary ownership baseline.
+- `Documents/current/CONTRACTS-AND-SCHEMAS.md`: added Browser Module Boundary Contract.
+- `Documents/current/SERVER-MODULE-MAP.md`: added browser module ownership matrix.
+- `WORKLOG.md` and `Documents/current/OPEN-ITEMS-AUDIT.md`: synced active slice to NB-1-2.
+
 #### NekoCore Browser spike acceptance baseline defined (NB-1-0)
 - `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`: added acceptance checks for navigation, tab model, lifecycle events, and download visibility.
 - `Documents/current/CONTRACTS-AND-SCHEMAS.md`: added Browser Spike Acceptance Contract.

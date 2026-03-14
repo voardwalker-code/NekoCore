@@ -44,6 +44,11 @@ The browser strategy now has a documented compliance-first roadmap based on embe
 2. Spike validation now requires an evidence package: pass/fail matrix, event-trace sample, and residual-risk notes.
 3. Phase NB-1 remains active with NB-1-1 as the next slice (repo module boundaries).
 
+### Browser Repo Module Boundary Baseline (NB-1-1)
+1. Repo ownership boundaries are now defined for `browser-host/**`, `browser-shared/**`, `server/routes/browser-routes.js`, `server/services/browser/**`, and `client/js/browser/**`.
+2. `server/server.js` is reaffirmed as composition-only for browser integration wiring.
+3. Phase NB-1 remains active with NB-1-2 as the next slice (bridge/API contract list).
+
 ### Breaking Changes
 None. Existing entities continue to work. New features activate only when explicitly used.
 
