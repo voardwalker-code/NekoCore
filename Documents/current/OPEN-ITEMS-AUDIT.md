@@ -112,7 +112,8 @@ Current browser phase status:
 4. NB-0-3 completed (browser data policy and persistence defaults).
 5. NB-0-4 completed (contributor provenance policy decision: DCO).
 6. NB-0-5 completed (Phase 0 exit review).
-7. NB-1 is now active; NB-1-0 is current slice (spike acceptance checks).
+7. NB-1-0 completed (spike acceptance checks baseline).
+8. NB-1 is active; NB-1-1 is current slice (repo module boundaries).
 
 ---
 
@@ -122,7 +123,7 @@ Current browser phase status:
 1. **Keep docs current per slice** — update WORKLOG snapshot/ledger and source-of-truth docs in lockstep with landed changes
 2. **Check `entities/` folder** — verify no personal data is committed that shouldn't be public
 3. **Add and publish docs currently staged in `Documents/current/`** — source-of-truth docs now expected to travel with repo pushes
-4. **Complete NB-1-0** — define technical spike acceptance checks for WebView2 host path
+4. **Complete NB-1-1** — define repo module boundaries for host/shared/contracts/routes
 
 ### Before any public release
 1. Repo hygiene sweep (secrets scan, gitignore, absolute paths, TODO/FIXME)
@@ -139,9 +140,9 @@ Current browser phase status:
 
 ---
 
-## 5. No Active Development Phase
+## 5. Legacy Phase Set Status
 
-All seven tracked phases are confirmed Done:
+The prior seven tracked phases are confirmed Done:
 1. Cleanup gate — Done
 2. Live-loop refactor (parallel pipeline) — Done
 3. Dream split hardening — Done
@@ -150,4 +151,4 @@ All seven tracked phases are confirmed Done:
 6. Phase A re-evaluation (server.js decomposition) — Done
 7. Runtime quality hardening — Done
 
-There is no current active phase. The next development work requires a new phase plan using `Documents/current/PHASE-PLAN-TEMPLATE.md`.
+Current active development phase is NekoCore Browser NB-1 (technical spike preparation).

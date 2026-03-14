@@ -39,6 +39,11 @@ The browser strategy now has a documented compliance-first roadmap based on embe
 3. Browser-to-memory writes require explicit user-directed action and confirmation.
 4. Saved browser artifacts should include source attribution metadata when available.
 
+### Browser Spike Acceptance Baseline (NB-1-0)
+1. Technical acceptance checks are now defined for navigation, tab model invariants, lifecycle event visibility, and download event visibility.
+2. Spike validation now requires an evidence package: pass/fail matrix, event-trace sample, and residual-risk notes.
+3. Phase NB-1 remains active with NB-1-1 as the next slice (repo module boundaries).
+
 ### Breaking Changes
 None. Existing entities continue to work. New features activate only when explicitly used.
 

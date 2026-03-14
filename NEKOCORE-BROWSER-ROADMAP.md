@@ -242,6 +242,14 @@ Steps:
 6. Define IPC or bridge rules between browser host and NekoCore backend.
 7. Decide how existing web UI apps map into the browser shell.
 
+NB-1-0 acceptance baseline (completed):
+
+1. Navigation must pass active-tab controls for URL input, back, forward, and refresh with explicit failure signaling.
+2. Tab model must guarantee deterministic active-tab behavior on create/switch/close.
+3. Lifecycle event visibility must include host and tab state transitions plus explicit crash/error signal.
+4. Download pipeline must emit observable start/complete/failure events with correlatable ids and source metadata.
+5. Spike handoff must include pass/fail log, event trace sample, and residual-risk notes.
+
 Suggested repo target:
 
 1. `browser-host/` for native or host runtime code.

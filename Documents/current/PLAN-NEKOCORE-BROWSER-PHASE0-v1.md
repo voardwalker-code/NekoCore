@@ -72,7 +72,7 @@ Phase 0 is docs/policy only, but boundaries are pre-confirmed for the next imple
 
 #### Slice Checklist
 
-- [ ] NB-1-0: Define spike acceptance checks (navigation, tab model, lifecycle, download event visibility)
+- [x] NB-1-0: Define spike acceptance checks (navigation, tab model, lifecycle, download event visibility)
 - [ ] NB-1-1: Define repo module boundaries for host/shared/contracts/routes
 - [ ] NB-1-2: Define initial bridge/API contract list for browser session and tab state
 
@@ -211,6 +211,55 @@ Files changed (expected):
 
 ---
 
+### NB-1-0 — Spike Acceptance Checks Baseline
+
+**Start criteria:** NB-0-5 done and Phase NB-1 active.
+
+**Work:**
+1. Define acceptance checks for navigation behavior on an embedded-engine host.
+2. Define tab model invariants for create/switch/close and active-tab continuity.
+3. Define lifecycle event visibility requirements for host and tab surfaces.
+4. Define download event visibility and minimum metadata requirements.
+5. Define required spike evidence package for pass/fail handoff.
+
+**Boundary markers:** `[BOUNDARY_OK]` `[CONTRACT_ENFORCED]`
+
+**Acceptance checks (must all pass):**
+
+1. Navigation checks
+	- Can navigate to explicit `https://` URL input.
+	- Back/forward/refresh commands operate on the active tab.
+	- Navigation failures produce explicit error state (not silent no-op).
+2. Tab model checks
+	- New tab creates a unique tab id and sets active tab deterministically.
+	- Close-tab updates active tab deterministically (next, else previous, else none).
+	- Switching tabs updates address/title/loading indicators to selected tab state.
+3. Lifecycle checks
+	- Host emits lifecycle states: `host_starting`, `host_ready`, `host_closing`.
+	- Tab emits lifecycle states: `tab_created`, `tab_navigating`, `tab_ready`, `tab_closed`.
+	- Unexpected termination/crash path emits explicit error event with reason.
+4. Download visibility checks
+	- Download start event is emitted with download id, source URL, and suggested filename when available.
+	- Download completion/failure events are emitted and correlated to the same id.
+	- Download events are visible to shell/task surfaces (telemetry visibility), even before final UI polish.
+5. Evidence package checks
+	- Spike run log with timestamped pass/fail per acceptance check.
+	- Event trace sample showing navigation/tab/lifecycle/download events.
+	- Short residual-risk note for any partial behavior accepted for NB-1.
+
+**End criteria:**
+- Acceptance checks are documented and approved in source-of-truth docs.
+- NB-1-0 marked complete.
+- NB-1-1 becomes active.
+
+Files changed (expected):
+- `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`
+- `NEKOCORE-BROWSER-ROADMAP.md`
+- `Documents/current/CONTRACTS-AND-SCHEMAS.md`
+- `Documents/current/RELEASE-NOTES.md`
+
+---
+
 ## 7. Test Plan
 
 | Test File | Slice | What It Verifies |
@@ -239,14 +288,15 @@ Files changed (expected):
 | 2026-03-14 | NB-0-3 | Done | Browser data boundary, persistence defaults, and consent model documented |
 | 2026-03-14 | NB-0-4 | Done | Contributor provenance policy selected as DCO and documented |
 | 2026-03-14 | NB-0-5 | Done | Phase 0 exit review completed; NB-1 unlocked and marked active |
+| 2026-03-14 | NB-1-0 | Done | Spike acceptance checks defined for navigation, tabs, lifecycle, and download visibility |
 
 ---
 
 ## 10. Stop / Resume Snapshot
 
 - **Current phase:** NB-1 Technical Spike Preparation Gate
-- **Current slice:** NB-1-0 — status: in progress
-- **Last completed slice:** NB-0-5
-- **In-progress item:** draft spike acceptance criteria and handoff checklist
+- **Current slice:** NB-1-1 — status: in progress
+- **Last completed slice:** NB-1-0
+- **In-progress item:** define repo module boundaries for browser host/shared/contracts/routes
 - **Blocking issue (if blocked):** none
-- **Next action on resume:** finalize NB-1-0 acceptance checks and record in release docs
+- **Next action on resume:** draft and lock module-boundary map for spike implementation files

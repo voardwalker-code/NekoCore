@@ -9,6 +9,12 @@ Format: most recent first within each version block.
 
 ### 2026-03-14
 
+#### NekoCore Browser spike acceptance baseline defined (NB-1-0)
+- `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`: added acceptance checks for navigation, tab model, lifecycle events, and download visibility.
+- `Documents/current/CONTRACTS-AND-SCHEMAS.md`: added Browser Spike Acceptance Contract.
+- `Documents/current/RELEASE-NOTES.md`: synced NB-1-0 acceptance baseline and evidence requirements.
+- `WORKLOG.md` and `Documents/current/OPEN-ITEMS-AUDIT.md`: marked NB-1-0 complete and moved active slice to NB-1-1.
+
 #### NekoCore Browser Phase 0 exit review completed (NB-0-5)
 - `Documents/current/PLAN-NEKOCORE-BROWSER-PHASE0-v1.md`: marked NB-0 phase done and unlocked NB-1.
 - Active slice moved to NB-1-0 (technical spike acceptance checks).

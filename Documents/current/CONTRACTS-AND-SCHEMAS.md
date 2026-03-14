@@ -62,6 +62,29 @@ Default persistence behavior:
 
 ---
 
+## Browser Spike Acceptance Contract (NB-1-0)
+
+This contract defines the minimum technical acceptance checks before browser-host spike work can be considered valid for handoff.
+
+Required acceptance groups:
+1. Navigation behavior on active tab (URL input, back, forward, refresh, explicit failure signal).
+2. Tab model invariants (unique id creation, deterministic active-tab switch/close behavior, state sync on tab switch).
+3. Lifecycle visibility (host and tab transition events, explicit crash/error signal).
+4. Download event visibility (start/complete/failure events with correlatable id and source metadata when available).
+5. Evidence package (timestamped pass/fail matrix, event trace sample, residual-risk note).
+
+Contract rules:
+1. A spike run is not accepted if any required acceptance group lacks evidence.
+2. Silent failure paths are not acceptable; every failed navigation/download/lifecycle path must expose a detectable event or error state.
+3. Acceptance checks validate technical observability and control flow only; UI polish is out of scope for NB-1-0.
+
+Required output artifacts for NB-1 handoff:
+1. Spike acceptance report (checklist + results).
+2. Event trace sample for one successful run and one failure-path run.
+3. Open-risks list tagged for NB-1 follow-up slices.
+
+---
+
 ## Memory Schema (version 1)
 
 File: `server/contracts/memory-schema.js`

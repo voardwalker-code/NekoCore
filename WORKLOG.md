@@ -30,7 +30,8 @@ Progress update:
 5. Completed NB-0-4 (contributor provenance policy, DCO selected).
 6. Completed NB-0-5 (Phase 0 exit review).
 7. Phase NB-1 is now active.
-8. Next active slice is NB-1-0 (technical spike acceptance checks).
+8. Completed NB-1-0 (technical spike acceptance checks baseline).
+9. Next active slice is NB-1-1 (repo module boundaries for host/shared/contracts/routes).
 
 ## Session Ledger - 2026-03-14 (NekoCore Browser Roadmap Draft)
 
