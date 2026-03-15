@@ -17,6 +17,7 @@ server/data/browser-history.json
 server/data/browser-bookmarks.json
 server/data/browser-session.json
 server/data/browser-settings.json
+server/data/browser-research-sessions.json
 
 # Entity runtime data — generated when entities are created
 /entities/*
@@ -37,6 +38,9 @@ server/data/browser-settings.json
 # Server entity runtime state
 /server/entity/*
 !/server/entity/.gitkeep
+
+# Workspace runtime data
+/workspace/**
 
 # Skill workspace runtime dirs
 skills/*/workspace/*

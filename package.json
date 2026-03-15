@@ -1,7 +1,7 @@
 {
   "name": "nekocore",
   "version": "0.6.0",
-  "description": "NekoCore — A cognitive architecture for persistent AI identity, episodic memory, autonomous brain cycles, and layered reasoning. Built on the REM System (Recursive Echo Memory).",
+  "description": "NekoCore OS - A Cognitive WebOS for persistent AI identity, episodic memory, autonomous brain cycles, and layered reasoning. Built on the REM System (Recursive Echo Memory).",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
@@ -29,7 +29,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/voardwalker-code/NekoCore.git"
+    "url": "https://github.com/voardwalker-code/NekoCore-OS.git"
   },
   "optionalDependencies": {
     "@napi-rs/canvas": "^0.1.96",

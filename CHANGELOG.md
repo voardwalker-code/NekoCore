@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to REM System will be documented in this file.
+All notable changes to NekoCore OS (built on the REM System) will be documented in this file.
 Built with MA (Memory Architect v1).
 
 ## [Unreleased]

@@ -2,10 +2,14 @@
   <img src="assets/neko-cat.svg" width="180" alt="NekoCore mascot"/>
 </p>
 
-<h1 align="center">NekoCore</h1>
+<h1 align="center">NekoCore OS</h1>
 
 <p align="center">
-  <strong>v0.6.0</strong> &nbsp;·&nbsp; Built on REM System (Recursive Echo Memory) &nbsp;·&nbsp; MIT License
+  NekoCore OS is a cognitive WebOS for persistent AI entities, powered by the R.E.M. System (Recursive Echo Memory), a cognitive architecture for AI minds.
+</p>
+
+<p align="center">
+  <strong>v0.6.0</strong> &nbsp;·&nbsp; MIT License
 </p>
 
 <p align="center">
@@ -18,9 +22,9 @@
 
 ---
 
-NekoCore is a cognitive architecture that gives AI entities persistent memory, evolving personality, and layered reasoning — modeled after how biological minds process experience. Zero external dependencies. Pure Node.js.
+NekoCore OS is a Cognitive WebOS that gives AI entities persistent memory, evolving personality, and layered reasoning, modeled after how biological minds process experience. Zero external dependencies. Pure Node.js.
 
-Instead of stateless prompt-response cycles, NekoCore maintains **Echoes** — structured memory fragments that are stored, recalled, reinforced, and naturally decay over time. Conversations are processed through a multi-layer pipeline (subconscious, conscious, and dream), consolidated during simulated REM sleep cycles, and used to gradually evolve the entity's identity and goals.
+Instead of stateless prompt-response cycles, NekoCore OS maintains **Echoes** - structured memory fragments that are stored, recalled, reinforced, and naturally decay over time. Conversations are processed through a multi-layer pipeline (subconscious, conscious, and dream), consolidated during simulated REM sleep cycles, and used to gradually evolve the entity's identity and goals.
 
 Each entity operates in full isolation — separate memory stores, personality traits, beliefs, goals, and emotional baselines. New entities are born through a multi-phase **hatching** process that generates synthetic life histories, core memories, and exploration goals.
 
@@ -256,8 +260,8 @@ All internal pipeline events are emitted to the browser via Server-Sent Events:
 ### Clone & Install
 
 ```bash
-git clone https://github.com/voardwalker-code/NekoCore.git
-cd NekoCore
+git clone https://github.com/voardwalker-code/NekoCore-OS.git
+cd NekoCore-OS
 npm install
 ```
 

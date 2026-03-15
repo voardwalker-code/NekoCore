@@ -1,4 +1,4 @@
-# Quick Start: New Web UI Features
+# Quick Start: NekoCore OS Web UI
 
 ## Current Direction
 
@@ -55,7 +55,7 @@ http://localhost:3000
 
 ### 5. Safety and license notes
 
-1. NekoCore is MIT licensed.
+1. NekoCore OS is MIT licensed.
 2. Do not add or ship bypass features for DRM/paywalls/site security headers.
 3. Keep AI extraction and memory writes user-directed.
 
