@@ -42,7 +42,7 @@ Work through BUGS.md in this order. Bug IDs marked with `[pair]` must be fixed t
 | Priority | ID | Description | Notes |
 |----------|----|-------------|-------|
 | 1 | ~~BUG-07 + BUG-08 `[pair]`~~ ✅ | Entity created as checked-out; release breaks entity | **Fixed** — removed checkout from creation endpoints; `syncParentAfterCreate` now calls `checkoutEntity` |
-| 2 | BUG-06 | Chat opens after entity creation with no entity loaded | Likely resolved by BUG-07 fix — verify |
+| 2 | ~~BUG-06~~ ✅ | Chat opens after entity creation with no entity loaded | **Fixed** — post-create handoff now opens Entity details/preview (manual checkout), not Chat |
 | 3 | BUG-11 | Sleep button flashes then returns to chat — REM cycle not running | High impact on core feature |
 | 4 | BUG-12 | Compress and Save — button mislabeled and neither action works | Core memory pipeline function |
 | 5 | BUG-10 | Onboarding not presented as onboarding — user thinks it's normal chat | High UX confusion |

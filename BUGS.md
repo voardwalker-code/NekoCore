@@ -55,8 +55,10 @@ Logged after testing session: 2026-03-15. Priority and complexity estimates are 
 ## BUG-06 — Chat app opens after entity creation with no entity loaded
 **Area:** Entity Creator → Chat handoff  
 **Severity:** High  
+**Status: FIXED**  
 **Description:** After completing entity creation, the Chat app opens but the entity is not present in the chat window. The entity appears to be checked out but not loaded into the chat session.  
 **Expected:** Newly created entity is immediately active and loaded in the chat window.
+**Resolution update:** UX changed to prevent this mismatch state. After creation, embed handoff now opens the Entity details/preview card (Entity tab) for the new entity with explicit manual checkout, instead of auto-opening Chat.
 
 ---
 
@@ -66,7 +68,7 @@ Logged after testing session: 2026-03-15. Priority and complexity estimates are 
 **Status: FIXED**  
 **Description:** After entity creation, the entity is placed in a "checked out" state instead of "checked in". This is a previously reported and previously fixed bug that has regressed. The entity should always be created as checked in.  
 **Expected:** Newly created entity state is checked-in immediately after creation.  
-**Fix:** Removed `entityCheckout.checkout()` calls from all four server-side creation endpoints (`postEntitiesCreate`, `postEntitiesCreateHatch`, `postEntitiesCreateGuided`, `postEntitiesCreateCharacter`). Entities are now created as checked-in. Updated `syncParentAfterCreate()` in `create.js` to call `p.checkoutEntity(entityId)` on the parent frame, which routes through the standard `/api/entities/load` flow to properly load and check out the entity into chat.  
+**Fix:** Removed `entityCheckout.checkout()` calls from all four server-side creation endpoints (`postEntitiesCreate`, `postEntitiesCreateHatch`, `postEntitiesCreateGuided`, `postEntitiesCreateCharacter`). Entities are now created as checked-in. Updated `syncParentAfterCreate()` in `create.js` to route to the new entity's preview/details card (`sidebarSelectEntity`) instead of auto-loading chat.  
 **Patch note:** Fixed together with BUG-08.
 
 ---
@@ -196,7 +198,7 @@ Logged after testing session: 2026-03-15. Priority and complexity estimates are 
 | BUG-03 | OpenRouter / BYOK UX | Low | Open |
 | BUG-04 | OpenRouter / Model List | Medium | Open |
 | BUG-05 | Entity Creator / Traits | Medium | Open |
-| BUG-06 | Entity → Chat Handoff | High | Open |
+| BUG-06 | Entity → Chat Handoff | High | Fixed |
 | BUG-07 | Entity State / Checkout | High | Fixed |
 | BUG-08 | Entity Release / Corruption | High | Fixed |
 | BUG-09 | Brain Pipeline / LLM Routing | Medium | Open |

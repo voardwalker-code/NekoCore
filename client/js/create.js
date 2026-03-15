@@ -81,15 +81,14 @@ function syncParentAfterCreate() {
   try {
     if (!window.parent || window.parent === window) return;
     const p = window.parent;
-    if (lastCreatedEntityId && typeof p.checkoutEntity === 'function') {
-      // Load and check out the new entity through the normal checkout flow.
-      // checkoutEntity handles refreshSidebarEntities, ensureEntityWindowContent,
-      // and switchMainTab('chat') internally.
-      p.checkoutEntity(lastCreatedEntityId);
+    if (typeof p.refreshSidebarEntities === 'function') p.refreshSidebarEntities();
+
+    if (lastCreatedEntityId && typeof p.sidebarSelectEntity === 'function') {
+      // Open the entity preview/details card and let the user explicitly choose checkout.
+      p.sidebarSelectEntity(lastCreatedEntityId);
     } else {
-      if (typeof p.refreshSidebarEntities === 'function') p.refreshSidebarEntities();
       if (typeof p.ensureEntityWindowContent === 'function') p.ensureEntityWindowContent(true);
-      if (typeof p.switchMainTab === 'function') p.switchMainTab('chat');
+      if (typeof p.switchMainTab === 'function') p.switchMainTab('entity');
     }
     if (typeof p.closeWindow === 'function') p.closeWindow('creator');
   } catch (_) {
@@ -152,7 +151,7 @@ async function applyCreatorOnboarding(entityId) {
 }
 
 // ── Success screen ───────────────────────────────────────────
-function showSuccessScreen(entity, note) {
+function showSuccessScreen(entity, note, entityId) {
   // Hide all form steps
   ['creatorWelcomeStep', 'entityCreationModeStep', 'entityEmptyFormStep',
    'entityRandomFormStep', 'entityGuidedFormStep', 'entityCharacterFormStep',
@@ -170,10 +169,12 @@ function showSuccessScreen(entity, note) {
 
   const primaryBtn = document.getElementById('creatorPrimarySuccessBtn');
   if (IS_EMBED && primaryBtn) {
-    primaryBtn.textContent = 'Back to Chat →';
+    primaryBtn.textContent = 'Back to Entity →';
   }
 
-  if (IS_EMBED) {    lastCreatedEntityId = entity.id;    lg('ok', entity.name + ' created successfully! Returning to chat…');
+  if (IS_EMBED) {
+    lastCreatedEntityId = entityId || entity.id || null;
+    lg('ok', entity.name + ' created successfully! Opening entity details…');
     setTimeout(() => { syncParentAfterCreate(); }, 900);
   } else {
     lg('ok', entity.name + ' created successfully! Redirecting…');
@@ -284,7 +285,7 @@ async function createEmptyEntity() {
 
   const data = await resp.json();
   await applyCreatorOnboarding(data.entityId);
-  showSuccessScreen(data.entity, 'Empty entity ready — memories form through conversation.');
+  showSuccessScreen(data.entity, 'Empty entity ready — memories form through conversation.', data.entityId);
 }
 
 // ── Random entity ─────────────────────────────────────────────
@@ -321,7 +322,7 @@ async function createRandomEntity() {
 
   closeHatchProgress();
   await applyCreatorOnboarding(data.entityId);
-  showSuccessScreen(data.entity, 'Random entity hatched with life story and core memories!');
+  showSuccessScreen(data.entity, 'Random entity hatched with life story and core memories!', data.entityId);
 }
 
 // ── Character ingestion ───────────────────────────────────────
@@ -362,7 +363,7 @@ async function createCharacterEntity() {
 
   closeHatchProgress();
   await applyCreatorOnboarding(data.entityId);
-  showSuccessScreen(data.entity, 'Character ingested with ' + (data.entity.memory_count || 0) + ' seeded memories!');
+  showSuccessScreen(data.entity, 'Character ingested with ' + (data.entity.memory_count || 0) + ' seeded memories!', data.entityId);
 }
 
 // ── Guided entity ─────────────────────────────────────────────
@@ -459,7 +460,7 @@ async function createGuidedEntity() {
   await applyCreatorOnboarding(data.entityId);
   const note = 'Guided entity created with ' + (data.entity.memory_count || 0) + ' core memories'
     + (seedChunkCount > 0 ? ' + ' + seedChunkCount + ' knowledge chunks.' : '.');
-  showSuccessScreen(data.entity, note);
+  showSuccessScreen(data.entity, note, data.entityId);
 }
 
 // ── Tiny sleep helper ─────────────────────────────────────────
