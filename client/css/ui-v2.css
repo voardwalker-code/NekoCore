@@ -3816,6 +3816,14 @@ body {
   padding: 0;
   overflow: hidden;
   z-index: 10;
+  /* Don't block clicks on desktop files/icons underneath */
+  pointer-events: none;
+}
+
+/* Re-enable pointer events for actual windows and their contents */
+.wm-window,
+.wm-window * {
+  pointer-events: auto;
 }
 
 .tab-content {
