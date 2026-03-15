@@ -268,7 +268,6 @@ function createEntityRoutes(ctx) {
 
       ctx.entityManager.loadEntity(canonicalId);
       ctx.setActiveEntity(canonicalId);
-      if (req.accountId) entityCheckout.checkout(canonicalId, req.accountId);
       _reinitBrainLoop();
       res.writeHead(200, apiHeaders);
       res.end(JSON.stringify({ ok: true, entity, entityId: canonicalId }));
@@ -306,7 +305,6 @@ function createEntityRoutes(ctx) {
       fs.writeFileSync(path.join(entityPath, 'entity.json'), JSON.stringify(entity, null, 2), 'utf8');
 
       ctx.setActiveEntity(hatchResult.entityId);
-      if (req.accountId) entityCheckout.checkout(hatchResult.entityId, req.accountId);
       _reinitBrainLoop();
 
       const persona = {
@@ -496,7 +494,6 @@ function createEntityRoutes(ctx) {
 
       ctx.entityManager.loadEntity(canonicalId);
       ctx.setActiveEntity(canonicalId);
-      if (req.accountId) entityCheckout.checkout(canonicalId, req.accountId);
       _reinitBrainLoop();
 
       const subconsciousIntro = `[SUBCONSCIOUS AWAKENING] 🧬\n\nGreetings, ${name}. Your identity was initialized with guided intent: ${chosenIntent}.\n\nPersonality: ${traitsArr.join(', ')}\nCore memories: ${storedMemories.length}\nInteraction style: ${chosenInteraction}\n\nYour memories are ready. Your voice is set. Begin your journey.`;
@@ -601,7 +598,6 @@ function createEntityRoutes(ctx) {
 
       ctx.entityManager.loadEntity(canonicalId);
       ctx.setActiveEntity(canonicalId);
-      if (req.accountId) entityCheckout.checkout(canonicalId, req.accountId);
       _reinitBrainLoop();
 
       const subconsciousIntro = `[SUBCONSCIOUS AWAKENING] 📚\n\n${name}'s consciousness has been initialized from source material${source ? ' (' + source + ')' : ''}.\n\nCharacter profile: ${finalTraits.join(', ')}\nCore memories: ${storedMemories.length} canonical memories seeded\nThemes: ${(blueprint.themes || []).join(', ') || 'identity, growth'}\nBehavioral constraints: ${(blueprint.behavior_rules || []).length} rules loaded\n\nVoice calibration complete. Your journey begins now.`;

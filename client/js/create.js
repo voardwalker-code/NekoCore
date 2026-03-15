@@ -9,6 +9,7 @@
 // ── State ────────────────────────────────────────────────────
 let entityCreationMode = null;
 let creatorOnboardingPayload = null;
+let lastCreatedEntityId = null;
 const PAGE_PARAMS = new URLSearchParams(window.location.search);
 const IS_EMBED = PAGE_PARAMS.get('embed') === '1';
 
@@ -80,9 +81,16 @@ function syncParentAfterCreate() {
   try {
     if (!window.parent || window.parent === window) return;
     const p = window.parent;
-    if (typeof p.refreshSidebarEntities === 'function') p.refreshSidebarEntities();
-    if (typeof p.ensureEntityWindowContent === 'function') p.ensureEntityWindowContent(true);
-    if (typeof p.switchMainTab === 'function') p.switchMainTab('chat');
+    if (lastCreatedEntityId && typeof p.checkoutEntity === 'function') {
+      // Load and check out the new entity through the normal checkout flow.
+      // checkoutEntity handles refreshSidebarEntities, ensureEntityWindowContent,
+      // and switchMainTab('chat') internally.
+      p.checkoutEntity(lastCreatedEntityId);
+    } else {
+      if (typeof p.refreshSidebarEntities === 'function') p.refreshSidebarEntities();
+      if (typeof p.ensureEntityWindowContent === 'function') p.ensureEntityWindowContent(true);
+      if (typeof p.switchMainTab === 'function') p.switchMainTab('chat');
+    }
     if (typeof p.closeWindow === 'function') p.closeWindow('creator');
   } catch (_) {
     // Ignore cross-frame sync errors; creation still succeeded.
@@ -165,8 +173,7 @@ function showSuccessScreen(entity, note) {
     primaryBtn.textContent = 'Back to Chat →';
   }
 
-  if (IS_EMBED) {
-    lg('ok', entity.name + ' created successfully! Returning to chat…');
+  if (IS_EMBED) {    lastCreatedEntityId = entity.id;    lg('ok', entity.name + ' created successfully! Returning to chat…');
     setTimeout(() => { syncParentAfterCreate(); }, 900);
   } else {
     lg('ok', entity.name + ' created successfully! Redirecting…');

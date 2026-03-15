@@ -63,18 +63,22 @@ Logged after testing session: 2026-03-15. Priority and complexity estimates are 
 ## BUG-07 — Entity created as checked-out instead of checked-in (persistent bug)
 **Area:** Entity Creator / Entity State  
 **Severity:** High  
+**Status: FIXED**  
 **Description:** After entity creation, the entity is placed in a "checked out" state instead of "checked in". This is a previously reported and previously fixed bug that has regressed. The entity should always be created as checked in.  
 **Expected:** Newly created entity state is checked-in immediately after creation.  
-**Patch note:** Fix together with BUG-08 — BUG-07 is the root cause of BUG-08. Fixing the checkout state on creation should eliminate the trigger condition for entity corruption entirely.
+**Fix:** Removed `entityCheckout.checkout()` calls from all four server-side creation endpoints (`postEntitiesCreate`, `postEntitiesCreateHatch`, `postEntitiesCreateGuided`, `postEntitiesCreateCharacter`). Entities are now created as checked-in. Updated `syncParentAfterCreate()` in `create.js` to call `p.checkoutEntity(entityId)` on the parent frame, which routes through the standard `/api/entities/load` flow to properly load and check out the entity into chat.  
+**Patch note:** Fixed together with BUG-08.
 
 ---
 
 ## BUG-08 — Releasing a bugged (checked-out) entity breaks it: "Entity Not Found" error
 **Area:** Entity Management / Checkout System  
 **Severity:** High  
+**Status: FIXED**  
 **Description:** If an entity is stuck in the broken checked-out state (see BUG-07) and the user tries to release/check it in via the release button, the entity becomes permanently broken. Subsequent attempts to check it out return "Entity Not Found".  
 **Expected:** Release/check-in should recover from a bad checkout state gracefully without corrupting the entity.  
-**Patch note:** Fix together with BUG-07 — this is a downstream consequence of BUG-07. Fixing entity creation state (BUG-07) should eliminate the trigger condition for this bug. Patch both in the same pass.
+**Fix:** Root cause eliminated by BUG-07 fix. The trigger condition (entity stuck in checked-out state with client unaware) can no longer occur.  
+**Patch note:** Fixed together with BUG-07.
 
 ---
 
@@ -193,8 +197,8 @@ Logged after testing session: 2026-03-15. Priority and complexity estimates are 
 | BUG-04 | OpenRouter / Model List | Medium | Open |
 | BUG-05 | Entity Creator / Traits | Medium | Open |
 | BUG-06 | Entity → Chat Handoff | High | Open |
-| BUG-07 | Entity State / Checkout | High | Open |
-| BUG-08 | Entity Release / Corruption | High | Open |
+| BUG-07 | Entity State / Checkout | High | Fixed |
+| BUG-08 | Entity Release / Corruption | High | Fixed |
 | BUG-09 | Brain Pipeline / LLM Routing | Medium | Open |
 | BUG-10 | Onboarding UX | High | Open |
 | BUG-11 | Sleep System | High | Open |

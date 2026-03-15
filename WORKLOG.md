@@ -3,6 +3,119 @@
 Status: active architecture refactor tracking.
 Last updated: 2026-03-15
 
+---
+
+## ⚠️ ACTIVE MANDATE — Bug Fix → Cleanup → Modularization (Precedence Order)
+
+**Effective: 2026-03-15. This mandate overrides all other planned work.**
+
+No new features are to be started until the following three phases are complete.
+The only exception is a newly discovered bug of critical severity (data loss, security, or total system failure).
+
+### Phase Priority Order
+
+```
+1. BUG FIXES        — all bugs in BUGS.md resolved
+2. REFACTOR/CLEANUP — code structure cleaned up post-bug-fix
+3. MODULARIZATION   — all apps/features decoupled into independent modules
+4. NEW FEATURES     — only after all three above are done
+```
+
+---
+
+## Session Ledger — 2026-03-15 (Phase Plan: Bug Fixes, Refactor, and Modularization)
+
+Status: `Planned`
+
+Purpose:
+1. Fix all known bugs logged in BUGS.md before any new feature work begins.
+2. Refactor and clean up the codebase — it has grown cluttered across several sprint sessions.
+3. Modularize all independent app features so they can be removed, replaced, or contributed to by other developers without breaking the core system.
+4. Establish a clean, contributor-friendly architecture baseline for NekoCore OS going forward.
+
+---
+
+### Phase 1 — Bug Fixes (BUGS.md)
+
+Work through BUGS.md in this order. Bug IDs marked with `[pair]` must be fixed together.
+
+| Priority | ID | Description | Notes |
+|----------|----|-------------|-------|
+| 1 | ~~BUG-07 + BUG-08 `[pair]`~~ ✅ | Entity created as checked-out; release breaks entity | **Fixed** — removed checkout from creation endpoints; `syncParentAfterCreate` now calls `checkoutEntity` |
+| 2 | BUG-06 | Chat opens after entity creation with no entity loaded | Likely resolved by BUG-07 fix — verify |
+| 3 | BUG-11 | Sleep button flashes then returns to chat — REM cycle not running | High impact on core feature |
+| 4 | BUG-12 | Compress and Save — button mislabeled and neither action works | Core memory pipeline function |
+| 5 | BUG-10 | Onboarding not presented as onboarding — user thinks it's normal chat | High UX confusion |
+| 6 | BUG-14 | Entity backstory too shallow — need slider, more memories, token estimate | High quality impact |
+| 7 | BUG-15 + BUG-17 `[pair]` | Skills not invoked naturally; all skills default-enabled | Fix invocation + default state together |
+| 8 | BUG-16 | No entity workspace folder created on VFS desktop | Medium, but core to OS identity |
+| 9 | BUG-05 | Personality traits — no dropdown/autocomplete in entity creator | UX improvement |
+| 10 | BUG-13 | Chat scroll flickers during message receipt | Medium UX polish |
+| 11 | BUG-04 | OpenRouter default model wrong; Mercury 2 missing from list | Quick config fix |
+| 12 | BUG-09 | Model routing recommendation — same model causes character drift | Add UI hint/doc |
+| 13 | BUG-02 | Account setup input text near-invisible | CSS contrast fix |
+| 14 | BUG-01 | "REM System" branding remnants in account setup flow | Branding sweep |
+| 15 | BUG-03 | No OpenRouter sign-up link; BYOK not communicated | UI disclosure |
+
+---
+
+### Phase 2 — Refactor and Cleanup
+
+Goal: Strip technical debt built up through sprint development. No new behavior — existing behavior only, expressed more cleanly.
+
+Scope areas identified:
+1. `client/js/app.js` — massive monolithic file; extract into logical modules (desktop, auth, boot, window manager, context menus, etc.).
+2. `server/server.js` and routes — continue the A-Re series cleanup; ensure no business logic lives in route handlers.
+3. CSS — `ui-v2.css`, `ui.css`, `ui-enhance.css` overlap significantly; consolidate and document layers.
+4. Skills system — currently tangled with entity prompt construction; needs clean invocation interface.
+5. VFS routes — review for edge cases exposed during testing.
+6. Browser app — `browser-app.js` is standalone but still wired into app.js in places; sever remaining coupling.
+7. Dead code sweep — remove any unreachable paths, commented-out blocks, and feature scaffolding that was never completed.
+
+---
+
+### Phase 3 — Modularization
+
+Goal: Every app/feature that does not need to be in the core project must be independently loadable. If a module file is absent, the rest of the OS must boot and run without it.
+
+Principles:
+1. **No hard dependencies between apps.** Chat, Browser, Entity Creator, Sleep, Skills, Neural Visualizer, Dream Gallery, Diary — each must be able to fail or be absent without breaking boot or other apps.
+2. **Feature registry pattern.** Apps register themselves into the shell; the shell does not hardcode which apps exist.
+3. **Shared service boundary.** Only the following are allowed as shared/core: auth, VFS API, SSE bus, entity state, config.
+4. **Contributor safety.** A new contributor should be able to add or modify a single app module without needing to understand the whole codebase.
+5. **Graceful degradation.** If a module fails to load, the shell logs a warning and continues — it does not crash.
+
+Modularization targets (order TBD during Phase 2 cleanup):
+- Desktop shell (app.js) → split into `desktop.js`, `window-manager.js`, `boot.js`, `context-menu.js`
+- Browser app → already mostly standalone; complete the decoupling
+- Neural visualizer → already in `neural-viz.js`; verify zero hard deps on app.js
+- Chat app → extract from app.js into `chat.js` module (already exists, verify completeness)
+- Skills UI → `skills-ui.js` already separate; audit coupling
+- Entity Creator → `create.js` already separate; audit coupling
+- Sleep UI → extract sleep controls from app.js into `sleep.js`
+- Dream Gallery, Diary → audit and confirm standalone
+
+---
+
+### Phase 4 — Feature Work
+
+Feature work resumes only after Phases 1–3 are signed off.
+
+Candidate features (not yet scheduled, not yet started):
+- Enhanced onboarding experience (beyond BUG-10 fix)
+- Entity relationship / social graph UI
+- Multi-entity conversation mode
+- Plugin/extension API for external contributors
+- Mobile-responsive shell layout
+
+---
+
+Next action:
+1. Start Phase 1 with BUG-07 + BUG-08 investigation.
+2. Read entity creation routes + checkout code before touching anything.
+
+---
+
 ## Session Ledger - 2026-03-15 (NekoCore Browser NB-6 LLM Mode Foundation)
 
 Status: `Completed`
