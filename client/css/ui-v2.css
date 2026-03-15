@@ -3777,26 +3777,9 @@ body {
   display: none !important;
 }
 
-/* Desktop home + files = visible background layer in WM mode */
+/* Desktop home hero is hidden in WM mode — desktop = wallpaper + stars + files */
 .os-home {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 72px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
-  align-items: center;
-  align-content: center;
-  justify-content: center;
-  padding: clamp(16px, 3vw, 48px);
-  z-index: 2;
-  overflow-y: auto;
-  overflow-x: hidden;
-  pointer-events: auto;
-  max-width: none;
-  margin: 0;
-  gap: var(--space-5);
+  display: none !important;
 }
 
 .os-desktop-files {
