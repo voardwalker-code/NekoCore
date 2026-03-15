@@ -12,6 +12,9 @@ Last updated: 2026-03-15
 No new features are to be started until the following three phases are complete.
 The only exception is a newly discovered bug of critical severity (data loss, security, or total system failure).
 
+Emergency exception log:
+1. 2026-03-15: Reserved system-identity namespace protection added for entity creation (blocked names: NekoCore, Neko, Echo, AgentEcho). Classified as security/QoL hardening tied to active entity-state bugfix stream.
+
 ### Phase Priority Order
 
 ```
@@ -32,6 +35,7 @@ Purpose:
 2. Refactor and clean up the codebase — it has grown cluttered across several sprint sessions.
 3. Modularize all independent app features so they can be removed, replaced, or contributed to by other developers without breaking the core system.
 4. Establish a clean, contributor-friendly architecture baseline for NekoCore OS going forward.
+5. Scoped exception track: bootstrap a protected NekoCore system entity and dedicated control app shell (single-LLM initial mode, explicit user permission for model-change actions).
 
 ---
 

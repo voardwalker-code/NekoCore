@@ -6,9 +6,22 @@ const BrainLoop = require('../brain/brain-loop');
 const MemoryService = require('../services/memory-service');
 const MemoryStorage = require('../brain/memory-storage');
 const entityCheckout = require('../services/entity-checkout');
+const RESERVED_ENTITY_NAME_KEYS = new Set(['nekocore', 'neko', 'echo', 'agentecho']);
 
 function createEntityRoutes(ctx) {
   const { fs, path } = ctx;
+
+  function _normalizeEntityNameKey(name) {
+    return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function _assertEntityNameAllowed(name) {
+    const key = _normalizeEntityNameKey(name);
+    if (!key) return;
+    if (RESERVED_ENTITY_NAME_KEYS.has(key)) {
+      throw new Error('This entity name is reserved by the system. Please choose another name.');
+    }
+  }
 
   function getPreferredGlobalProfileForEntity(entityId) {
     const cfg = ctx.loadConfig ? ctx.loadConfig() : {};
@@ -236,6 +249,7 @@ function createEntityRoutes(ctx) {
       const entityPaths = require('../entityPaths');
       const canonicalId = entityPaths.normalizeEntityId(entityId);
       if (!canonicalId || !name || !traits) throw new Error('Missing required fields: entityId, name, or traits');
+      _assertEntityNameAllowed(name);
 
       ctx.entityManager.createEntityFolder(canonicalId);
       const entity = {
@@ -295,6 +309,7 @@ function createEntityRoutes(ctx) {
       const hatchResult = await newHatch.checkAndHatch(MemoryStorage, ctx.traceGraph, ctx.goalsManager, callLLM);
       const entity = hatchResult.entity;
       if (gender) entity.gender = gender;
+      _assertEntityNameAllowed(entity.name);
       entity.configProfileRef = getPreferredGlobalProfileForEntity(null);
       entity.ownerId  = req.accountId || null;
       entity.isPublic = false;
@@ -347,6 +362,7 @@ function createEntityRoutes(ctx) {
       } = body;
 
       if (!name || !traits) throw new Error('Missing required fields: name or traits');
+      _assertEntityNameAllowed(name);
       if (!backstory && !knowledgeSeed) throw new Error('Provide backstory or knowledgeSeed for guided creation');
 
       const traitsArr = Array.isArray(traits) ? traits : String(traits || '').split(',').map(t => t.trim()).filter(Boolean);
@@ -519,6 +535,7 @@ function createEntityRoutes(ctx) {
       const body = JSON.parse(await readBody(req));
       const { name, source, notes } = body;
       if (!name || !source) throw new Error('Missing required fields: name and source');
+      _assertEntityNameAllowed(name);
 
       const runtimeConfig = _resolveRuntime();
       if (!runtimeConfig || !runtimeConfig.model) throw new Error('No LLM provider configured. Please set up a provider first.');
@@ -775,6 +792,7 @@ function createEntityRoutes(ctx) {
       const newHatch = new HatchEntityClass();
       const result = await newHatch.checkAndHatch(MemoryStorage, ctx.traceGraph, ctx.goalsManager, callLLM);
       const entityId = result.entityId;
+      _assertEntityNameAllowed(result.entity?.name);
       ctx.setActiveEntity(entityId);
 
       if (Object.keys(aspectConfigs).length > 0) {

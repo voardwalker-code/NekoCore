@@ -12,6 +12,15 @@ let creatorOnboardingPayload = null;
 let lastCreatedEntityId = null;
 const PAGE_PARAMS = new URLSearchParams(window.location.search);
 const IS_EMBED = PAGE_PARAMS.get('embed') === '1';
+const RESERVED_ENTITY_NAME_KEYS = new Set(['nekocore', 'neko', 'echo', 'agentecho']);
+
+function normalizeEntityNameKey(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function isReservedEntityName(name) {
+  return RESERVED_ENTITY_NAME_KEYS.has(normalizeEntityNameKey(name));
+}
 
 // ── Status helper ────────────────────────────────────────────
 function lg(type, msg) {
@@ -264,6 +273,7 @@ async function createEmptyEntity() {
   const intro     = document.getElementById('emptyEntityIntro').value.trim();
 
   if (!name)       { lg('err', 'Entity name is required.'); document.getElementById('createEntityBtn').disabled = false; return; }
+  if (isReservedEntityName(name)) { lg('err', 'That name is reserved by NekoCore. Please choose another entity name.'); document.getElementById('createEntityBtn').disabled = false; return; }
   if (!traitsStr)  { lg('err', 'At least 3 personality traits are required.'); document.getElementById('createEntityBtn').disabled = false; return; }
 
   const traits = traitsStr.split(',').map(t => t.trim()).filter(Boolean);
@@ -332,6 +342,7 @@ async function createCharacterEntity() {
   const notes  = document.getElementById('charEntityNotes').value.trim();
 
   if (!name)   { lg('err', 'Character name is required.'); document.getElementById('createEntityBtn').disabled = false; return; }
+  if (isReservedEntityName(name)) { lg('err', 'That name is reserved by NekoCore. Please choose another entity name.'); document.getElementById('createEntityBtn').disabled = false; return; }
   if (!source) { lg('err', 'Source / origin is required.'); document.getElementById('createEntityBtn').disabled = false; return; }
 
   lg('info', 'Running character ingestion for ' + name + '…');
@@ -381,6 +392,7 @@ async function createGuidedEntity() {
   const unbreakable      = document.getElementById('guidedEntityUnbreakable').checked;
 
   if (!name)       { lg('err', 'Entity name is required.'); document.getElementById('createEntityBtn').disabled = false; return; }
+  if (isReservedEntityName(name)) { lg('err', 'That name is reserved by NekoCore. Please choose another entity name.'); document.getElementById('createEntityBtn').disabled = false; return; }
   if (!traitsStr)  { lg('err', 'At least 3 personality traits are required.'); document.getElementById('createEntityBtn').disabled = false; return; }
   if (!backstory && !knowledgeSeed) {
     lg('err', 'Provide either a backstory or knowledge seed notes for guided creation.');
