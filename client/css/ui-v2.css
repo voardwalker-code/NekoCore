@@ -3789,20 +3789,23 @@ body {
   bottom: 0;
   top: 0;
   z-index: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 96px);
-  align-content: end;
-  gap: 8px;
-  padding: var(--space-4) clamp(16px, 3vw, 48px);
-  max-width: none;
-  margin: 0;
+  overflow: hidden;
   pointer-events: none;
 }
 .os-desktop-files:not(:empty) {
   pointer-events: auto;
 }
 .desktop-file {
+  position: absolute;
+  width: 96px;
   pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.desktop-file.dragging {
+  opacity: 0.65;
+  z-index: 5;
+  cursor: grabbing;
 }
 
 .app {

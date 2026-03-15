@@ -6031,30 +6031,67 @@ const vfs = (function() {
   }
 
   var desktopSelection = null;
+  var ICON_W = 96, ICON_H = 112, ICON_GAP = 8, SNAP = 8;
+
+  function snap(v) { return Math.round(v / SNAP) * SNAP; }
+
+  // Delete key removes selected desktop file
+  document.addEventListener('keydown', function(e) {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && desktopSelection) {
+      var tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement && document.activeElement.isContentEditable)) return;
+      var path = desktopSelection.getAttribute('data-path');
+      if (path) { desktopSelection = null; remove(path); }
+    }
+  });
+
+  function autoPos(index, hostW, hostH) {
+    var cols = Math.max(1, Math.floor((hostW - 48) / (ICON_W + ICON_GAP)));
+    var col = index % cols;
+    var row = Math.floor(index / cols);
+    // anchor from bottom-left
+    return {
+      x: 24 + col * (ICON_W + ICON_GAP),
+      y: Math.max(0, hostH - ICON_H - 8 - row * (ICON_H + ICON_GAP))
+    };
+  }
 
   function renderDesktop() {
     var host = document.getElementById('desktopFilesArea');
     if (!host) return;
     host.innerHTML = '';
+
+    // One-time host listeners
+    if (!host._bound) {
+      host._bound = true;
+      host.addEventListener('click', function(e) {
+        if (e.target === host) {
+          if (desktopSelection) desktopSelection.classList.remove('selected');
+          desktopSelection = null;
+        }
+      });
+    }
+
+    var hostRect = host.getBoundingClientRect();
+    var hostW = hostRect.width || window.innerWidth;
+    var hostH = hostRect.height || (window.innerHeight - 72);
+
     var items = list('/desktop');
-    items.forEach(function(item) {
+    items.forEach(function(item, index) {
+      var entry = tree[item.path] || {};
+      var pos = entry.pos || autoPos(index, hostW, hostH);
+
       var el = document.createElement('div');
       el.className = 'desktop-file';
       el.setAttribute('data-path', item.path);
-      el.setAttribute('draggable', 'true');
+      el.style.left = pos.x + 'px';
+      el.style.top  = pos.y + 'px';
       var accent = fileAccent(item);
       el.innerHTML =
         '<div class="desktop-file-icon" data-accent="' + accent + '">' + fileIcon(item) + '</div>' +
         '<div class="desktop-file-name">' + item.name + '</div>';
 
-      // Click to select
-      el.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (desktopSelection) desktopSelection.classList.remove('selected');
-        el.classList.add('selected');
-        desktopSelection = el;
-      });
-
+      // Click to select (set from pointerdown — see drag handler below)
       // Double-click to open
       el.addEventListener('dblclick', function(e) {
         e.stopPropagation();
@@ -6067,23 +6104,55 @@ const vfs = (function() {
         }
       });
 
-      // Drag support
-      el.addEventListener('dragstart', function(ev) {
-        ev.dataTransfer.setData('text/plain', item.path);
-        ev.dataTransfer.effectAllowed = 'move';
-        el.style.opacity = '0.5';
+      // Pointer drag for free-position move
+      el.addEventListener('pointerdown', function(e) {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+
+        // Select
+        if (desktopSelection) desktopSelection.classList.remove('selected');
+        el.classList.add('selected');
+        desktopSelection = el;
+
+        var startCX = e.clientX, startCY = e.clientY;
+        var startL  = pos.x,     startT  = pos.y;
+        var dragging = false;
+        var THRESHOLD = 6;
+
+        el.setPointerCapture(e.pointerId);
+
+        function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+        function onMove(ev) {
+          var dx = ev.clientX - startCX;
+          var dy = ev.clientY - startCY;
+          if (!dragging) {
+            if (Math.hypot(dx, dy) < THRESHOLD) return;
+            dragging = true;
+            el.classList.add('dragging');
+          }
+          var nx = clamp(snap(startL + dx), 0, hostW - ICON_W);
+          var ny = clamp(snap(startT + dy), 0, hostH - ICON_H);
+          el.style.left = nx + 'px';
+          el.style.top  = ny + 'px';
+        }
+
+        function onUp(ev) {
+          el.removeEventListener('pointermove', onMove);
+          el.removeEventListener('pointerup',   onUp);
+          el.classList.remove('dragging');
+          if (!dragging) return;
+          var nx = clamp(snap(startL + (ev.clientX - startCX)), 0, hostW - ICON_W);
+          var ny = clamp(snap(startT + (ev.clientY - startCY)), 0, hostH - ICON_H);
+          pos = { x: nx, y: ny };
+          if (tree[item.path]) { tree[item.path].pos = pos; save(); }
+        }
+
+        el.addEventListener('pointermove', onMove);
+        el.addEventListener('pointerup',   onUp);
       });
-      el.addEventListener('dragend', function() { el.style.opacity = ''; });
 
       host.appendChild(el);
-    });
-
-    // Deselect on click on empty area
-    host.addEventListener('click', function(e) {
-      if (e.target === host) {
-        if (desktopSelection) desktopSelection.classList.remove('selected');
-        desktopSelection = null;
-      }
     });
   }
 
