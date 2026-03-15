@@ -79,7 +79,8 @@ const WINDOW_APPS = [
   { tab: 'settings', label: 'Settings', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>', accent: 'teal', w: 980, h: 700 },
   { tab: 'advanced', label: 'Advanced', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>', accent: 'teal', w: 980, h: 680 },
   { tab: 'activity', label: 'Task Manager', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>', accent: 'indigo', w: 980, h: 680 },
-  { tab: 'observability', label: 'Observability', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>', accent: 'indigo', w: 980, h: 680 }
+  { tab: 'observability', label: 'Observability', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>', accent: 'indigo', w: 980, h: 680 },
+  { tab: 'nekocore', label: 'NekoCore OS', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>', accent: 'indigo', w: 900, h: 640 }
 ];
 
 const START_MENU_CATEGORY_ORDER = [
@@ -110,7 +111,8 @@ const APP_CATEGORY_BY_TAB = {
   settings: 'system',
   advanced: 'system',
   activity: 'system',
-  observability: 'system'
+  observability: 'system',
+  nekocore: 'system'
 };
 
 const START_MENU_SPECIAL_APPS = [
@@ -1204,6 +1206,26 @@ function applyWindowActivationEffects(tabName) {
   }
 }
 
+function openNekoCoreWithMessage(msg) {
+  const text = (msg || '').trim();
+  if (!text) { openWindow('nekocore'); return; }
+  // Clear the taskbar input
+  const inp = document.getElementById('nkQuickInput');
+  if (inp) inp.value = '';
+  // Open (or focus) the NekoCore window
+  openWindow('nekocore');
+  // Load the iframe if not yet loaded
+  const fr = document.getElementById('nekocore-panel-frame');
+  if (!fr) return;
+  const dispatch = () => fr.contentWindow && fr.contentWindow.postMessage({ type: 'nk_send_message', text }, '*');
+  if (fr.getAttribute('src')) {
+    // Already loaded — post immediately (allow a tick for focus)
+    setTimeout(dispatch, 80);
+  } else {
+    fr.addEventListener('load', () => setTimeout(dispatch, 80), { once: true });
+  }
+}
+
 function openWindow(tabName, options = {}) {
   const meta = windowManager.windows.get(tabName);
   if (!meta) return;
@@ -1235,6 +1257,11 @@ function openWindow(tabName, options = {}) {
 
   // Per-tab on-open hooks
   if (tabName === 'workspace' && typeof feRender === 'function') feRender();
+  if (tabName === 'nekocore') {
+    // Lazy-load the iframe on first open so no API calls happen at startup
+    const fr = document.getElementById('nekocore-panel-frame');
+    if (fr && !fr.getAttribute('src')) fr.src = 'nekocore.html';
+  }
 }
 
 function closeWindow(tabName) {

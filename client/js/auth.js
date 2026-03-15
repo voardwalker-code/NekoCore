@@ -22,8 +22,8 @@ const OPENROUTER_PRESET = {
 // OLLAMA
 // ============================================================
 async function ollamaConnect(panel = 'main') {
-  const urlMap = { main: 'ollamaUrl-main', subconscious: 'ollamaUrl-subconscious', dreams: 'ollamaUrl-dreams', orchestrator: 'ollamaUrl-orchestrator' };
-  const modelMap = { main: 'ollamaModel-main', subconscious: 'ollamaModel-subconscious', dreams: 'ollamaModel-dreams', orchestrator: 'ollamaModel-orchestrator' };
+  const urlMap = { main: 'ollamaUrl-main', subconscious: 'ollamaUrl-subconscious', dreams: 'ollamaUrl-dreams', orchestrator: 'ollamaUrl-orchestrator', nekocore: 'ollamaUrl-nekocore' };
+  const modelMap = { main: 'ollamaModel-main', subconscious: 'ollamaModel-subconscious', dreams: 'ollamaModel-dreams', orchestrator: 'ollamaModel-orchestrator', nekocore: 'ollamaModel-nekocore' };
   const urlId = urlMap[panel] || urlMap.main;
   const modelId = modelMap[panel] || modelMap.main;
   const url = document.getElementById(urlId).value.trim() || 'http://localhost:11434';
@@ -44,7 +44,7 @@ async function ollamaConnect(panel = 'main') {
     updateProviderUI('ollama', true, 'Ollama (' + activeConfig.model + ')');
     autoSaveConfig();
     // Save global aspect config (entities pull from global profile reference)
-    const aspect = panel === 'subconscious' ? 'subconscious' : (panel === 'dreams' ? 'dream' : (panel === 'orchestrator' ? 'orchestrator' : 'main'));
+    const aspect = panel === 'nekocore' ? 'nekocore' : (panel === 'subconscious' ? 'subconscious' : (panel === 'dreams' ? 'dream' : (panel === 'orchestrator' ? 'orchestrator' : 'main')));
     fetch('/api/entity-config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -61,11 +61,11 @@ async function ollamaConnect(panel = 'main') {
 // OPENROUTER (API KEY)
 // ============================================================
 function openrouterQuick(panel = 'main') {
-  const endpointMap = { main: 'apikeyEndpoint-main', subconscious: 'subApiEndpoint', dreams: 'dreamApiEndpoint', orchestrator: 'orchApiEndpoint' };
-  const modelMap = { main: 'apikeyModel-main', subconscious: 'subModel', dreams: 'dreamModel', orchestrator: 'orchModel' };
+  const endpointMap = { main: 'apikeyEndpoint-main', subconscious: 'subApiEndpoint', dreams: 'dreamApiEndpoint', orchestrator: 'orchApiEndpoint', nekocore: 'apikeyEndpoint-nekocore' };
+  const modelMap = { main: 'apikeyModel-main', subconscious: 'subModel', dreams: 'dreamModel', orchestrator: 'orchModel', nekocore: 'nekocoreModel' };
   const endpointId = endpointMap[panel] || endpointMap.main;
   const modelId = modelMap[panel] || modelMap.main;
-  const aspect = panel === 'subconscious' ? 'subconscious' : (panel === 'dreams' ? 'dream' : (panel === 'orchestrator' ? 'orchestrator' : 'main'));
+  const aspect = panel === 'nekocore' ? 'nekocore' : (panel === 'subconscious' ? 'subconscious' : (panel === 'dreams' ? 'dream' : (panel === 'orchestrator' ? 'orchestrator' : 'main')));
   const preset = (typeof getOpenRouterRolePreset === 'function')
     ? getOpenRouterRolePreset(aspect)
     : { models: OPENROUTER_PRESET.models, def: OPENROUTER_PRESET.def };
@@ -102,14 +102,14 @@ function openrouterQuick(panel = 'main') {
 }
 
 async function openrouterConnect(panel = 'main') {
-  const endpointMap = { main: 'apikeyEndpoint-main', subconscious: 'subApiEndpoint', dreams: 'dreamApiEndpoint', orchestrator: 'orchApiEndpoint' };
-  const keyMap = { main: 'apikeyKey-main', subconscious: 'subApiKey', dreams: 'dreamApiKey', orchestrator: 'orchApiKey' };
-  const modelMap = { main: 'apikeyModel-main', subconscious: 'subModel', dreams: 'dreamModel', orchestrator: 'orchModel' };
+  const endpointMap = { main: 'apikeyEndpoint-main', subconscious: 'subApiEndpoint', dreams: 'dreamApiEndpoint', orchestrator: 'orchApiEndpoint', nekocore: 'apikeyEndpoint-nekocore' };
+  const keyMap = { main: 'apikeyKey-main', subconscious: 'subApiKey', dreams: 'dreamApiKey', orchestrator: 'orchApiKey', nekocore: 'nekocoreApiKey' };
+  const modelMap = { main: 'apikeyModel-main', subconscious: 'subModel', dreams: 'dreamModel', orchestrator: 'orchModel', nekocore: 'nekocoreModel' };
   const endpointId = endpointMap[panel] || endpointMap.main;
   const keyId = keyMap[panel] || keyMap.main;
   const modelId = modelMap[panel] || modelMap.main;
 
-  const aspect = panel === 'subconscious' ? 'subconscious' : (panel === 'dreams' ? 'dream' : (panel === 'orchestrator' ? 'orchestrator' : 'main'));
+  const aspect = panel === 'nekocore' ? 'nekocore' : (panel === 'subconscious' ? 'subconscious' : (panel === 'dreams' ? 'dream' : (panel === 'orchestrator' ? 'orchestrator' : 'main')));
   const preset = (typeof getOpenRouterRolePreset === 'function')
     ? getOpenRouterRolePreset(aspect)
     : { def: OPENROUTER_PRESET.def };
@@ -146,6 +146,34 @@ async function openrouterConnect(panel = 'main') {
   }).catch(() => {});
 
   lg('ok', 'OpenRouter connected: ' + model + ' (' + panel + ')');
+}
+
+// ============================================================
+// NEKOCORE OS CONFIG
+// ============================================================
+async function saveNekocoreConfig() {
+  const endpoint = (document.getElementById('apikeyEndpoint-nekocore')?.value || '').trim()
+    || 'https://openrouter.ai/api/v1/chat/completions';
+  const key   = (document.getElementById('nekocoreApiKey')?.value || '').trim();
+  const model = (document.getElementById('nekocoreModel')?.value || '').trim();
+  const statusEl = document.getElementById('nekocoreConfigStatus');
+  function setStatus(msg, ok) {
+    if (statusEl) { statusEl.textContent = msg; statusEl.style.color = ok ? 'var(--accent-green)' : 'var(--accent-red, #e55)'; }
+  }
+  if (!key)   { setStatus('API key is required', false); return; }
+  if (!model) { setStatus('Model is required', false); return; }
+  try {
+    const resp = await fetch('/api/entity-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'nekocore', config: { type: 'openrouter', endpoint, key, model } })
+    });
+    const data = await resp.json();
+    if (data.ok) setStatus('NekoCore OS config saved ✓', true);
+    else setStatus('Save failed: ' + (data.error || 'unknown error'), false);
+  } catch (e) {
+    setStatus('Save failed: ' + e.message, false);
+  }
 }
 
 // ============================================================

@@ -23,6 +23,14 @@ function createEntityRoutes(ctx) {
     }
   }
 
+  // IDs that belong to system entities — cannot be deleted, renamed, or have
+  // visibility toggled through normal entity routes.
+  const SYSTEM_ENTITY_IDS = new Set(['nekocore']);
+
+  function _isSystemEntityId(id) {
+    return SYSTEM_ENTITY_IDS.has(_normalizeEntityNameKey(id));
+  }
+
   function getPreferredGlobalProfileForEntity(entityId) {
     const cfg = ctx.loadConfig ? ctx.loadConfig() : {};
     const fallback = cfg?.lastActive || null;
@@ -635,6 +643,13 @@ function createEntityRoutes(ctx) {
       const canonicalId = entityPaths.normalizeEntityId(body.entityId);
       if (!canonicalId) throw new Error('Missing entityId');
 
+      // System entity guard — cannot be deleted through normal routes
+      if (_isSystemEntityId(canonicalId)) {
+        res.writeHead(403, apiHeaders);
+        res.end(JSON.stringify({ ok: false, error: 'System entities cannot be deleted' }));
+        return;
+      }
+
       // Ownership guard — only the owner (or unowned legacy entity) may delete
       const entityFile = path.join(entityPaths.getEntityRoot(canonicalId), 'entity.json');
       if (fs.existsSync(entityFile)) {
@@ -664,6 +679,13 @@ function createEntityRoutes(ctx) {
       const entityPaths = require('../entityPaths');
       const canonicalId = entityPaths.normalizeEntityId(body.entityId);
       if (!canonicalId) throw new Error('Missing entityId');
+
+      // System entity guard — visibility cannot be changed through normal routes
+      if (_isSystemEntityId(canonicalId)) {
+        res.writeHead(403, apiHeaders);
+        res.end(JSON.stringify({ ok: false, error: 'System entity visibility cannot be changed' }));
+        return;
+      }
 
       const entityFile = path.join(entityPaths.getEntityRoot(canonicalId), 'entity.json');
       if (!fs.existsSync(entityFile)) throw new Error('Entity not found');

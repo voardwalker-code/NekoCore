@@ -241,7 +241,7 @@ class ConfigService {
     }
     const hasApiKey = profile.apikey && typeof profile.apikey === 'object';
     const hasOllama = profile.ollama && typeof profile.ollama === 'object';
-    const aspects = ['main', 'subconscious', 'dream', 'orchestrator'];
+    const aspects = ['main', 'subconscious', 'dream', 'orchestrator', 'nekocore'];
     const hasAnyAspect = aspects.some(a => profile[a] && typeof profile[a] === 'object');
     if (!hasApiKey && !hasOllama && !hasAnyAspect) {
       warnings.push(`${prefix}: has no recognizable provider config (apikey, ollama, or aspect configs)`);

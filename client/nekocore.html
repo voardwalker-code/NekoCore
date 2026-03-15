@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NekoCore OS</title>
+  <link rel="stylesheet" href="css/ui-v2.css">
+  <link rel="stylesheet" href="themes/neko-default.css">
+</head>
+<body>
+
+<div class="nk-shell">
+
+  <!-- ── Top bar ────────────────────────────────────────── -->
+  <header class="nk-topbar">
+    <div class="nk-brand">
+      <span class="nk-brand-icon">⬡</span>
+      <span class="nk-brand-name">NekoCore <span class="nk-brand-sub">OS</span></span>
+    </div>
+    <div class="nk-topbar-status">
+      <span id="nkStatusDot" class="nk-status-dot"></span>
+      <span id="nkStatusLabel" class="nk-status-label">Loading…</span>
+    </div>
+  </header>
+
+  <!-- ── Status strip ──────────────────────────────────── -->
+  <div class="nk-status-strip">
+    <div class="nk-status-tile">
+      <span class="nk-tile-label">Active Model</span>
+      <code id="nkActiveModel" class="nk-tile-value">—</code>
+    </div>
+    <div class="nk-status-tile">
+      <span class="nk-tile-label">Pending Reviews</span>
+      <span id="nkPendingCount" class="nk-tile-value">—</span>
+    </div>
+    <div class="nk-status-tile">
+      <span class="nk-tile-label">System Entity</span>
+      <span id="nkEntityReady" class="nk-tile-value">—</span>
+    </div>
+  </div>
+
+  <!-- ── Recommendations body ──────────────────────────── -->
+  <div class="nk-body">
+    <div class="nk-section-header">
+      <span class="nk-section-title">Pending Model Recommendations</span>
+      <button class="nk-refresh-btn" onclick="App.refresh()" title="Refresh">↺ Refresh</button>
+    </div>
+    <div id="nkPendingList" class="nk-pending-list">
+      <p class="nk-empty">Loading…</p>
+    </div>
+  </div>
+
+  <!-- ── Chat with NekoCore ────────────────────────────── -->
+  <div class="nk-chat">
+    <div class="nk-section-header">
+      <span class="nk-section-title">Chat with NekoCore</span>
+      <button class="nk-refresh-btn" onclick="Chat.clear()" title="Clear chat">✕ Clear</button>
+    </div>
+    <div id="nkChatMessages" class="nk-chat-messages"></div>
+    <div class="nk-chat-input-row">
+      <textarea id="nkChatInput" class="nk-chat-input" rows="2" placeholder="Message NekoCore…"></textarea>
+      <button id="nkChatSend" class="nk-chat-send" onclick="Chat.send()">Send</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/nekocore-app.js"></script>
+</body>
+</html>

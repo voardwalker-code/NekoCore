@@ -18,6 +18,7 @@ server/data/browser-bookmarks.json
 server/data/browser-session.json
 server/data/browser-settings.json
 server/data/browser-research-sessions.json
+server/data/nekocore-audit.ndjson
 
 # Entity runtime data — generated when entities are created
 /entities/*

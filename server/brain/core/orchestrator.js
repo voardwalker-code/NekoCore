@@ -64,6 +64,8 @@ class Orchestrator {
     this.workerRegistry = options.workerRegistry || null;
     // Skill context resolver — returns instruction block for a named skill, or null
     this.getSkillContext = options.getSkillContext || null;
+    // B-3: Optional entity summaries supplier — invoked when this entity is a system orchestrator
+    this.getEntitySummaries = options.getEntitySummaries || null;
   }
 
   isRuntimeUsable(runtime) {
@@ -851,6 +853,19 @@ Keep concise and structured.`;
 
     // F3: Orchestrator is now a reviewer/voicer — Conscious already reasoned with all context.
     // We give Orchestrator a full copy of what Conscious had plus the Conscious output.
+
+    // B-3: When NekoCore (system orchestrator) is active, inject entity summaries into context
+    let entitySummariesBlock = '';
+    if (this.entity?.isSystemEntity && typeof this.getEntitySummaries === 'function') {
+      try {
+        const summaries = this.getEntitySummaries();
+        if (Array.isArray(summaries) && summaries.length > 0) {
+          const lines = summaries.map(e => `  - ${e.name || e.id} (${e.id})${e.traits?.length ? ': ' + e.traits.join(', ') : ''}`).join('\n');
+          entitySummariesBlock = `\n\n[MANAGED ENTITIES — entities under NekoCore's orchestration]:\n${lines}`;
+        }
+      } catch (_) { /* entity summaries unavailable — proceed without */ }
+    }
+
     const mergePrompt = `User's message: "${userMessage}"
 
 === CONSCIOUS REASONING NOTES ===
@@ -865,7 +880,7 @@ ${subconsciousOutput || '(No subconscious context)'}
 ${dreamOutput || '(No dream contribution)'}
 
 [Turn Signals]:
-${JSON.stringify(options.turnSignals || {}, null, 2)}
+${JSON.stringify(options.turnSignals || {}, null, 2)}${entitySummariesBlock}
 
 SYNTHESIS DIRECTIVE:
 The Conscious reasoning notes above define what to address (INTENT), which memory to draw on (MEMORY), the emotional tone (EMOTION), and how to approach it (ANGLE). Your job is to write ${this.entity?.name || 'the entity'}'s actual response from these notes.

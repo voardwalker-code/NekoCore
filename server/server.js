@@ -29,6 +29,9 @@ const crypto = require('crypto');
 const { tryAutoOpenBrowser, updateBrowserOpenState, closeDedicatedWebUiWindow } = require('./services/auto-open-browser');
 const authService = require('./services/auth-service');
 const entityPaths = require('./entityPaths');
+const { ensureSystemEntity } = require('./brain/nekocore/bootstrap');
+const { ingestArchitectureDocs } = require('./brain/nekocore/doc-ingestion');
+const { buildNekoKnowledgeContext } = require('./brain/nekocore/knowledge-retrieval');
 
 // Brain modules
 const BrainLoop = require('./brain/brain-loop');
@@ -538,6 +541,17 @@ const archiveManager = new ArchiveManager();
 const identityManager = new IdentityManager();
 const hatchEntity = new HatchEntity();
 const entityManager = new EntityManager();
+
+// Provision NekoCore system entity if not already present (idempotent)
+ensureSystemEntity();
+// Ingest architecture docs into NekoCore's semantic memory (runs on every start; skips unchanged docs)
+const NK_DOCS_DIR = path.join(__dirname, '..', 'Documents', 'current');
+try {
+  const { getMemoryRoot } = require('./entityPaths');
+  ingestArchitectureDocs(getMemoryRoot('nekocore'), NK_DOCS_DIR);
+} catch (err) {
+  console.warn('  ⚠ NekoCore doc ingestion failed:', err.message);
+}
 
 // Initialize the cognitive bus and integrated systems
 const cognitiveBus = new CognitiveBus({ logEnabled: true });
@@ -1115,7 +1129,15 @@ async function processChatMessage(userMessage, chatHistory = []) {
     reconstructedChatlogTtlMs: reconstructionCacheTtlMs,
     cognitiveBus: cognitiveBus,
     getTokenLimit: getTokenLimit,
-    getSkillContext: (skillName) => skillManager ? skillManager.buildSkillsPromptFor(skillName) : null
+    getSkillContext: (skillName) => skillManager ? skillManager.buildSkillsPromptFor(skillName) : null,
+    // B-3: When NekoCore is active, supply entity summaries for orchestrator context
+    getEntitySummaries: entity?.isSystemEntity ? () => {
+      try {
+        return (entityManager.listEntities() || [])
+          .filter(e => e && !e.isSystemEntity)
+          .map(e => ({ id: e.id, name: e.name, traits: (e.personality_traits || []).slice(0, 3) }));
+      } catch (_) { return []; }
+    } : null
   });
 
   console.log(`  ℹ Running orchestrator with aspects: main=${runtimeLabel(aspectConfigs.main)}, sub=${runtimeLabel(aspectConfigs.subconscious)}, dream=${runtimeLabel(aspectConfigs.dream)}, orch=${runtimeLabel(aspectConfigs.orchestrator)}`);
@@ -1133,6 +1155,30 @@ async function processChatMessage(userMessage, chatHistory = []) {
     responseLength: String(rawOrchestratorOutput || '').length,
     hasInnerDialog: !!result.innerDialog
   });
+
+  // C-3: Record model performance into NekoCore's model intelligence memory.
+  // Non-blocking — runs async after response, never delays the chat reply.
+  try {
+    const _nekoMemDir = require('./entityPaths').getMemoryRoot('nekocore');
+    if (fs.existsSync(_nekoMemDir) && result.innerDialog) {
+      const _mi     = require('./brain/nekocore/model-intelligence');
+      const _models = result.innerDialog.models  || {};
+      const _usage  = result.innerDialog.tokenUsage || {};
+      const _timing = result.innerDialog.timing  || {};
+      for (const _aspect of ['subconscious', 'conscious', 'dream', 'orchestrator']) {
+        const _mid = _models[_aspect];
+        if (!_mid || _mid === 'unknown') continue;
+        _mi.recordPerformance(_nekoMemDir, {
+          role:        _aspect,
+          modelId:     _mid,
+          entityId:    currentEntityId,
+          quality:     0.75, // neutral baseline — future phases add user-feedback signals
+          latencyMs:   _timing.total_ms || null,
+          tokensTotal: (_usage[_aspect] || {}).total_tokens || null
+        });
+      }
+    }
+  } catch (_) { /* model intelligence recording is non-critical */ }
 
   // Memory tool callbacks (used by both direct tool execution and task runner)
   const memorySearchFn = async (query) => {
@@ -1421,6 +1467,76 @@ async function processChatMessage(userMessage, chatHistory = []) {
   return result;
 }
 
+// ── NekoCore direct chat (no checkout required) ──────────────────────────────
+// Used by POST /api/nekocore/chat. Loads the system entity from disk, resolves
+// the nekocore aspect config (falls back to main), and runs the Orchestrator.
+// Does NOT touch currentEntityId or any module-level checkout state.
+async function processNekoCoreChatMessage(userMessage, chatHistory = []) {
+  const NEKOCORE_ID = 'nekocore';
+  const entityPathsMod = require('./entityPaths');
+
+  // Load system entity from disk
+  let nekoCoreEntity = null;
+  try {
+    const entityFile = path.join(entityPathsMod.getEntityRoot(NEKOCORE_ID), 'entity.json');
+    if (fs.existsSync(entityFile)) nekoCoreEntity = JSON.parse(fs.readFileSync(entityFile, 'utf8'));
+  } catch (_) {}
+  if (!nekoCoreEntity) throw new Error('NekoCore system entity not found. Restart the server to provision it.');
+
+  // Enrich with system prompt and persona
+  try {
+    const memRoot = entityPathsMod.getMemoryRoot(NEKOCORE_ID);
+    const sysPath  = path.join(memRoot, 'system-prompt.txt');
+    if (fs.existsSync(sysPath)) nekoCoreEntity.systemPromptText = fs.readFileSync(sysPath, 'utf8');
+    const perPath  = path.join(memRoot, 'persona.json');
+    if (fs.existsSync(perPath)) nekoCoreEntity.persona = JSON.parse(fs.readFileSync(perPath, 'utf8'));
+  } catch (_) {}
+
+  // Resolve aspect config: nekocore slot first, fallback to main
+  const globalConfig = loadConfig();
+  const profileRef   = globalConfig?.lastActive;
+  let chatAspect = null;
+  if (globalConfig && globalConfig.profiles && profileRef) {
+    const resolved = resolveProfileAspectConfigs(globalConfig.profiles[profileRef]);
+    chatAspect = resolved.nekocore || resolved.main;
+  }
+  if (!chatAspect || !chatAspect.type) {
+    throw new Error('No LLM configuration available for NekoCore chat. Please configure an API key in Settings.');
+  }
+
+  const aspectConfigs = { main: chatAspect, subconscious: chatAspect, orchestrator: chatAspect };
+  const nekoCoreOrchestrator = new Orchestrator({
+    entity:                    nekoCoreEntity,
+    callLLM:                   callLLMWithRuntime,
+    aspectConfigs,
+    getMemoryContext:          async (msg) => buildNekoKnowledgeContext(msg, entityPathsMod.getMemoryRoot(NEKOCORE_ID)),
+    getBeliefs:                () => [],
+    getSomaticState:           () => null,
+    getConsciousContext:       null,
+    storeConsciousObservation: null,
+    reconstructedChatlogCache: null,
+    cognitiveBus:              null,
+    getTokenLimit,
+    getSkillContext:           null,
+    getEntitySummaries:        () => {
+      try {
+        return (entityManager.listEntities() || [])
+          .filter(e => e && !e.isSystemEntity)
+          .map(e => ({ id: e.id, name: e.name, traits: (e.personality_traits || []).slice(0, 3) }));
+      } catch (_) { return []; }
+    }
+  });
+
+  const trimmed = Array.isArray(chatHistory) ? chatHistory.slice(-12) : [];
+  const result  = await nekoCoreOrchestrator.orchestrate(userMessage, trimmed, {
+    entityId:        NEKOCORE_ID,
+    memoryStorage:   null,
+    identityManager: null
+  });
+
+  return { ok: true, response: result.finalResponse, innerDialog: result.innerDialog };
+}
+
 const ALLOWED_HOSTS = [
   'openrouter.ai'
 ];
@@ -1472,7 +1588,7 @@ const ctx = {
   resolveProfileAspectConfigs, getEntityMemoryRootIfActive,
   createCoreMemory, createSemanticKnowledge, getSemanticPreview, getChatlogContent,
   getSubconsciousMemoryContext, extractSubconsciousTopics, normalizeTopics,
-  setActiveEntity, clearActiveEntity, processChatMessage,
+  setActiveEntity, clearActiveEntity, processChatMessage, processNekoCoreChatMessage,
   startTelegramBot() { return startTelegramBot(); },
   gracefulShutdown(src) { return gracefulShutdown(src); },
   webFetch,
@@ -1520,6 +1636,7 @@ const createDocumentRoutes = require('./routes/document-routes');
 const createAuthRoutes     = require('./routes/auth-routes');
 const createBrowserRoutes  = require('./routes/browser-routes');
 const createVfsRoutes      = require('./routes/vfs-routes');
+const createNekoCoreRoutes = require('./routes/nekocore-routes');
 
 const sseRoutes      = createSSERoutes(ctx);
 const configRoutes   = createConfigRoutes(ctx);
@@ -1531,10 +1648,11 @@ const chatRoutes     = createChatRoutes(ctx);
 const cogRoutes      = createCogRoutes(ctx);
 const documentRoutes = createDocumentRoutes(ctx);
 const authRoutes     = createAuthRoutes(ctx);
-const browserRoutes  = createBrowserRoutes(ctx);
-const vfsRoutes      = createVfsRoutes(ctx);
+const browserRoutes   = createBrowserRoutes(ctx);
+const vfsRoutes       = createVfsRoutes(ctx);
+const nekocoreRoutes  = createNekoCoreRoutes(ctx);
 
-const _routeDispatchers = [authRoutes, sseRoutes, configRoutes, memoryRoutes, chatRoutes, entityRoutes, brainRoutes, skillsRoutes, cogRoutes, documentRoutes, browserRoutes, vfsRoutes];
+const _routeDispatchers = [authRoutes, sseRoutes, configRoutes, memoryRoutes, chatRoutes, entityRoutes, brainRoutes, skillsRoutes, cogRoutes, documentRoutes, browserRoutes, vfsRoutes, nekocoreRoutes];
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);

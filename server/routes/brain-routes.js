@@ -468,9 +468,22 @@ function createBrainRoutes(ctx) {
           const sleepCfg = (ctx.loadConfig().sleep) || {};
           const maxDreams = sleepCfg.maxDreamCycles || 3;
           const runDreamPhase = require('../brain/cognition/phases/phase-dreams');
-          ctx.brainLoop._forcedDreamRun = { maxDreams, isShutdown: false };
-          await runDreamPhase(ctx.brainLoop);
-          if (dreamCallLLM) results.dreamsGenerated = maxDreams;
+          // B-1: Check dreamDisabled flag before forcing the dream run
+          let _dreamDisabled = false;
+          if (ctx.currentEntityPath || ctx.brainLoop?.memDir) {
+            try {
+              const _entityFile = require('path').join(ctx.currentEntityPath || ctx.brainLoop.memDir, 'entity.json');
+              if (require('fs').existsSync(_entityFile)) {
+                const _ent = JSON.parse(require('fs').readFileSync(_entityFile, 'utf8'));
+                if (_ent.dreamDisabled) { _dreamDisabled = true; console.log('  ℹ Sleep route: skipping dream phase — dreamDisabled flag set'); }
+              }
+            } catch (_) {}
+          }
+          if (!_dreamDisabled) {
+            ctx.brainLoop._forcedDreamRun = { maxDreams, isShutdown: false };
+            await runDreamPhase(ctx.brainLoop);
+            if (dreamCallLLM) results.dreamsGenerated = maxDreams;
+          }
         } catch (e) { results.dreamAgentError = e.message; }
       }
       if (ctx.goalsManager) { ctx.goalsManager.decayGoals(2); results.goalsUpdated = true; }

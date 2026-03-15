@@ -189,6 +189,29 @@ Logged after testing session: 2026-03-15. Priority and complexity estimates are 
 
 ---
 
+## BUG-18 — NekoCore has no persistent memory — conversations are lost on reload
+**Area:** NekoCore System Entity / Memory  
+**Severity:** High  
+**Description:** NekoCore currently processes chat messages through the full Orchestrator pipeline (subconscious → dream → conscious → orchestrator) but `storeConsciousObservation`, `memoryStorage`, and `identityManager` are all passed as `null` in `processNekoCoreChatMessage`. This means no episodic memory is ever written to disk. Chat history lives only in the client-side JS array and is lost on page reload or tab close. NekoCore cannot learn from conversations, remember past exchanges, or build context over time.
+
+**Expected:**
+- Each NekoCore chat turn is stored as an episodic memory in `entities/entity_nekocore/memories/`.
+- `storeConsciousObservation` is wired to write memories after each Orchestrator response, using the same mechanism regular entities use.
+- Memory is retrieved on subsequent turns so NekoCore can reference prior conversations.
+
+**Critical constraint — NO MEMORY DECAY:**
+- NekoCore's memories must have `decay: 0` (no TTL eviction). Unlike regular entity memories which fade over time, NekoCore's operational memory is permanent — she is a system entity and her memory IS the system's operational history.
+- The `operationalMemory: true` flag is already set on her `entity.json` — this needs to be respected by both the memory writer and any future eviction/cleanup jobs.
+- When old chat memories need to be managed, a dedicated **Long-Term Storage (LTS) offload** mechanism is planned (not decay/deletion — archival). Design TBD by WrongWay.
+
+**Technical implementation notes:**
+- Wire `storeConsciousObservation` in `processNekoCoreChatMessage` (server/server.js ~line 1514) to call the same `MemoryStorage.storeObservation()` path regular entities use.
+- Pass `memoryStorage` instance pointing at NekoCore's memory root.
+- Ensure `decay: 0` is set on all memories written (override default decay in the writer for system entities, or check `entity.operationalMemory === true`).
+- Knowledge-retrieval (`server/brain/nekocore/knowledge-retrieval.js`) already scans `nkdoc_*` dirs — extend it to also scan episodic memories so conversational context surfaces correctly.
+
+---
+
 ## Summary Table
 
 | ID | Area | Severity | Status |
@@ -210,3 +233,4 @@ Logged after testing session: 2026-03-15. Priority and complexity estimates are 
 | BUG-15 | Skills / Web Search | High | Open |
 | BUG-16 | Entity Workspace Setup | Medium | Open |
 | BUG-17 | Skills Default State | High | Open |
+| BUG-18 | NekoCore Persistent Memory | High | Open |

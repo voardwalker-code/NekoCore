@@ -93,6 +93,7 @@ function mapAspectKey(aspectOrRole) {
   if (raw.includes('sub')) return 'subconscious';
   if (raw.includes('dream')) return 'dream';
   if (raw.includes('orchestr')) return 'orchestrator';
+  if (raw === 'nekocore') return 'nekocore';
   if (raw.includes('main') || raw.includes('conscious')) return 'main';
   return raw;
 }
@@ -112,6 +113,8 @@ function resolveProfileAspectConfigs(profile) {
     configs.dream = normalizeAspectRuntimeConfig(profile.dream) || normalizeAspectRuntimeConfig(profile.dreams) || configs.main;
     configs.orchestrator = normalizeAspectRuntimeConfig(profile.orchestrator) || configs.main;
     configs.background = normalizeAspectRuntimeConfig(profile.background) || configs.main;
+    // nekocore is a dedicated system slot — does NOT fall back to main if unconfigured
+    configs.nekocore = normalizeAspectRuntimeConfig(profile.nekocore) || null;
     return configs;
   }
 

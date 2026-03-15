@@ -11,6 +11,21 @@ const { writeDreamSourceLinks, emitDreamLinkEvents } = require('../../knowledge/
 async function dreamsPhase(loop) {
   if (!loop.dreamEngine) return;
 
+  // B-1: System entity guard — skip dream generation for entities with dreamDisabled flag
+  if (loop.memDir) {
+    try {
+      const _entityFile = path.join(loop.memDir, 'entity.json');
+      if (fs.existsSync(_entityFile)) {
+        const _entityData = JSON.parse(fs.readFileSync(_entityFile, 'utf8'));
+        if (_entityData.dreamDisabled) {
+          loop._emit('phase', { name: 'dream', status: 'skipped', reason: 'dreamDisabled' });
+          console.log('  ℹ Dream phase skipped: dreamDisabled flag set for this entity');
+          return;
+        }
+      }
+    } catch (_) { /* entity.json unreadable — allow dreams to proceed */ }
+  }
+
   const forcedRun = loop._forcedDreamRun && typeof loop._forcedDreamRun === 'object'
     ? loop._forcedDreamRun
     : null;

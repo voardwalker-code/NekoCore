@@ -13,7 +13,7 @@ No new features are to be started until the following three phases are complete.
 The only exception is a newly discovered bug of critical severity (data loss, security, or total system failure).
 
 Emergency exception log:
-1. 2026-03-15: Reserved system-identity namespace protection added for entity creation (blocked names: NekoCore, Neko, Echo, AgentEcho). Classified as security/QoL hardening tied to active entity-state bugfix stream.
+1. 2026-03-15: Reserved system-identity namespace protection added for entity creation (blocked names: NekoCore, Neko, Echo, AgentEcho). Classified as security/QoL hardening tied to active entity-state bugfix stream. Formal plan: `Documents/current/PLAN-NEKOCORE-SYSTEM-ENTITY-v1.md`
 
 ### Phase Priority Order
 
@@ -35,7 +35,7 @@ Purpose:
 2. Refactor and clean up the codebase — it has grown cluttered across several sprint sessions.
 3. Modularize all independent app features so they can be removed, replaced, or contributed to by other developers without breaking the core system.
 4. Establish a clean, contributor-friendly architecture baseline for NekoCore OS going forward.
-5. Scoped exception track: bootstrap a protected NekoCore system entity and dedicated control app shell (single-LLM initial mode, explicit user permission for model-change actions).
+5. Scoped exception track: NekoCore system entity bootstrap and dedicated control app shell. See `Documents/current/PLAN-NEKOCORE-SYSTEM-ENTITY-v1.md` for full phase plan.
 
 ---
 
@@ -60,6 +60,41 @@ Work through BUGS.md in this order. Bug IDs marked with `[pair]` must be fixed t
 | 13 | BUG-02 | Account setup input text near-invisible | CSS contrast fix |
 | 14 | BUG-01 | "REM System" branding remnants in account setup flow | Branding sweep |
 | 15 | BUG-03 | No OpenRouter sign-up link; BYOK not communicated | UI disclosure |
+
+---
+
+### Scoped Exception — NekoCore System Entity
+
+Full plan: `Documents/current/PLAN-NEKOCORE-SYSTEM-ENTITY-v1.md`
+
+**Push gate:** No git push until all validation checklist items in plan section 10 pass.
+
+Completion state:
+- [x] A-0 — Reserved-name protection (blocked: NekoCore, Neko, Echo, AgentEcho)
+- [x] A-1 — System entity bootstrap (`server/brain/nekocore/bootstrap.js`)
+- [x] A-2 — Protection guards (delete/rename/visibility reject for system entity)
+- [x] A-3 — Bootstrap + guard unit tests (13 + 11 tests; suite: 359 pass, 0 fail)
+- [x] B-1 — Dream pipeline skip: `dreamDisabled` flag guard in `phase-dreams.js` + sleep route in `brain-routes.js`
+- [x] B-2 — Memory policy flags: `operationalMemory: true` in entity.json; `decayMemories()` returns early for operational entities
+- [x] B-3 — Orchestrator context wiring: `getEntitySummaries` option added to `Orchestrator`; entity summaries injected into `mergePrompt` when `isSystemEntity === true`; wired in `server.js`
+- [x] B-4 — B-series guard tests (+5 tests; suite: 364 pass, 0 fail)
+- [x] C-1 — Role knowledge seed (`role-knowledge.json` in NekoCore's memories dir; 4 roles with purpose/requirements/priorities)
+- [x] C-2 — Model registry (`model-registry.json`; 10 known OpenRouter models with cost/speed/capability data)
+- [x] C-3 — Performance recording hook (`server.js` records per-entity/role/model stats after every chat cycle)
+- [x] C-4 — `selectModel()` algorithm (`model-intelligence.js`; capability floor for quality roles; perf multiplier 0.25–2.0)
+- [x] C-5 — Bootstrap integration (seeds role-knowledge + registry on first provision; system-prompt.txt updated with real identity)
+- [x] C-6 — Phase C tests (+11 tests; suite: 375 pass, 0 fail)
+- [x] D-1 — NekoCore OS aspect slot: `nekocore` added to config-service.js aspects array + config-runtime.js mapAspectKey/resolveProfileAspectConfigs; auth.js all maps extended; "NekoCore OS" settings panel in client/index.html
+- [x] D-2 — `POST /api/nekocore/model-recommend` in `server/routes/nekocore-routes.js`
+- [x] D-3 — `POST /api/nekocore/model-apply` — approve + reject + 404 unknown-ID paths
+- [x] D-4 — Audit log: `server/brain/nekocore/audit.js` (`appendAuditRecord` + `readAuditRecords`); `nekocore-audit.ndjson` gitignored
+- [x] D-5 — Governance guard tests: `tests/integration/nekocore-governance.test.js` — 9 tests; suite: 384 pass, 0 fail
+- [x] E-1 — `server/routes/nekocore-routes.js` + wired into `server/server.js` (merged into D-2/D-3)
+- [x] E-2 — All four `/api/nekocore/*` endpoints live: status, pending, model-recommend, model-apply
+- [x] E-3 — `client/nekocore.html` + `client/js/nekocore-app.js` — standalone iframe panel; status strip, pending recommendations list, Approve/Deny controls; event-delegation buttons (no inline onclick)
+- [x] E-4 — `nekocore` added to `WINDOW_APPS` + `APP_CATEGORY_BY_TAB` in `app.js`; `#tab-nekocore` iframe added to `index.html`; lazy-load iframe `src` in `openWindow` hook
+- [x] E-5 — NekoCore Panel CSS section (~55 lines) appended to `client/css/ui-v2.css`
+- [x] E-6 — `tests/integration/nekocore-routes.test.js` — 9 smoke tests; suite: 393 pass, 0 fail
 
 ---
 

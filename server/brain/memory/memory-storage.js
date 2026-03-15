@@ -207,7 +207,20 @@ class MemoryStorage {
    */
   async decayMemories(decayRate = 0.02) {
     try {
-      // Use index cache if available for fast iteration
+      // B-2: Policy guard — entities with operationalMemory flag retain full recall (no decay applied)
+      if (this.entityId) {
+        try {
+          const _entityRoot = entityPaths.getEntityRoot(this.entityId);
+          const _entityFile = path.join(_entityRoot, 'entity.json');
+          if (fs.existsSync(_entityFile)) {
+            const _entity = JSON.parse(fs.readFileSync(_entityFile, 'utf8'));
+            if (_entity.operationalMemory === true) {
+              return { decayed: 0, healed: 0, totalDecayDelta: 0, avgDecayDelta: 0, samples: [] };
+            }
+          }
+        } catch (_) { /* policy file unreadable — apply normal decay */ }
+      }
+
       const memIds = this.indexCache
         ? this.indexCache.getAllMemoryIds()
         : fs.readdirSync(this.memDir);

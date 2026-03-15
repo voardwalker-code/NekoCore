@@ -321,7 +321,7 @@ NekoCore routes each pipeline phase to a different model. This is the setup that
       },
       "orchestrator": {
         "type": "openrouter",
-        "model": "anthropic/claude-sonnet-4-5"
+        "model": "anthropic/claude-sonnet-4.6"
       }
     }
   }
@@ -334,7 +334,7 @@ NekoCore routes each pipeline phase to a different model. This is the setup that
 | subconscious (1A) | `inception/mercury-2` | Context assembly, memory retrieval |
 | dream (1D) | `google/gemini-2.5-flash` | Abstract association — cheap is fine |
 | background | `google/gemini-2.5-flash` | Brain loop maintenance — high frequency |
-| orchestrator (final) | `anthropic/claude-sonnet-4-5` | Final voicing — quality matters here |
+| orchestrator (final) | `anthropic/claude-sonnet-4.6` | Final voicing — quality matters here |
 
 Any OpenAI-compatible model works. For fully local (free): set all phases to an Ollama model like `mistral` or `llama3`.
 
