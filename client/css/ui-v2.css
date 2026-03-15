@@ -50,6 +50,135 @@ body::before {
 }
 
 /* ============================================================
+   CONTEXT MENU
+   ============================================================ */
+.ctx-menu {
+  position: fixed;
+  z-index: 200;
+  min-width: 180px;
+  max-width: 280px;
+  padding: 6px 0;
+  border: 1px solid var(--border-emphasis);
+  border-radius: 12px;
+  background: var(--window-bg);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.96);
+  transition: opacity .12s ease, transform .12s ease;
+}
+.ctx-menu.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+.ctx-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ctx-menu-item:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.ctx-menu-item .ctx-icon {
+  flex-shrink: 0;
+  font-size: 15px;
+  width: 20px;
+  text-align: center;
+}
+.ctx-menu-item.danger {
+  color: var(--danger, #f87171);
+}
+.ctx-menu-sep {
+  height: 1px;
+  margin: 4px 10px;
+  background: var(--border-default);
+}
+
+/* ============================================================
+   DESKTOP FILES AREA
+   ============================================================ */
+.os-desktop-files {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 96px);
+  gap: 8px;
+  padding: 0 clamp(16px, 3vw, 48px) var(--space-4);
+  max-width: 1520px;
+  margin: 0 auto;
+  min-height: 0;
+}
+.os-desktop-files:empty {
+  display: none;
+}
+.desktop-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: default;
+  user-select: none;
+  text-align: center;
+  font-family: inherit;
+  width: 96px;
+  transition: background .15s, border-color .15s;
+  position: relative;
+}
+.desktop-file:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.desktop-file.selected {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.desktop-file-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  background: linear-gradient(135deg, rgba(var(--ic, 52,211,153), 0.16), rgba(var(--ic, 52,211,153), 0.05));
+  border: 1px solid rgba(var(--ic, 52,211,153), 0.28);
+}
+.desktop-file-name {
+  font-size: 11px;
+  line-height: 1.2;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+.desktop-file-name[contenteditable="true"] {
+  background: var(--surface-3);
+  border-radius: 4px;
+  padding: 1px 4px;
+  outline: 1px solid var(--accent);
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* ============================================================
    DESKTOP SHELL
    ============================================================ */
 .os-home {

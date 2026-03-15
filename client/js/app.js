@@ -5716,4 +5716,526 @@ async function usersAppDelete(userId, name) {
   }
 }
 
+/* ╔══════════════════════════════════════════════════════════════╗
+   ║  CONTEXT MENU SYSTEM                                       ║
+   ║  Custom right-click menus replacing browser default         ║
+   ╚══════════════════════════════════════════════════════════════╝ */
+
+const ctxMenu = (function() {
+  const el = document.getElementById('ctxMenu');
+  if (!el) return { show() {}, hide() {} };
+
+  function hide() {
+    el.classList.remove('open');
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = '';
+  }
+
+  function show(x, y, items) {
+    el.innerHTML = '';
+    items.forEach(function(item) {
+      if (item === '---') {
+        const sep = document.createElement('div');
+        sep.className = 'ctx-menu-sep';
+        el.appendChild(sep);
+        return;
+      }
+      const btn = document.createElement('button');
+      btn.className = 'ctx-menu-item' + (item.danger ? ' danger' : '');
+      btn.setAttribute('role', 'menuitem');
+      btn.innerHTML = (item.icon ? '<span class="ctx-icon">' + item.icon + '</span>' : '') + item.label;
+      btn.onclick = function(e) {
+        e.stopPropagation();
+        hide();
+        if (item.action) item.action();
+      };
+      el.appendChild(btn);
+    });
+
+    el.classList.add('open');
+    el.setAttribute('aria-hidden', 'false');
+
+    // Position — keep within viewport
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const menuW = el.offsetWidth;
+    const menuH = el.offsetHeight;
+    const finalX = x + menuW > vw ? Math.max(4, vw - menuW - 4) : x;
+    const finalY = y + menuH > vh ? Math.max(4, vh - menuH - 4) : y;
+    el.style.left = finalX + 'px';
+    el.style.top = finalY + 'px';
+  }
+
+  // Close on any click outside
+  document.addEventListener('click', function() { hide(); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') hide(); });
+
+  return { show: show, hide: hide };
+})();
+
+// Block browser context menu everywhere inside the app shell
+document.addEventListener('contextmenu', function(e) {
+  const target = e.target;
+
+  // Allow context menu on actual <input> and <textarea> for text editing
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+  e.preventDefault();
+
+  // ── Pinned app on taskbar ──
+  const pinnedBtn = target.closest('.os-pinned-app, .os-dash-app, .os-overflow-app');
+  if (pinnedBtn) {
+    const tab = pinnedBtn.getAttribute('data-tab');
+    const app = getWindowApp(tab);
+    if (!app) return;
+    ctxMenu.show(e.clientX, e.clientY, [
+      { icon: '📌', label: 'Unpin from Taskbar', action: function() { togglePinnedApp(tab); } },
+      { icon: app.icon, label: 'Open ' + app.label, action: function() { switchMainTab(tab); } },
+      '---',
+      { icon: '📄', label: 'Create Shortcut on Desktop', action: function() { vfs.createDesktopShortcut(tab); } }
+    ]);
+    return;
+  }
+
+  // ── Desktop shortcut (static) ──
+  const shortcut = target.closest('.os-shortcut');
+  if (shortcut) {
+    const tab = shortcut.getAttribute('data-tab');
+    ctxMenu.show(e.clientX, e.clientY, [
+      { icon: '🚀', label: 'Open', action: function() { switchMainTab(tab); } },
+      { icon: '📌', label: isPinnedApp(tab) ? 'Unpin from Taskbar' : 'Pin to Taskbar', action: function() { togglePinnedApp(tab); } }
+    ]);
+    return;
+  }
+
+  // ── Desktop file / folder ──
+  const desktopFile = target.closest('.desktop-file');
+  if (desktopFile) {
+    const path = desktopFile.getAttribute('data-path');
+    const entry = vfs.stat(path);
+    if (!entry) return;
+    const items = [];
+    if (entry.type === 'folder') {
+      items.push({ icon: '📂', label: 'Open Folder', action: function() { vfs.openFolder(path); } });
+    } else if (entry.type === 'shortcut' && entry.launchTab) {
+      items.push({ icon: '🚀', label: 'Open', action: function() { switchMainTab(entry.launchTab); } });
+    } else {
+      items.push({ icon: '📄', label: 'Open', action: function() { vfs.openFile(path); } });
+    }
+    items.push('---');
+    items.push({ icon: '✏️', label: 'Rename', action: function() { vfs.beginRename(desktopFile); } });
+    items.push({ icon: '🗑️', label: 'Delete', danger: true, action: function() { vfs.remove(path); } });
+    ctxMenu.show(e.clientX, e.clientY, items);
+    return;
+  }
+
+  // ── Empty desktop area ──
+  const desktopArea = target.closest('.os-desktop-files, .os-home');
+  if (desktopArea) {
+    ctxMenu.show(e.clientX, e.clientY, [
+      { icon: '📄', label: 'New Document', action: function() { vfs.createOnDesktop('document'); } },
+      { icon: '📁', label: 'New Folder', action: function() { vfs.createOnDesktop('folder'); } },
+      { icon: '📝', label: 'New Note', action: function() { vfs.createOnDesktop('note'); } },
+      '---',
+      { icon: '🔄', label: 'Refresh Desktop', action: function() { vfs.renderDesktop(); } }
+    ]);
+    return;
+  }
+
+  // ── Start menu app items ──
+  const startAppItem = target.closest('.os-start-app-item, .os-start-pinned-app');
+  if (startAppItem) {
+    const tab = startAppItem.getAttribute('data-tab');
+    const app = getWindowApp(tab);
+    if (!app) return;
+    ctxMenu.show(e.clientX, e.clientY, [
+      { icon: app.icon, label: 'Open ' + app.label, action: function() { switchMainTab(tab); } },
+      { icon: '📌', label: isPinnedApp(tab) ? 'Unpin from Taskbar' : 'Pin to Taskbar', action: function() { togglePinnedApp(tab); } },
+      { icon: '📄', label: 'Create Desktop Shortcut', action: function() { vfs.createDesktopShortcut(tab); } }
+    ]);
+    return;
+  }
+
+  // ── Window titlebar ──
+  const titlebar = target.closest('.wm-titlebar');
+  if (titlebar) {
+    const appEl = titlebar.closest('.app');
+    if (!appEl) return;
+    const tab = appEl.getAttribute('data-tab');
+    const app = getWindowApp(tab);
+    if (!app) return;
+    ctxMenu.show(e.clientX, e.clientY, [
+      { icon: '📌', label: isPinnedApp(tab) ? 'Unpin from Taskbar' : 'Pin to Taskbar', action: function() { togglePinnedApp(tab); } },
+      { icon: '📄', label: 'Create Desktop Shortcut', action: function() { vfs.createDesktopShortcut(tab); } },
+      '---',
+      { icon: '✕', label: 'Close Window', danger: true, action: function() { closeWindow(tab); } }
+    ]);
+    return;
+  }
+});
+
+
+/* ╔══════════════════════════════════════════════════════════════╗
+   ║  VIRTUAL FILE SYSTEM (VFS)                                 ║
+   ║  localStorage-backed file/folder tree with desktop surface  ║
+   ╚══════════════════════════════════════════════════════════════╝ */
+
+const vfs = (function() {
+  const STORAGE_KEY = 'rem-vfs-v1';
+  let tree = {};
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) tree = JSON.parse(raw);
+    } catch (_) { tree = {}; }
+    if (!tree['/desktop']) tree['/desktop'] = { type: 'folder', children: {}, created: Date.now() };
+  }
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tree)); } catch (_) {}
+  }
+
+  function stat(path) {
+    return tree[path] || null;
+  }
+
+  function list(folderPath) {
+    const folder = tree[folderPath];
+    if (!folder || folder.type !== 'folder') return [];
+    return Object.keys(folder.children).map(function(name) {
+      const childPath = folderPath === '/' ? '/' + name : folderPath + '/' + name;
+      return Object.assign({ name: name, path: childPath }, tree[childPath] || {});
+    });
+  }
+
+  function createEntry(parentPath, name, type, extra) {
+    const parent = tree[parentPath];
+    if (!parent || parent.type !== 'folder') return null;
+    const safeName = name.replace(/[<>:"/\\|?*]/g, '_').substring(0, 64);
+    const path = parentPath === '/' ? '/' + safeName : parentPath + '/' + safeName;
+    if (tree[path]) {
+      // Deduplicate name
+      let i = 2;
+      let dedupName = safeName;
+      let dedupPath = path;
+      while (tree[dedupPath]) {
+        dedupName = safeName.replace(/(\.\w+)?$/, ' (' + i + ')$1');
+        dedupPath = parentPath === '/' ? '/' + dedupName : parentPath + '/' + dedupName;
+        i++;
+      }
+      tree[dedupPath] = Object.assign({ type: type, created: Date.now(), modified: Date.now() }, extra || {});
+      if (type === 'folder') tree[dedupPath].children = {};
+      parent.children[dedupName] = 1;
+      save();
+      renderDesktop();
+      return dedupPath;
+    }
+    tree[path] = Object.assign({ type: type, created: Date.now(), modified: Date.now() }, extra || {});
+    if (type === 'folder') tree[path].children = {};
+    parent.children[safeName] = 1;
+    save();
+    renderDesktop();
+    return path;
+  }
+
+  function remove(path) {
+    if (path === '/desktop') return; // Protect root
+    const entry = tree[path];
+    if (!entry) return;
+    // Remove children recursively if folder
+    if (entry.type === 'folder' && entry.children) {
+      Object.keys(entry.children).forEach(function(childName) {
+        const childPath = path + '/' + childName;
+        remove(childPath);
+      });
+    }
+    // Remove from parent
+    const parts = path.split('/');
+    const name = parts.pop();
+    const parentPath = parts.join('/') || '/';
+    const parent = tree[parentPath];
+    if (parent && parent.children) delete parent.children[name];
+    delete tree[path];
+    save();
+    renderDesktop();
+  }
+
+  function rename(path, newName) {
+    const entry = tree[path];
+    if (!entry) return path;
+    const safeName = newName.replace(/[<>:"/\\|?*]/g, '_').substring(0, 64);
+    if (!safeName) return path;
+    const parts = path.split('/');
+    const oldName = parts.pop();
+    const parentPath = parts.join('/') || '/';
+    const newPath = parentPath === '/' ? '/' + safeName : parentPath + '/' + safeName;
+    if (newPath === path) return path;
+    if (tree[newPath]) return path; // Name taken
+    tree[newPath] = entry;
+    entry.modified = Date.now();
+    delete tree[path];
+    const parent = tree[parentPath];
+    if (parent && parent.children) {
+      delete parent.children[oldName];
+      parent.children[safeName] = 1;
+    }
+    save();
+    renderDesktop();
+    return newPath;
+  }
+
+  function getContent(path) {
+    const entry = tree[path];
+    return entry ? (entry.content || '') : '';
+  }
+
+  function setContent(path, content) {
+    const entry = tree[path];
+    if (!entry) return;
+    entry.content = content;
+    entry.modified = Date.now();
+    save();
+  }
+
+  // ── Desktop rendering ──
+
+  function fileAccent(entry) {
+    if (entry.type === 'shortcut') {
+      var app = getWindowApp(entry.launchTab);
+      return app ? app.accent : 'green';
+    }
+    if (entry.type === 'folder') return 'gold';
+    if (entry.fileExt === 'note' || entry.fileExt === 'txt') return 'cyan';
+    return 'indigo';
+  }
+
+  function fileIcon(entry) {
+    if (entry.type === 'shortcut') {
+      var app = getWindowApp(entry.launchTab);
+      return app ? app.icon : '🔗';
+    }
+    if (entry.type === 'folder') return '📁';
+    if (entry.fileExt === 'note') return '📝';
+    return '📄';
+  }
+
+  var desktopSelection = null;
+
+  function renderDesktop() {
+    var host = document.getElementById('desktopFilesArea');
+    if (!host) return;
+    host.innerHTML = '';
+    var items = list('/desktop');
+    items.forEach(function(item) {
+      var el = document.createElement('div');
+      el.className = 'desktop-file';
+      el.setAttribute('data-path', item.path);
+      el.setAttribute('draggable', 'true');
+      var accent = fileAccent(item);
+      el.innerHTML =
+        '<div class="desktop-file-icon" data-accent="' + accent + '">' + fileIcon(item) + '</div>' +
+        '<div class="desktop-file-name">' + item.name + '</div>';
+
+      // Click to select
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (desktopSelection) desktopSelection.classList.remove('selected');
+        el.classList.add('selected');
+        desktopSelection = el;
+      });
+
+      // Double-click to open
+      el.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        if (item.type === 'shortcut' && item.launchTab) {
+          switchMainTab(item.launchTab);
+        } else if (item.type === 'folder') {
+          openFolder(item.path);
+        } else {
+          openFile(item.path);
+        }
+      });
+
+      // Drag support
+      el.addEventListener('dragstart', function(ev) {
+        ev.dataTransfer.setData('text/plain', item.path);
+        ev.dataTransfer.effectAllowed = 'move';
+        el.style.opacity = '0.5';
+      });
+      el.addEventListener('dragend', function() { el.style.opacity = ''; });
+
+      host.appendChild(el);
+    });
+
+    // Deselect on click on empty area
+    host.addEventListener('click', function(e) {
+      if (e.target === host) {
+        if (desktopSelection) desktopSelection.classList.remove('selected');
+        desktopSelection = null;
+      }
+    });
+  }
+
+  // ── Create helpers ──
+
+  function createOnDesktop(kind) {
+    if (kind === 'folder') {
+      createEntry('/desktop', 'New Folder', 'folder');
+    } else if (kind === 'note') {
+      createEntry('/desktop', 'New Note.note', 'file', { content: '', fileExt: 'note' });
+    } else {
+      createEntry('/desktop', 'New Document.doc', 'file', { content: '', fileExt: 'doc' });
+    }
+  }
+
+  function createDesktopShortcut(tabName) {
+    var app = getWindowApp(tabName);
+    if (!app) return;
+    createEntry('/desktop', app.label, 'shortcut', { launchTab: tabName });
+  }
+
+  // ── Inline rename ──
+
+  function beginRename(el) {
+    var nameEl = el.querySelector('.desktop-file-name');
+    if (!nameEl) return;
+    var path = el.getAttribute('data-path');
+    nameEl.setAttribute('contenteditable', 'true');
+    nameEl.focus();
+    // Select all text
+    var range = document.createRange();
+    range.selectNodeContents(nameEl);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    function commit() {
+      nameEl.removeAttribute('contenteditable');
+      var newName = nameEl.textContent.trim();
+      if (newName && newName !== path.split('/').pop()) {
+        rename(path, newName);
+      } else {
+        renderDesktop(); // Reset if empty
+      }
+    }
+    nameEl.addEventListener('blur', commit, { once: true });
+    nameEl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
+      if (e.key === 'Escape') { nameEl.textContent = path.split('/').pop(); nameEl.blur(); }
+    });
+  }
+
+  // ── Open file in a simple editor modal ──
+
+  function openFile(path) {
+    var entry = tree[path];
+    if (!entry) return;
+    var content = entry.content || '';
+    var name = path.split('/').pop();
+
+    // Use a simple modal approach — create a temporary window-like overlay
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:180;background:rgba(0,0,0,0.5);display:grid;place-items:center;';
+    var card = document.createElement('div');
+    card.style.cssText = 'width:600px;max-width:90vw;max-height:80vh;background:var(--window-bg);border:1px solid var(--border-emphasis);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.4);';
+
+    var header = document.createElement('div');
+    header.style.cssText = 'padding:12px 16px;border-bottom:1px solid var(--border-default);display:flex;justify-content:space-between;align-items:center;';
+    header.innerHTML = '<span style="font-weight:700;font-size:14px;">' + name + '</span>';
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = 'background:none;border:none;color:var(--text-secondary);font-size:16px;cursor:pointer;padding:4px 8px;';
+    closeBtn.onclick = function() {
+      setContent(path, textarea.value);
+      overlay.remove();
+    };
+    header.appendChild(closeBtn);
+
+    var textarea = document.createElement('textarea');
+    textarea.value = content;
+    textarea.style.cssText = 'flex:1;padding:16px;border:none;background:transparent;color:var(--text-primary);font-family:JetBrains Mono,monospace;font-size:13px;resize:none;outline:none;min-height:300px;';
+
+    card.appendChild(header);
+    card.appendChild(textarea);
+    overlay.appendChild(card);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) { setContent(path, textarea.value); overlay.remove(); }
+    });
+    document.body.appendChild(overlay);
+    textarea.focus();
+  }
+
+  function openFolder(path) {
+    // For now just log — could open a file manager window later
+    var items = list(path);
+    var name = path.split('/').pop();
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:180;background:rgba(0,0,0,0.5);display:grid;place-items:center;';
+    var card = document.createElement('div');
+    card.style.cssText = 'width:500px;max-width:90vw;max-height:60vh;background:var(--window-bg);border:1px solid var(--border-emphasis);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.4);';
+
+    var header = document.createElement('div');
+    header.style.cssText = 'padding:12px 16px;border-bottom:1px solid var(--border-default);display:flex;justify-content:space-between;align-items:center;';
+    header.innerHTML = '<span style="font-weight:700;font-size:14px;">📁 ' + name + '</span>';
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = 'background:none;border:none;color:var(--text-secondary);font-size:16px;cursor:pointer;padding:4px 8px;';
+    closeBtn.onclick = function() { overlay.remove(); };
+    header.appendChild(closeBtn);
+
+    var body = document.createElement('div');
+    body.style.cssText = 'padding:16px;display:grid;grid-template-columns:repeat(auto-fill,80px);gap:8px;overflow-y:auto;';
+    if (items.length === 0) {
+      body.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-tertiary);padding:24px;font-size:13px;">Empty folder</div>';
+    } else {
+      items.forEach(function(item) {
+        var el = document.createElement('div');
+        el.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border-radius:10px;cursor:pointer;text-align:center;';
+        el.innerHTML = '<div style="font-size:28px;">' + fileIcon(item) + '</div><div style="font-size:11px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72px;">' + item.name + '</div>';
+        el.addEventListener('dblclick', function() {
+          overlay.remove();
+          if (item.type === 'folder') openFolder(item.path);
+          else if (item.type === 'shortcut' && item.launchTab) switchMainTab(item.launchTab);
+          else openFile(item.path);
+        });
+        el.addEventListener('mouseenter', function() { el.style.background = 'color-mix(in srgb, var(--accent) 14%, transparent)'; });
+        el.addEventListener('mouseleave', function() { el.style.background = ''; });
+        body.appendChild(el);
+      });
+    }
+
+    card.appendChild(header);
+    card.appendChild(body);
+    overlay.appendChild(card);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+
+  // Initialize
+  load();
+
+  return {
+    stat: stat,
+    list: list,
+    createEntry: createEntry,
+    remove: remove,
+    rename: rename,
+    getContent: getContent,
+    setContent: setContent,
+    renderDesktop: renderDesktop,
+    createOnDesktop: createOnDesktop,
+    createDesktopShortcut: createDesktopShortcut,
+    beginRename: beginRename,
+    openFile: openFile,
+    openFolder: openFolder,
+    load: load,
+    save: save
+  };
+})();
+
+// Render desktop files on load
+document.addEventListener('DOMContentLoaded', function() { vfs.renderDesktop(); });
+
 
