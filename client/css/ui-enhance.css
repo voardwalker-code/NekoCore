@@ -5,31 +5,7 @@
    animated accents, and constellation-grade atmosphere
    ============================================================ */
 
-/* ── Star Field Canvas ── */
-#stars {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* ── Global Atmosphere ── */
-body {
-  background:
-    radial-gradient(ellipse 120% 60% at 50% -10%, rgba(52,211,153,0.06) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 40% at 80% 80%, rgba(34,211,238,0.03) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 50% at 10% 60%, rgba(129,140,248,0.03) 0%, transparent 50%),
-    var(--surface-0);
-  position: relative;
-  z-index: 1;
-}
-
-/* Remove the old noise overlay — let stars shine through */
-body::before {
-  display: none !important;
-}
+/* Star field canvas + body atmosphere are defined in ui-v2.css */
 
 /* ============================================================
    HEADER — Floating Glass Bar

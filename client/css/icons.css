@@ -51,6 +51,20 @@
   background: linear-gradient(135deg, rgba(var(--ic), 0.18), rgba(var(--ic), 0.06));
   border: 1px solid rgba(var(--ic), 0.32);
   box-shadow: 0 0 12px rgba(var(--ic), 0.10), inset 0 1px 0 rgba(255,255,255,0.04);
+  color: rgb(var(--ic));
+}
+
+/* ── Inline SVG sizing inside icon containers ── */
+.os-shortcut-icon[data-accent] > svg,
+.os-pinned-app-icon[data-accent] > svg,
+.os-start-category-app-icon[data-accent] > svg,
+.launcher-app-icon[data-accent] > svg,
+.wm-title-icon[data-accent] > svg {
+  width: 55%;
+  height: 55%;
+  stroke: rgb(var(--ic));
+  fill: none;
+  flex-shrink: 0;
 }
 
 /* ── Desktop shortcut icons ── */
@@ -60,7 +74,6 @@
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  font-size: 1.5rem;
   flex-shrink: 0;
   transition: box-shadow .2s, border-color .2s;
 }
@@ -78,7 +91,6 @@
   width: 100%;
   height: 100%;
   border-radius: 12px;
-  font-size: 24px;
 }
 
 /* ── Start menu category preview icons ── */
@@ -89,7 +101,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
 }
 
 /* ── Start menu / launcher app list icons ── */
@@ -100,7 +111,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
   flex-shrink: 0;
 }
 
@@ -112,7 +122,6 @@
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  font-size: 13px;
   vertical-align: middle;
   margin-right: 2px;
 }
