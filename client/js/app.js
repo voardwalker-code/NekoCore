@@ -6166,6 +6166,20 @@ const vfs = (function() {
             return;
           }
 
+          if (!dragging) return;
+          var nx = clamp(snap(startL + (ev.clientX - startCX)), 0, hostW - ICON_W);
+          var ny = clamp(snap(startT + (ev.clientY - startCY)), 0, hostH - ICON_H);
+          pos = { x: nx, y: ny };
+          saveMeta(item.path, { pos: pos });
+        }
+
+        el.addEventListener('pointermove', onMove);
+        el.addEventListener('pointerup',   onUp);
+      });
+
+      host.appendChild(el);
+    });
+  }
 
   // ── Create helpers ──────────────────────────────────────────────────────────
 
