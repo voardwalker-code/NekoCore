@@ -5891,124 +5891,106 @@ document.addEventListener('contextmenu', function(e) {
    ╚══════════════════════════════════════════════════════════════╝ */
 
 const vfs = (function() {
-  const STORAGE_KEY = 'rem-vfs-v1';
-  let tree = {};
+  const BASE = '/api/vfs';
 
-  function load() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) tree = JSON.parse(raw);
-    } catch (_) { tree = {}; }
-    if (!tree['/desktop']) tree['/desktop'] = { type: 'folder', children: {}, created: Date.now() };
+  // Local stat cache — populated after each renderDesktop() so sync stat() works
+  // for context-menu handlers that fire on already-rendered icons.
+  let _cache = {};
+
+  function apiPost(endpoint, body) {
+    return fetch(BASE + '/' + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function(r) { return r.json(); });
   }
 
-  function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tree)); } catch (_) {}
+  // ── Public API ──────────────────────────────────────────────────────────────
+
+  // Synchronous stat from local cache (populated by renderDesktop)
+  function stat(virtualPath) {
+    return _cache[virtualPath] || null;
   }
 
-  function stat(path) {
-    return tree[path] || null;
+  async function list(folderPath) {
+    const r = await fetch(BASE + '/list?' + new URLSearchParams({ path: folderPath }));
+    const data = await r.json();
+    if (!data.ok) return [];
+    return data.entries || [];
   }
 
-  function list(folderPath) {
-    const folder = tree[folderPath];
-    if (!folder || folder.type !== 'folder') return [];
-    return Object.keys(folder.children).map(function(name) {
-      const childPath = folderPath === '/' ? '/' + name : folderPath + '/' + name;
-      return Object.assign({ name: name, path: childPath }, tree[childPath] || {});
-    });
-  }
-
-  function createEntry(parentPath, name, type, extra) {
-    const parent = tree[parentPath];
-    if (!parent || parent.type !== 'folder') return null;
+  async function createEntry(parentPath, name, type, extra) {
     const safeName = name.replace(/[<>:"/\\|?*]/g, '_').substring(0, 64);
-    const path = parentPath === '/' ? '/' + safeName : parentPath + '/' + safeName;
-    if (tree[path]) {
-      // Deduplicate name
-      let i = 2;
-      let dedupName = safeName;
-      let dedupPath = path;
-      while (tree[dedupPath]) {
-        dedupName = safeName.replace(/(\.\w+)?$/, ' (' + i + ')$1');
-        dedupPath = parentPath === '/' ? '/' + dedupName : parentPath + '/' + dedupName;
-        i++;
+    const virtPath = parentPath === '/' ? '/' + safeName : parentPath + '/' + safeName;
+    try {
+      let result;
+      if (type === 'folder') {
+        result = await apiPost('mkdir', {
+          path: virtPath,
+          meta: Object.assign({ type: 'folder' }, extra || {}),
+          dedup: true
+        });
+      } else {
+        result = await apiPost('write', {
+          path: virtPath,
+          content: (extra && extra.content) || '',
+          meta: Object.assign({ type: type }, extra || {}),
+          dedup: true
+        });
       }
-      tree[dedupPath] = Object.assign({ type: type, created: Date.now(), modified: Date.now() }, extra || {});
-      if (type === 'folder') tree[dedupPath].children = {};
-      parent.children[dedupName] = 1;
-      save();
-      renderDesktop();
-      return dedupPath;
+      await renderDesktop();
+      return result.path;
+    } catch (e) {
+      console.error('[VFS] createEntry failed:', e);
+      return null;
     }
-    tree[path] = Object.assign({ type: type, created: Date.now(), modified: Date.now() }, extra || {});
-    if (type === 'folder') tree[path].children = {};
-    parent.children[safeName] = 1;
-    save();
-    renderDesktop();
-    return path;
   }
 
-  function remove(path) {
-    if (path === '/desktop') return; // Protect root
-    const entry = tree[path];
-    if (!entry) return;
-    // Remove children recursively if folder
-    if (entry.type === 'folder' && entry.children) {
-      Object.keys(entry.children).forEach(function(childName) {
-        const childPath = path + '/' + childName;
-        remove(childPath);
-      });
+  async function remove(virtualPath) {
+    if (virtualPath === '/desktop' || virtualPath === '/') return;
+    try {
+      await apiPost('delete', { path: virtualPath });
+      await renderDesktop();
+    } catch (e) {
+      console.error('[VFS] remove failed:', e);
     }
-    // Remove from parent
-    const parts = path.split('/');
-    const name = parts.pop();
-    const parentPath = parts.join('/') || '/';
-    const parent = tree[parentPath];
-    if (parent && parent.children) delete parent.children[name];
-    delete tree[path];
-    save();
-    renderDesktop();
   }
 
-  function rename(path, newName) {
-    const entry = tree[path];
-    if (!entry) return path;
+  async function rename(virtualPath, newName) {
     const safeName = newName.replace(/[<>:"/\\|?*]/g, '_').substring(0, 64);
-    if (!safeName) return path;
-    const parts = path.split('/');
-    const oldName = parts.pop();
-    const parentPath = parts.join('/') || '/';
-    const newPath = parentPath === '/' ? '/' + safeName : parentPath + '/' + safeName;
-    if (newPath === path) return path;
-    if (tree[newPath]) return path; // Name taken
-    tree[newPath] = entry;
-    entry.modified = Date.now();
-    delete tree[path];
-    const parent = tree[parentPath];
-    if (parent && parent.children) {
-      delete parent.children[oldName];
-      parent.children[safeName] = 1;
+    if (!safeName) return virtualPath;
+    const parts = virtualPath.split('/');
+    parts.pop();
+    const parentPath = parts.join('/') || '/desktop';
+    const newPath = parentPath + '/' + safeName;
+    if (newPath === virtualPath) return virtualPath;
+    try {
+      const result = await apiPost('move', { from: virtualPath, to: newPath });
+      await renderDesktop();
+      return result.path || newPath;
+    } catch (e) {
+      console.error('[VFS] rename failed:', e);
+      return virtualPath;
     }
-    save();
-    renderDesktop();
-    return newPath;
   }
 
-  function getContent(path) {
-    const entry = tree[path];
-    return entry ? (entry.content || '') : '';
+  async function getContent(virtualPath) {
+    try {
+      const r = await fetch(BASE + '/read?' + new URLSearchParams({ path: virtualPath }));
+      if (!r.ok) return '';
+      return r.text();
+    } catch (_) { return ''; }
   }
 
-  function setContent(path, content) {
-    const entry = tree[path];
-    if (!entry) return;
-    entry.content = content;
-    entry.modified = Date.now();
-    save();
+  async function setContent(virtualPath, content) {
+    try { await apiPost('write', { path: virtualPath, content }); } catch (_) {}
   }
 
-  // ── Desktop rendering ──
+  async function saveMeta(virtualPath, metaPatch) {
+    try { await apiPost('meta', { path: virtualPath, meta: metaPatch }); } catch (_) {}
+  }
+
+  // ── Desktop rendering ──────────────────────────────────────────────────────
 
   function fileAccent(entry) {
     if (entry.type === 'shortcut') {
@@ -6040,8 +6022,8 @@ const vfs = (function() {
     if ((e.key === 'Delete' || e.key === 'Backspace') && desktopSelection) {
       var tag = document.activeElement && document.activeElement.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement && document.activeElement.isContentEditable)) return;
-      var path = desktopSelection.getAttribute('data-path');
-      if (path) { desktopSelection = null; remove(path); }
+      var p = desktopSelection.getAttribute('data-path');
+      if (p) { desktopSelection = null; remove(p); }
     }
   });
 
@@ -6056,9 +6038,17 @@ const vfs = (function() {
     };
   }
 
-  function renderDesktop() {
+  async function renderDesktop() {
     var host = document.getElementById('desktopFilesArea');
     if (!host) return;
+
+    var items;
+    try { items = await list('/desktop'); } catch (_) { items = []; }
+
+    // Refresh sync stat cache
+    _cache = {};
+    items.forEach(function(item) { _cache[item.path] = item; });
+
     host.innerHTML = '';
 
     // One-time host listeners
@@ -6076,10 +6066,8 @@ const vfs = (function() {
     var hostW = hostRect.width || window.innerWidth;
     var hostH = hostRect.height || (window.innerHeight - 72);
 
-    var items = list('/desktop');
     items.forEach(function(item, index) {
-      var entry = tree[item.path] || {};
-      var pos = entry.pos || autoPos(index, hostW, hostH);
+      var pos = item.pos || autoPos(index, hostW, hostH);
 
       var el = document.createElement('div');
       el.className = 'desktop-file';
@@ -6091,7 +6079,6 @@ const vfs = (function() {
         '<div class="desktop-file-icon" data-accent="' + accent + '">' + fileIcon(item) + '</div>' +
         '<div class="desktop-file-name">' + item.name + '</div>';
 
-      // Click to select (set from pointerdown — see drag handler below)
       // Double-click to open
       el.addEventListener('dblclick', function(e) {
         e.stopPropagation();
@@ -6145,7 +6132,7 @@ const vfs = (function() {
           var nx = clamp(snap(startL + (ev.clientX - startCX)), 0, hostW - ICON_W);
           var ny = clamp(snap(startT + (ev.clientY - startCY)), 0, hostH - ICON_H);
           pos = { x: nx, y: ny };
-          if (tree[item.path]) { tree[item.path].pos = pos; save(); }
+          saveMeta(item.path, { pos: pos });
         }
 
         el.addEventListener('pointermove', onMove);
@@ -6156,30 +6143,30 @@ const vfs = (function() {
     });
   }
 
-  // ── Create helpers ──
+  // ── Create helpers ──────────────────────────────────────────────────────────
 
   function createOnDesktop(kind) {
     if (kind === 'folder') {
       createEntry('/desktop', 'New Folder', 'folder');
     } else if (kind === 'note') {
-      createEntry('/desktop', 'New Note.note', 'file', { content: '', fileExt: 'note' });
+      createEntry('/desktop', 'New Note.note', 'file', { fileExt: 'note' });
     } else {
-      createEntry('/desktop', 'New Document.doc', 'file', { content: '', fileExt: 'doc' });
+      createEntry('/desktop', 'New Document.doc', 'file', { fileExt: 'doc' });
     }
   }
 
   function createDesktopShortcut(tabName) {
     var app = getWindowApp(tabName);
     if (!app) return;
-    createEntry('/desktop', app.label, 'shortcut', { launchTab: tabName });
+    createEntry('/desktop', app.label, 'shortcut', { type: 'shortcut', launchTab: tabName });
   }
 
-  // ── Inline rename ──
+  // ── Inline rename ──────────────────────────────────────────────────────────
 
   function beginRename(el) {
     var nameEl = el.querySelector('.desktop-file-name');
     if (!nameEl) return;
-    var path = el.getAttribute('data-path');
+    var virtPath = el.getAttribute('data-path');
     nameEl.setAttribute('contenteditable', 'true');
     nameEl.focus();
     // Select all text
@@ -6192,28 +6179,25 @@ const vfs = (function() {
     function commit() {
       nameEl.removeAttribute('contenteditable');
       var newName = nameEl.textContent.trim();
-      if (newName && newName !== path.split('/').pop()) {
-        rename(path, newName);
+      if (newName && newName !== virtPath.split('/').pop()) {
+        rename(virtPath, newName);
       } else {
-        renderDesktop(); // Reset if empty
+        renderDesktop();
       }
     }
     nameEl.addEventListener('blur', commit, { once: true });
     nameEl.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
-      if (e.key === 'Escape') { nameEl.textContent = path.split('/').pop(); nameEl.blur(); }
+      if (e.key === 'Escape') { nameEl.textContent = virtPath.split('/').pop(); nameEl.blur(); }
     });
   }
 
-  // ── Open file in a simple editor modal ──
+  // ── Open file in a simple editor modal ────────────────────────────────────
 
-  function openFile(path) {
-    var entry = tree[path];
-    if (!entry) return;
-    var content = entry.content || '';
-    var name = path.split('/').pop();
+  async function openFile(virtPath) {
+    var content = await getContent(virtPath);
+    var name = virtPath.split('/').pop();
 
-    // Use a simple modal approach — create a temporary window-like overlay
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:180;background:rgba(0,0,0,0.5);display:grid;place-items:center;';
     var card = document.createElement('div');
@@ -6226,7 +6210,7 @@ const vfs = (function() {
     closeBtn.textContent = '✕';
     closeBtn.style.cssText = 'background:none;border:none;color:var(--text-secondary);font-size:16px;cursor:pointer;padding:4px 8px;';
     closeBtn.onclick = function() {
-      setContent(path, textarea.value);
+      setContent(virtPath, textarea.value);
       overlay.remove();
     };
     header.appendChild(closeBtn);
@@ -6239,16 +6223,16 @@ const vfs = (function() {
     card.appendChild(textarea);
     overlay.appendChild(card);
     overlay.addEventListener('click', function(e) {
-      if (e.target === overlay) { setContent(path, textarea.value); overlay.remove(); }
+      if (e.target === overlay) { setContent(virtPath, textarea.value); overlay.remove(); }
     });
     document.body.appendChild(overlay);
     textarea.focus();
   }
 
-  function openFolder(path) {
-    // For now just log — could open a file manager window later
-    var items = list(path);
-    var name = path.split('/').pop();
+  async function openFolder(virtPath) {
+    var items;
+    try { items = await list(virtPath); } catch (_) { items = []; }
+    var name = virtPath.split('/').pop();
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:180;background:rgba(0,0,0,0.5);display:grid;place-items:center;';
     var card = document.createElement('div');
@@ -6291,9 +6275,6 @@ const vfs = (function() {
     document.body.appendChild(overlay);
   }
 
-  // Initialize
-  load();
-
   return {
     stat: stat,
     list: list,
@@ -6302,14 +6283,13 @@ const vfs = (function() {
     rename: rename,
     getContent: getContent,
     setContent: setContent,
+    saveMeta: saveMeta,
     renderDesktop: renderDesktop,
     createOnDesktop: createOnDesktop,
     createDesktopShortcut: createDesktopShortcut,
     beginRename: beginRename,
     openFile: openFile,
-    openFolder: openFolder,
-    load: load,
-    save: save
+    openFolder: openFolder
   };
 })();
 
