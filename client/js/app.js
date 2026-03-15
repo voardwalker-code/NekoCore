@@ -6032,54 +6032,10 @@ const vfs = (function() {
 
   var desktopSelection = null;
 
-  // One-time desktop host listeners (set up once, not per renderDesktop call)
-  function _initDesktopHostListeners() {
-    var host = document.getElementById('desktopFilesArea');
-    if (!host || host._desktopListenersAttached) return;
-    host._desktopListenersAttached = true;
-
-    // Deselect when clicking empty desktop area
-    host.addEventListener('click', function(e) {
-      if (e.target === host) {
-        if (desktopSelection) desktopSelection.classList.remove('selected');
-        desktopSelection = null;
-      }
-    });
-
-    // Drop to move files on the desktop
-    host.addEventListener('dragover', function(ev) {
-      ev.preventDefault();
-      ev.dataTransfer.dropEffect = 'move';
-    });
-    host.addEventListener('drop', function(ev) {
-      ev.preventDefault();
-      var srcPath = ev.dataTransfer.getData('text/plain');
-      if (!srcPath) return;
-      var name = srcPath.split('/').pop();
-      var destPath = '/desktop/' + name;
-      if (srcPath !== destPath) rename(srcPath, name);
-    });
-  }
-
-  // Delete key removes selected desktop file
-  document.addEventListener('keydown', function(e) {
-    if ((e.key === 'Delete' || e.key === 'Backspace') && desktopSelection) {
-      // Don't fire when user is typing in an input / editable element
-      var tag = document.activeElement && document.activeElement.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement && document.activeElement.isContentEditable)) return;
-      var path = desktopSelection.getAttribute('data-path');
-      if (path) {
-        desktopSelection = null;
-        remove(path);
-      }
-    }
-  });
-
   function renderDesktop() {
     var host = document.getElementById('desktopFilesArea');
     if (!host) return;
     host.innerHTML = '';
-    _initDesktopHostListeners();
     var items = list('/desktop');
     items.forEach(function(item) {
       var el = document.createElement('div');
@@ -6120,6 +6076,14 @@ const vfs = (function() {
       el.addEventListener('dragend', function() { el.style.opacity = ''; });
 
       host.appendChild(el);
+    });
+
+    // Deselect on click on empty area
+    host.addEventListener('click', function(e) {
+      if (e.target === host) {
+        if (desktopSelection) desktopSelection.classList.remove('selected');
+        desktopSelection = null;
+      }
     });
   }
 

@@ -3783,21 +3783,26 @@ body {
 }
 
 .os-desktop-files {
-  position: fixed;
+  position: absolute;
   left: 0;
   right: 0;
-  bottom: 72px;
-  z-index: 3;
+  bottom: 0;
+  top: 0;
+  z-index: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, 96px);
+  align-content: end;
   gap: 8px;
   padding: var(--space-4) clamp(16px, 3vw, 48px);
   max-width: none;
   margin: 0;
+  pointer-events: none;
+}
+.os-desktop-files:not(:empty) {
   pointer-events: auto;
 }
-.os-desktop-files:empty {
-  pointer-events: none;
+.desktop-file {
+  pointer-events: auto;
 }
 
 .app {
@@ -3816,29 +3821,6 @@ body {
   padding: 0;
   overflow: hidden;
   z-index: 10;
-  /* Don't block clicks on desktop files/icons underneath */
-  pointer-events: none;
-}
-
-/* Re-enable pointer events for everything interactive inside .app */
-.wm-window,
-.wm-window *,
-.os-taskbar,
-.os-taskbar *,
-.os-start-menu,
-.os-start-menu *,
-.os-start-scrim,
-.os-side-dash,
-.os-side-dash *,
-.wm-snap-dock,
-.wm-snap-dock *,
-.ctx-menu,
-.ctx-menu *,
-.setup-overlay,
-.setup-overlay *,
-.sleep-overlay,
-.sleep-overlay * {
-  pointer-events: auto;
 }
 
 .tab-content {
