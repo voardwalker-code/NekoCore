@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/ui-v2.css">
+  <link rel="stylesheet" href="css/icons.css">
   <link rel="stylesheet" href="themes/neko-default.css" id="themeOverrideLink">
 </head>
 <body>
@@ -124,28 +125,28 @@
     <p>The shell gives core systems their own room, keeps navigation visible, and makes themes a first-class part of the experience.</p>
     <div class="os-home-actions">
       <button class="os-shortcut is-primary on" data-tab="chat" onclick="switchMainTab('chat', this)">
-        <span class="os-shortcut-icon">💬</span>
+        <span class="os-shortcut-icon" data-accent="green">💬</span>
         <span>
           <strong>Context Chat</strong>
           <small>Primary conversation window</small>
         </span>
       </button>
       <button class="os-shortcut" data-tab="skills" onclick="switchMainTab('skills', this)">
-        <span class="os-shortcut-icon">🧰</span>
+        <span class="os-shortcut-icon" data-accent="orange">🧰</span>
         <span>
           <strong>Skills Console</strong>
           <small>Browse tools and workflows</small>
         </span>
       </button>
       <button class="os-shortcut" data-tab="workspace" onclick="switchMainTab('workspace', this)">
-        <span class="os-shortcut-icon">📁</span>
+        <span class="os-shortcut-icon" data-accent="orange">📁</span>
         <span>
           <strong>Workspace Browser</strong>
           <small>Inspect files and generated assets</small>
         </span>
       </button>
       <button class="os-shortcut" data-tab="visualizer" onclick="switchMainTab('visualizer', this)">
-        <span class="os-shortcut-icon">🧠</span>
+        <span class="os-shortcut-icon" data-accent="indigo">🧠</span>
         <span>
           <strong>Neural Visualizer</strong>
           <small>Watch activity as a dedicated app</small>

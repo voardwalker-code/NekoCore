@@ -62,24 +62,24 @@ const PINNED_APPS_STORAGE_KEY = 'rem-pinned-apps-v1';
 const DEFAULT_PINNED_APPS = ['chat', 'skills', 'activity', 'browser'];
 
 const WINDOW_APPS = [
-  { tab: 'chat', label: 'Chat', icon: '💬', w: 980, h: 680 },
-  { tab: 'entity', label: 'Entity', icon: '🧬', w: 820, h: 620 },
-  { tab: 'creator', label: 'Creator', icon: '✨', w: 980, h: 760 },
-  { tab: 'users', label: 'Users', icon: '👥', w: 900, h: 660 },
-  { tab: 'browser', label: 'NekoCore Browser', icon: '🌐', w: 1080, h: 720 },
-  { tab: 'skills', label: 'Skills', icon: '🧰', w: 980, h: 680 },
-  { tab: 'workspace', label: 'Workspace', icon: '📁', w: 980, h: 680 },
-  { tab: 'documents', label: 'Documents', icon: '📄', w: 980, h: 680 },
-  { tab: 'visualizer', label: 'Visualizer', icon: '🧠', w: 1020, h: 700 },
-  { tab: 'physical', label: 'Physical Body', icon: '❤️', w: 900, h: 640 },
-  { tab: 'dreamgallery', label: 'Dream Gallery', icon: '🌙', w: 980, h: 680 },
-  { tab: 'lifediary', label: 'Life Diary', icon: '📘', w: 900, h: 640 },
-  { tab: 'dreamdiary', label: 'Dream Diary', icon: '🌘', w: 900, h: 640 },
-  { tab: 'themes', label: 'Themes', icon: '🎨', w: 900, h: 640 },
-  { tab: 'settings', label: 'Settings', icon: '⚙️', w: 980, h: 700 },
-  { tab: 'advanced', label: 'Advanced', icon: '🔧', w: 980, h: 680 },
-  { tab: 'activity', label: 'Task Manager', icon: '🖥️', w: 980, h: 680 },
-  { tab: 'observability', label: 'Observability', icon: '🧪', w: 980, h: 680 }
+  { tab: 'chat', label: 'Chat', icon: '💬', accent: 'green', w: 980, h: 680 },
+  { tab: 'entity', label: 'Entity', icon: '🧬', accent: 'gold', w: 820, h: 620 },
+  { tab: 'creator', label: 'Creator', icon: '✨', accent: 'gold', w: 980, h: 760 },
+  { tab: 'users', label: 'Users', icon: '👥', accent: 'cyan', w: 900, h: 660 },
+  { tab: 'browser', label: 'NekoCore Browser', icon: '🌐', accent: 'cyan', w: 1080, h: 720 },
+  { tab: 'skills', label: 'Skills', icon: '🧰', accent: 'orange', w: 980, h: 680 },
+  { tab: 'workspace', label: 'Workspace', icon: '📁', accent: 'orange', w: 980, h: 680 },
+  { tab: 'documents', label: 'Documents', icon: '📄', accent: 'orange', w: 980, h: 680 },
+  { tab: 'visualizer', label: 'Visualizer', icon: '🧠', accent: 'indigo', w: 1020, h: 700 },
+  { tab: 'physical', label: 'Physical Body', icon: '❤️', accent: 'pink', w: 900, h: 640 },
+  { tab: 'dreamgallery', label: 'Dream Gallery', icon: '🌙', accent: 'purple', w: 980, h: 680 },
+  { tab: 'lifediary', label: 'Life Diary', icon: '📘', accent: 'pink', w: 900, h: 640 },
+  { tab: 'dreamdiary', label: 'Dream Diary', icon: '🌘', accent: 'purple', w: 900, h: 640 },
+  { tab: 'themes', label: 'Themes', icon: '🎨', accent: 'teal', w: 900, h: 640 },
+  { tab: 'settings', label: 'Settings', icon: '⚙️', accent: 'teal', w: 980, h: 700 },
+  { tab: 'advanced', label: 'Advanced', icon: '🔧', accent: 'teal', w: 980, h: 680 },
+  { tab: 'activity', label: 'Task Manager', icon: '🖥️', accent: 'indigo', w: 980, h: 680 },
+  { tab: 'observability', label: 'Observability', icon: '🧪', accent: 'indigo', w: 980, h: 680 }
 ];
 
 const START_MENU_CATEGORY_ORDER = [
@@ -120,6 +120,7 @@ const START_MENU_SPECIAL_APPS = [
     launchTab: 'settings',
     label: 'Control Panel',
     icon: '🛠️',
+    accent: 'teal',
     category: 'system',
     pinnable: false,
     description: 'Classic settings hub'
@@ -129,6 +130,7 @@ const START_MENU_SPECIAL_APPS = [
     id: 'save-layout',
     label: 'Save Layout',
     icon: '💾',
+    accent: 'green',
     category: 'appearance',
     pinnable: false,
     description: 'Save current windows',
@@ -138,6 +140,7 @@ const START_MENU_SPECIAL_APPS = [
     id: 'restore-layout',
     label: 'Restore Layout',
     icon: '🧩',
+    accent: 'indigo',
     category: 'appearance',
     pinnable: false,
     description: 'Restore saved layout',
@@ -147,6 +150,7 @@ const START_MENU_SPECIAL_APPS = [
     id: 'reset-layout',
     label: 'Reset Layout',
     icon: '🗑️',
+    accent: 'pink',
     category: 'appearance',
     pinnable: false,
     description: 'Reset window positions',
@@ -489,7 +493,7 @@ function renderAppMetrics() {
     const isOpen = windowManager.windows.get(tabName)?.open;
 
     return '<div class="tm-metric-card' + (isOpen ? ' is-open' : '') + '">' +
-      '<div class="tm-metric-head"><span>' + app.icon + ' ' + app.label + '</span><span class="tm-metric-pill">' + (isOpen ? 'Open' : 'Pinned') + '</span></div>' +
+      '<div class="tm-metric-head"><span><span class="wm-title-icon" data-accent="' + (app.accent || 'green') + '">' + app.icon + '</span> ' + app.label + '</span><span class="tm-metric-pill">' + (isOpen ? 'Open' : 'Pinned') + '</span></div>' +
       '<div class="tm-spark-row"><span>CPU ' + cpuNow + '%</span><svg viewBox="0 0 112 28" aria-hidden="true"><path d="' + cpuPath + '"></path></svg></div>' +
       '<div class="tm-spark-row"><span>MEM ' + memNow + '%</span><svg viewBox="0 0 112 28" aria-hidden="true"><path d="' + memPath + '"></path></svg></div>' +
       '<div class="tm-spark-row"><span>REQ ' + reqNow + 'ms</span><svg viewBox="0 0 112 28" aria-hidden="true"><path d="' + reqPath + '"></path></svg></div>' +
@@ -927,7 +931,7 @@ function createPinnedButton(app, className) {
   button.setAttribute('data-tab', app.tab);
   button.title = app.label;
   button.setAttribute('aria-label', app.label);
-  button.innerHTML = '<span class="os-pinned-app-icon">' + app.icon + '</span>';
+  button.innerHTML = '<span class="os-pinned-app-icon" data-accent="' + (app.accent || 'green') + '">' + app.icon + '</span>';
   button.onclick = function() { switchMainTab(app.tab, button); };
   button.draggable = true;
   button.addEventListener('dragstart', onPinnedDragStart);
@@ -1067,7 +1071,7 @@ function renderPinnedApps() {
       dashBtn.className = 'os-dash-app';
       dashBtn.setAttribute('data-tab', app.tab);
       dashBtn.title = app.label;
-      dashBtn.textContent = app.icon;
+      dashBtn.innerHTML = '<span class="os-pinned-app-icon" data-accent="' + (app.accent || 'green') + '">' + app.icon + '</span>';
       dashBtn.onclick = function() { switchMainTab(app.tab, dashBtn); };
       dashBtn.draggable = true;
       dashBtn.addEventListener('dragstart', onPinnedDragStart);
@@ -1444,7 +1448,7 @@ function createWindowShell(tabName, tabElement) {
 
   shell.innerHTML = `
     <header class="wm-titlebar">
-      <div class="wm-title">${app.icon} ${app.label}</div>
+      <div class="wm-title"><span class="wm-title-icon" data-accent="${app.accent || 'green'}">${app.icon}</span> ${app.label}</div>
       <div class="wm-controls">
         <button class="wm-btn" data-action="pin" title="Pin/Unpin to taskbar">★</button>
         <button class="wm-btn" data-action="snap-left" title="Snap left">◧</button>
@@ -1541,7 +1545,7 @@ function buildLauncherMenu() {
       const button = document.createElement('button');
       button.className = 'os-launcher-item os-start-pinned-app';
       button.setAttribute('data-tab', app.launchTab);
-      button.innerHTML = '<span class="launcher-app-label">' + app.icon + ' ' + app.label + '</span><span class="launcher-pin-btn">Pinned</span>';
+      button.innerHTML = '<span class="launcher-app-left"><span class="launcher-app-icon" data-accent="' + (app.accent || 'green') + '">' + app.icon + '</span><span class="launcher-app-label">' + app.label + '</span></span><span class="launcher-pin-btn">Pinned</span>';
       button.onclick = function() { switchMainTab(app.launchTab, button); };
       pinnedHost.appendChild(button);
     });
@@ -1559,7 +1563,7 @@ function buildLauncherMenu() {
       card.innerHTML = [
         '<span class="os-start-category-title">' + category.label + '</span>',
         '<span class="os-start-category-preview">',
-        apps.slice(0, 4).map((app) => '<span class="os-start-category-app-icon" title="' + app.label + '">' + app.icon + '</span>').join(''),
+        apps.slice(0, 4).map((app) => '<span class="os-start-category-app-icon" data-accent="' + (app.accent || 'green') + '" title="' + app.label + '">' + app.icon + '</span>').join(''),
         '</span>'
       ].join('');
       card.onclick = function(clickEvent) {
@@ -1578,7 +1582,7 @@ function buildLauncherMenu() {
     button.className = 'os-launcher-item os-start-app-item';
     if (app.launchTab) button.setAttribute('data-tab', app.launchTab);
     const desc = app.description ? '<span class="launcher-app-meta">' + app.description + '</span>' : '';
-    button.innerHTML = '<span class="launcher-app-label">' + app.icon + ' ' + app.label + '</span>' + desc;
+    button.innerHTML = '<span class="launcher-app-left"><span class="launcher-app-icon" data-accent="' + (app.accent || 'green') + '">' + app.icon + '</span><span class="launcher-app-label">' + app.label + '</span></span>' + desc;
 
     if (app.pinnable) {
       const pin = document.createElement('span');

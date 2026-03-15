@@ -137,10 +137,12 @@ body::before {
   place-items: center;
   width: 52px;
   height: 52px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  font-size: 1.4rem;
+  border-radius: 14px;
+  font-size: 1.5rem;
   flex-shrink: 0;
+}
+.os-shortcut-icon:not([data-accent]) {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .os-shortcut strong,
@@ -3769,6 +3771,9 @@ body {
   color: var(--text-primary);
   font-weight: 700;
   letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .wm-controls {
@@ -3969,6 +3974,19 @@ body {
 .os-pinned-app-icon {
   line-height: 1;
 }
+.os-pinned-app:has(.os-pinned-app-icon[data-accent]) {
+  background: transparent;
+  border-color: transparent;
+  font-size: inherit;
+}
+.os-pinned-app:has(.os-pinned-app-icon[data-accent]):hover {
+  background: transparent;
+  border-color: transparent;
+}
+.os-pinned-app:has(.os-pinned-app-icon[data-accent]):hover .os-pinned-app-icon[data-accent] {
+  border-color: rgba(var(--ic), 0.50);
+  box-shadow: 0 0 20px rgba(var(--ic), 0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+}
 
 .os-pinned-app.is-dragging,
 .os-dash-app.is-dragging {
@@ -4143,12 +4161,14 @@ body {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  border: 1px solid var(--border-default);
-  background: color-mix(in srgb, var(--surface-3) 80%, transparent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
+}
+.os-start-category-app-icon:not([data-accent]) {
+  border: 1px solid var(--border-default);
+  background: color-mix(in srgb, var(--surface-3) 80%, transparent);
 }
 
 .os-start-category-apps {
@@ -4171,6 +4191,13 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.launcher-app-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .launcher-app-label {
@@ -4351,11 +4378,25 @@ body {
   width: 44px;
   height: 40px;
   border-radius: 10px;
-  border: 1px solid var(--border-default);
-  background: color-mix(in srgb, var(--surface-2) 78%, transparent);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--text-primary);
   font-size: 18px;
   cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.os-dash-app .os-pinned-app-icon[data-accent] {
+  width: 40px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+.os-dash-app:hover .os-pinned-app-icon[data-accent] {
+  border-color: rgba(var(--ic), 0.50);
+  box-shadow: 0 0 20px rgba(var(--ic), 0.18), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 body.theme-ubuntu-dash .os-side-dash {
