@@ -3820,9 +3820,24 @@ body {
   pointer-events: none;
 }
 
-/* Re-enable pointer events for actual windows and their contents */
+/* Re-enable pointer events for everything interactive inside .app */
 .wm-window,
-.wm-window * {
+.wm-window *,
+.os-taskbar,
+.os-taskbar *,
+.os-start-menu,
+.os-start-menu *,
+.os-start-scrim,
+.os-side-dash,
+.os-side-dash *,
+.wm-snap-dock,
+.wm-snap-dock *,
+.ctx-menu,
+.ctx-menu *,
+.setup-overlay,
+.setup-overlay *,
+.sleep-overlay,
+.sleep-overlay * {
   pointer-events: auto;
 }
 
