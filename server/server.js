@@ -884,7 +884,7 @@ const TOKEN_LIMIT_DEFAULTS = {
   // ── DREAM ─────────────────────────────────────────────────────────────────
   orchestratorDream:      { value: 800,  label: '(Dream) Intuition',                desc: 'Tokens for the Dream/creative aspect generating lateral associations and intuition during orchestration.' },
   dreamEngine:            { value: 2200, label: '(Dream) Engine (Sleep)',            desc: 'Tokens for the dream engine generating dream sequences during sleep cycles.' },
-  dreamAgentLoop:         { value: 1400, label: '(Dream) Agent Loop (Sleep)',        desc: 'Tokens for the dream agent running inside the brain-loop sleep phase.' },
+  dreamAgentLoop:         { value: 2200, label: '(Dream) Agent Loop (Sleep)',        desc: 'Tokens for the dream agent running inside the brain-loop sleep phase.' },
 
   // ── ORCHESTRATOR ──────────────────────────────────────────────────────────
   orchestratorRefinement: { value: 800,  label: '(Orchestrator) Refinement (2B)',   desc: 'Tokens for the 2B refinement pass — distilling constraints, emotional cues, and conflicts from all three aspects before final synthesis.' },
