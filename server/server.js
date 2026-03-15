@@ -1595,7 +1595,11 @@ const server = http.createServer(async (req, res) => {
         const ext = path.extname(filePath).toLowerCase();
         const contentType = MIME_TYPES[ext] || 'application/octet-stream';
         const content = fs.readFileSync(filePath);
-        res.writeHead(200, { 'Content-Type': contentType, 'X-Content-Type-Options': 'nosniff' });
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'X-Content-Type-Options': 'nosniff',
+          'Cache-Control': 'no-cache'
+        });
         res.end(content);
         return;
       }

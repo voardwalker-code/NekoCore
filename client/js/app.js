@@ -5873,6 +5873,15 @@ document.addEventListener('contextmenu', function(e) {
     ]);
     return;
   }
+
+  // ── Fallback: Desktop background (body, empty areas) ──
+  ctxMenu.show(e.clientX, e.clientY, [
+    { icon: '📄', label: 'New Document', action: function() { vfs.createOnDesktop('document'); } },
+    { icon: '📁', label: 'New Folder', action: function() { vfs.createOnDesktop('folder'); } },
+    { icon: '📝', label: 'New Note', action: function() { vfs.createOnDesktop('note'); } },
+    '---',
+    { icon: '🔄', label: 'Refresh Desktop', action: function() { vfs.renderDesktop(); } }
+  ]);
 });
 
 

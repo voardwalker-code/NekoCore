@@ -120,9 +120,6 @@ body::before {
   margin: 0 auto;
   min-height: 0;
 }
-.os-desktop-files:empty {
-  display: none;
-}
 .desktop-file {
   display: flex;
   flex-direction: column;
@@ -3775,12 +3772,51 @@ body {
   padding-bottom: 72px;
 }
 
-.os-home,
 .hdr,
 .nav-sidebar,
 .tab-navigation,
 .model-sidebar {
   display: none !important;
+}
+
+/* Desktop home + files = visible background layer in WM mode */
+.os-home {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 72px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  padding: clamp(16px, 3vw, 48px);
+  z-index: 2;
+  overflow-y: auto;
+  overflow-x: hidden;
+  pointer-events: auto;
+  max-width: none;
+  margin: 0;
+  gap: var(--space-5);
+}
+
+.os-desktop-files {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 72px;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 96px);
+  gap: 8px;
+  padding: var(--space-4) clamp(16px, 3vw, 48px);
+  max-width: none;
+  margin: 0;
+  pointer-events: auto;
+}
+.os-desktop-files:empty {
+  pointer-events: none;
 }
 
 .app {
