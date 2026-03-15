@@ -1232,6 +1232,9 @@ function openWindow(tabName, options = {}) {
   focusWindow(tabName);
   applyWindowActivationEffects(tabName);
   syncShellStatusWidgets();
+
+  // Per-tab on-open hooks
+  if (tabName === 'workspace' && typeof feRender === 'function') feRender();
 }
 
 function closeWindow(tabName) {
@@ -6072,6 +6075,7 @@ const vfs = (function() {
       var el = document.createElement('div');
       el.className = 'desktop-file';
       el.setAttribute('data-path', item.path);
+      el.setAttribute('data-type', item.type);
       el.style.left = pos.x + 'px';
       el.style.top  = pos.y + 'px';
       var accent = fileAccent(item);
@@ -6105,10 +6109,23 @@ const vfs = (function() {
         var startL  = pos.x,     startT  = pos.y;
         var dragging = false;
         var THRESHOLD = 6;
+        var dropTarget = null;
 
         el.setPointerCapture(e.pointerId);
 
         function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+        function findFolderAt(cx, cy) {
+          // Temporarily remove pointer-events so el doesn't block hit testing
+          el.style.pointerEvents = 'none';
+          var elems = document.elementsFromPoint(cx, cy);
+          el.style.pointerEvents = '';
+          for (var i = 0; i < elems.length; i++) {
+            var cand = elems[i].closest('.desktop-file');
+            if (cand && cand !== el && cand.getAttribute('data-type') === 'folder') return cand;
+          }
+          return null;
+        }
 
         function onMove(ev) {
           var dx = ev.clientX - startCX;
@@ -6122,26 +6139,33 @@ const vfs = (function() {
           var ny = clamp(snap(startT + dy), 0, hostH - ICON_H);
           el.style.left = nx + 'px';
           el.style.top  = ny + 'px';
+
+          // Drop-target highlight
+          var folderEl = findFolderAt(ev.clientX, ev.clientY);
+          if (dropTarget && dropTarget !== folderEl) {
+            dropTarget.classList.remove('drop-over');
+          }
+          dropTarget = folderEl;
+          if (dropTarget) dropTarget.classList.add('drop-over');
         }
 
         function onUp(ev) {
           el.removeEventListener('pointermove', onMove);
           el.removeEventListener('pointerup',   onUp);
           el.classList.remove('dragging');
-          if (!dragging) return;
-          var nx = clamp(snap(startL + (ev.clientX - startCX)), 0, hostW - ICON_W);
-          var ny = clamp(snap(startT + (ev.clientY - startCY)), 0, hostH - ICON_H);
-          pos = { x: nx, y: ny };
-          saveMeta(item.path, { pos: pos });
-        }
+          if (dropTarget) dropTarget.classList.remove('drop-over');
 
-        el.addEventListener('pointermove', onMove);
-        el.addEventListener('pointerup',   onUp);
-      });
+          if (dragging && dropTarget) {
+            // Move item into the folder
+            var targetPath = dropTarget.getAttribute('data-path');
+            var itemName = item.path.split('/').pop();
+            var newPath = targetPath + '/' + itemName;
+            apiPost('move', { from: item.path, to: newPath })
+              .then(function() { renderDesktop(); })
+              .catch(function() { renderDesktop(); });
+            return;
+          }
 
-      host.appendChild(el);
-    });
-  }
 
   // ── Create helpers ──────────────────────────────────────────────────────────
 

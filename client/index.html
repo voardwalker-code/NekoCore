@@ -553,24 +553,32 @@
 
   <!-- ===== WORKSPACE TAB ===== -->
   <div class="tab-content" id="tab-workspace">
-    <div style="padding:var(--space-4);max-width:900px;margin:0 auto">
-      <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
-        <h2 style="font-size:var(--text-lg);margin:0">📁 Workspace Browser</h2>
-        <button class="btn bg text-xs-c" onclick="refreshSidebarWorkspace()">Refresh</button>
-      </div>
-      <div class="flex justify-between items-center mb-2 px-3">
-        <span class="text-sm-c text-info font-mono" id="sidebarWsPath">/</span>
-      </div>
-      <div id="sidebarWsBrowser" class="file-browser" style="max-height:60vh;overflow-y:auto">
-        <div class="placeholder-sm">No workspace configured</div>
-      </div>
-      <!-- Inline file viewer -->
-      <div id="sidebarWsViewer" class="hidden mt-2">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-sm-c text-info font-mono" id="sidebarWsViewerName">file.txt</span>
-          <button class="btn bg text-xs-c" onclick="closeSidebarWsViewer()">✕</button>
+    <div class="fe-container">
+      <div class="fe-toolbar">
+        <button class="fe-btn" id="feBackBtn" onclick="feGoBack()" title="Back" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="fe-breadcrumb" id="feBreadcrumb">
+          <span class="fe-crumb" onclick="feNavigate('/')">workspace</span>
         </div>
-        <pre id="sidebarWsViewerContent" class="file-viewer-pre" style="max-height:50vh;overflow-y:auto"></pre>
+        <button class="fe-btn" onclick="feNewFolder()" title="New Folder">📁 New Folder</button>
+        <button class="fe-btn" onclick="feNewFile()" title="New File">📄 New File</button>
+        <button class="fe-btn" onclick="feRefresh()" title="Refresh">↺ Refresh</button>
+      </div>
+      <div class="fe-body">
+        <div id="feGrid" class="fe-grid">
+          <div class="fe-empty">Loading…</div>
+        </div>
+        <div id="feEditor" class="fe-editor" style="display:none">
+          <div class="fe-editor-bar">
+            <span id="feEditorName" class="fe-editor-name">file.txt</span>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button class="fe-btn" onclick="feEditorSave()">💾 Save</button>
+              <button class="fe-btn" onclick="feEditorClose()">✕</button>
+            </div>
+          </div>
+          <textarea id="feEditorTextarea" class="fe-editor-textarea" spellcheck="false"></textarea>
+        </div>
       </div>
     </div>
   </div>

@@ -1042,6 +1042,7 @@ function showEntityWsNewFile() {
 // SIDEBAR WORKSPACE BROWSER (Chat tab right panel)
 // ============================================================
 
+// sidebarWsPath kept for backwards compat with any inline onclick in index.html
 let sidebarWsPath = '';
 
 function toggleSidebarSection(id) {
@@ -1057,74 +1058,288 @@ function toggleSidebarSection(id) {
   }
 }
 
+// ============================================================
+// FILE EXPLORER (Workspace tab)  —  backed by /api/vfs/*
+// ============================================================
+
+let feCurrentPath = '/';
+let feHistory = ['/'];
+let feHistoryIndex = 0;
+let feEditorPath = null;
+let feSelection = null;
+
+async function feNavigate(virtPath, pushHistory) {
+  if (pushHistory !== false && feCurrentPath !== virtPath) {
+    feHistory = feHistory.slice(0, feHistoryIndex + 1);
+    feHistory.push(virtPath);
+    feHistoryIndex = feHistory.length - 1;
+  }
+  feCurrentPath = virtPath;
+  feUpdateBreadcrumb();
+  const backBtn = document.getElementById('feBackBtn');
+  if (backBtn) backBtn.disabled = feHistoryIndex === 0;
+  await feRender();
+}
+
+function feGoBack() {
+  if (feHistoryIndex > 0) {
+    feHistoryIndex--;
+    feNavigate(feHistory[feHistoryIndex], false);
+  }
+}
+
+function feRefresh() { feRender(); }
+
+function feUpdateBreadcrumb() {
+  const crumb = document.getElementById('feBreadcrumb');
+  if (!crumb) return;
+  const parts = feCurrentPath.replace(/^\//, '').split('/').filter(Boolean);
+  let html = '<span class="fe-crumb" onclick="feNavigate(\'/\')">workspace</span>';
+  for (let i = 0; i < parts.length; i++) {
+    const targetPath = '/' + parts.slice(0, i + 1).join('/');
+    html += '<span class="fe-crumb-sep">›</span><span class="fe-crumb" onclick="feNavigate(\'' +
+      targetPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">' +
+      escapeHtml(parts[i]) + '</span>';
+  }
+  crumb.innerHTML = html;
+}
+
+async function feRender() {
+  const grid = document.getElementById('feGrid');
+  if (!grid) return;
+  grid.innerHTML = '<div class="fe-empty">Loading…</div>';
+  feSelection = null;
+
+  let entries = [];
+  try {
+    const r = await fetch('/api/vfs/list?' + new URLSearchParams({ path: feCurrentPath }));
+    const data = await r.json();
+    entries = data.ok ? (data.entries || []) : [];
+  } catch (e) {
+    grid.innerHTML = '<div class="fe-empty">' + escapeHtml(e.message) + '</div>';
+    return;
+  }
+
+  if (entries.length === 0) {
+    grid.innerHTML = '<div class="fe-empty">Empty folder</div>';
+    return;
+  }
+
+  // Sort: folders first, then alphabetically
+  entries.sort((a, b) => {
+    const fa = a.type === 'folder' ? 0 : 1;
+    const fb = b.type === 'folder' ? 0 : 1;
+    if (fa !== fb) return fa - fb;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+
+  grid.innerHTML = '';
+  for (const entry of entries) {
+    grid.appendChild(feCreateItem(entry));
+  }
+}
+
+function feGetIcon(entry) {
+  if (entry.type === 'shortcut') return '🔗';
+  if (entry.type === 'folder') return '📁';
+  const ext = (entry.fileExt || '').toLowerCase();
+  if (ext === 'note' || ext === 'md') return '📝';
+  if (ext === 'json') return '📋';
+  if (ext === 'js' || ext === 'ts' || ext === 'py' || ext === 'sh') return '⚙️';
+  if (ext === 'png' || ext === 'jpg' || ext === 'gif' || ext === 'webp') return '🖼️';
+  return '📄';
+}
+
+function feCreateItem(entry) {
+  const el = document.createElement('div');
+  el.className = 'fe-item';
+  el.setAttribute('data-path', entry.path);
+  el.setAttribute('data-type', entry.type);
+  el.innerHTML =
+    '<div class="fe-item-icon">' + feGetIcon(entry) + '</div>' +
+    '<div class="fe-item-name">' + escapeHtml(entry.name) + '</div>';
+
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    if (feSelection) feSelection.classList.remove('fe-selected');
+    el.classList.add('fe-selected');
+    feSelection = el;
+  });
+
+  el.addEventListener('dblclick', e => {
+    e.stopPropagation();
+    if (entry.type === 'folder') {
+      feNavigate(entry.path);
+    } else if (entry.type === 'shortcut' && entry.launchTab) {
+      if (typeof switchMainTab === 'function') switchMainTab(entry.launchTab);
+    } else {
+      feOpenFile(entry.path, entry.name);
+    }
+  });
+
+  el.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (feSelection) feSelection.classList.remove('fe-selected');
+    el.classList.add('fe-selected');
+    feSelection = el;
+    feShowItemMenu(e.clientX, e.clientY, entry.path, entry.type);
+  });
+
+  return el;
+}
+
+function feShowItemMenu(x, y, virtPath, type) {
+  if (typeof ctxMenu === 'undefined') return;
+  const name = virtPath.split('/').pop();
+  const items = [];
+  if (type === 'folder') {
+    items.push({ icon: '📂', label: 'Open', action: () => feNavigate(virtPath) });
+  } else {
+    items.push({ icon: '📄', label: 'Open / Edit', action: () => feOpenFile(virtPath, name) });
+  }
+  items.push('---');
+  items.push({ icon: '✏️', label: 'Rename', action: () => feBeginRename(feSelection, virtPath) });
+  items.push({ icon: '🗑️', label: 'Delete', danger: true, action: () => feDeleteEntry(virtPath) });
+  ctxMenu.show(x, y, items);
+}
+
+async function feOpenFile(virtPath, name) {
+  const editor = document.getElementById('feEditor');
+  const ta = document.getElementById('feEditorTextarea');
+  const nameEl = document.getElementById('feEditorName');
+  if (!editor || !ta) return;
+  try {
+    const r = await fetch('/api/vfs/read?' + new URLSearchParams({ path: virtPath }));
+    if (!r.ok) throw new Error('Could not read file');
+    const content = await r.text();
+    feEditorPath = virtPath;
+    if (nameEl) nameEl.textContent = name;
+    ta.value = content;
+    editor.style.display = 'flex';
+    ta.focus();
+  } catch (e) {
+    console.error('[FE] open error:', e);
+  }
+}
+
+async function feEditorSave() {
+  if (!feEditorPath) return;
+  const ta = document.getElementById('feEditorTextarea');
+  if (!ta) return;
+  try {
+    await fetch('/api/vfs/write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: feEditorPath, content: ta.value })
+    });
+  } catch (_) {}
+}
+
+function feEditorClose() {
+  const editor = document.getElementById('feEditor');
+  if (editor) editor.style.display = 'none';
+  feEditorPath = null;
+}
+
+function feBeginRename(el, virtPath) {
+  if (!el) return;
+  const nameEl = el.querySelector('.fe-item-name');
+  if (!nameEl) return;
+  const oldName = virtPath.split('/').pop();
+  nameEl.setAttribute('contenteditable', 'true');
+  nameEl.style.whiteSpace = 'normal';
+  nameEl.focus();
+  const range = document.createRange();
+  range.selectNodeContents(nameEl);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  async function commit() {
+    nameEl.removeAttribute('contenteditable');
+    nameEl.style.whiteSpace = '';
+    const newName = nameEl.textContent.trim();
+    if (newName && newName !== oldName) {
+      const lastSlash = virtPath.lastIndexOf('/');
+      const parentPath = lastSlash > 0 ? virtPath.substring(0, lastSlash) : '/';
+      const newPath = parentPath + '/' + newName;
+      try {
+        await fetch('/api/vfs/move', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: virtPath, to: newPath })
+        });
+        feRender();
+      } catch (_) {}
+    } else {
+      nameEl.textContent = oldName;
+    }
+  }
+  nameEl.addEventListener('blur', commit, { once: true });
+  nameEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
+    if (e.key === 'Escape') { nameEl.textContent = oldName; nameEl.blur(); }
+  });
+}
+
+async function feDeleteEntry(virtPath) {
+  try {
+    await fetch('/api/vfs/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: virtPath })
+    });
+    feRender();
+    if (typeof vfs !== 'undefined' && virtPath.startsWith('/desktop/')) vfs.renderDesktop();
+  } catch (_) {}
+}
+
+async function feNewFolder() {
+  const newPath = (feCurrentPath === '/' ? '' : feCurrentPath) + '/New Folder';
+  try {
+    const r = await fetch('/api/vfs/mkdir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: newPath, dedup: true })
+    });
+    const data = await r.json();
+    await feRender();
+    if (data.ok && data.path) {
+      const grid = document.getElementById('feGrid');
+      if (grid) {
+        const el = grid.querySelector('[data-path="' + CSS.escape(data.path) + '"]') ||
+          [...grid.querySelectorAll('.fe-item')].find(e => e.getAttribute('data-path') === data.path);
+        if (el) feBeginRename(el, data.path);
+      }
+    }
+  } catch (_) {}
+}
+
+async function feNewFile() {
+  const newPath = (feCurrentPath === '/' ? '' : feCurrentPath) + '/New File.txt';
+  try {
+    const r = await fetch('/api/vfs/write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: newPath, content: '', dedup: true })
+    });
+    const data = await r.json();
+    await feRender();
+    if (data.ok && data.path) {
+      const grid = document.getElementById('feGrid');
+      if (grid) {
+        const el = [...grid.querySelectorAll('.fe-item')].find(e => e.getAttribute('data-path') === data.path);
+        if (el) feBeginRename(el, data.path);
+      }
+    }
+  } catch (_) {}
+}
+
+// Keep compatibility: called by processToolResults when entity modifies workspace
 async function refreshSidebarWorkspace() {
-  const browser = document.getElementById('sidebarWsBrowser');
-  const pathDisplay = document.getElementById('sidebarWsPath');
-  if (!browser) return;
-  if (pathDisplay) pathDisplay.textContent = '/' + (sidebarWsPath || '');
-
-  try {
-    const qs = sidebarWsPath ? '?path=' + encodeURIComponent(sidebarWsPath) : '';
-    const res = await fetch('/api/workspace/list' + qs);
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || 'No workspace configured');
-    }
-    const data = await res.json();
-    const files = data.files || data;
-    if (!files || files.length === 0) {
-      browser.innerHTML = '<div style="color:var(--td);text-align:center;padding:.75rem;font-size:.72rem">Empty directory</div>';
-      return;
-    }
-    let html = '';
-    if (sidebarWsPath) {
-      html += '<div onclick="sidebarWsUp()" style="display:flex;align-items:center;gap:.4rem;padding:.3rem .4rem;cursor:pointer;border-radius:4px;font-size:.72rem;color:var(--ac)" onmouseover="this.style.background=\'var(--sf3)\'" onmouseout="this.style.background=\'transparent\'">📁 ..</div>';
-    }
-    for (const f of files) {
-      const name = typeof f === 'string' ? f : f.name;
-      const isDir = typeof f === 'string' ? name.endsWith('/') : f.type === 'directory';
-      const display = name.replace(/\/$/, '');
-      const icon = isDir ? '📁' : '📄';
-      const action = isDir
-        ? 'sidebarWsNav(\'' + escapeHtmlAttr(display) + '\')'
-        : 'sidebarWsOpen(\'' + escapeHtmlAttr(name) + '\')';
-      html += '<div onclick="' + action + '" style="display:flex;align-items:center;gap:.4rem;padding:.3rem .4rem;cursor:pointer;border-radius:4px;font-size:.72rem" onmouseover="this.style.background=\'var(--sf3)\'" onmouseout="this.style.background=\'transparent\'">' + icon + ' <span style="color:var(--tx)">' + escapeHtml(display) + '</span></div>';
-    }
-    browser.innerHTML = html;
-  } catch (err) {
-    browser.innerHTML = '<div style="color:var(--td);text-align:center;padding:.75rem;font-size:.72rem">' + escapeHtml(err.message) + '</div>';
-  }
-}
-
-function sidebarWsNav(dir) {
-  sidebarWsPath = sidebarWsPath ? sidebarWsPath + '/' + dir : dir;
-  refreshSidebarWorkspace();
-}
-
-function sidebarWsUp() {
-  const parts = sidebarWsPath.split('/');
-  parts.pop();
-  sidebarWsPath = parts.join('/');
-  refreshSidebarWorkspace();
-}
-
-async function sidebarWsOpen(fileName) {
-  const filePath = sidebarWsPath ? sidebarWsPath + '/' + fileName : fileName;
-  try {
-    const res = await fetch('/api/workspace/read?path=' + encodeURIComponent(filePath));
-    if (!res.ok) throw new Error('Failed to read file');
-    const data = await res.json();
-    const viewer = document.getElementById('sidebarWsViewer');
-    document.getElementById('sidebarWsViewerName').textContent = fileName;
-    document.getElementById('sidebarWsViewerContent').textContent = data.content || '(empty)';
-    viewer.style.display = 'block';
-  } catch (err) {
-    console.error('Sidebar file read error:', err);
-  }
-}
-
-function closeSidebarWsViewer() {
-  document.getElementById('sidebarWsViewer').style.display = 'none';
+  // If the workspace window is open, refresh it
+  feRender();
 }
 
 // ============================================================
@@ -1236,5 +1451,5 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMaxTokensConfig();
   loadTokenLimits();
   loadEntityWorkspaceConfig();
-  refreshSidebarWorkspace();
+  feNavigate('/', false); // Initialize file explorer at root
 });
