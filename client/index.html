@@ -1998,6 +1998,7 @@
   const canvas = document.getElementById('stars');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
+  if (!ctx) return;
   let W, H, stars = [], cStars = [], cEdges = [], comet = null;
   let speedMult = 1.0;
 
@@ -2031,25 +2032,28 @@
     const tx = W * 0.2 + Math.random() * W * 0.6;
     const ty = H * 0.2 + Math.random() * H * 0.6;
     const d = Math.hypot(tx - x, ty - y) || 1;
-    const sp = 0.18 + Math.random() * 0.13;
+    const sp = 0.4 + Math.random() * 0.3;
     comet = { x, y, vx:(tx-x)/d*sp, vy:(ty-y)/d*sp,
-              tailLen: 68 + Math.random() * 52, r: 2.4, alive: true };
+              tailLen: 120 + Math.random() * 80, r: 3, alive: true };
   }
 
   function init() {
     stars = [];
-    for (let i = 0; i < 230; i++) {
+    for (let i = 0; i < 400; i++) {
       const vx = (Math.random()-0.5)*0.028, vy = (Math.random()-0.5)*0.016;
+      const isBright = Math.random() < 0.08;
       stars.push({ x:Math.random()*W, y:Math.random()*H,
-                   r:Math.random()*1.1+0.15, a:Math.random()*0.65+0.12,
-                   da:(Math.random()-0.5)*0.0038, vx, vy });
+                   r: isBright ? Math.random()*1.6+1.4 : Math.random()*1.2+0.4,
+                   a: isBright ? Math.random()*0.3+0.7 : Math.random()*0.55+0.3,
+                   da:(Math.random()-0.5)*0.004, vx, vy,
+                   hue: isBright && Math.random() < 0.3 ? (Math.random() < 0.5 ? '160,235,200' : '180,200,255') : '210,225,255' });
     }
     cStars = []; cEdges = [];
     for (const def of CDEFS) {
       const base = cStars.length;
       for (const [fx, fy] of def.pts) {
         cStars.push({ x:fx*W, y:fy*H, fx, fy,
-                      r:Math.random()*0.65+1.9, a:0.55+Math.random()*0.35,
+                      r:Math.random()*0.8+2.2, a:0.65+Math.random()*0.30,
                       da:(Math.random()-0.5)*0.0018,
                       vx:(Math.random()-0.5)*0.006,
                       vy:(Math.random()-0.5)*0.004 });
@@ -2064,72 +2068,99 @@
     speedMult = Math.max(1.0, speedMult * 0.952);
     const sm = speedMult;
 
+    // Background stars
     for (const s of stars) {
       s.a += s.da;
-      if (s.a < 0.08 || s.a > 0.88) s.da *= -1;
+      if (s.a < 0.15 || s.a > 0.95) s.da *= -1;
       s.x += s.vx * sm; s.y += s.vy * sm;
       if (s.x < -4) s.x = W+3; else if (s.x > W+4) s.x = -3;
       if (s.y < -4) s.y = H+3; else if (s.y > H+4) s.y = -3;
+      // Glow for brighter stars
+      if (s.r > 1.2) {
+        const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 3);
+        g.addColorStop(0, 'rgba(' + s.hue + ',' + (s.a * 0.25) + ')');
+        g.addColorStop(1, 'rgba(' + s.hue + ',0)');
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI*2);
+        ctx.fillStyle = g; ctx.fill();
+      }
       ctx.beginPath();
       ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(200,215,255,' + s.a + ')';
+      ctx.fillStyle = 'rgba(' + s.hue + ',' + s.a + ')';
       ctx.fill();
     }
 
+    // Constellation edges
     for (const [i, j] of cEdges) {
       const a = cStars[i], b = cStars[j];
-      const alpha = Math.min(a.a, b.a) * 0.20;
+      const alpha = Math.min(a.a, b.a) * 0.35;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-      ctx.strokeStyle = 'rgba(175,210,255,' + alpha + ')';
-      ctx.lineWidth = 0.65;
+      ctx.strokeStyle = 'rgba(140,200,255,' + alpha + ')';
+      ctx.lineWidth = 0.8;
       ctx.stroke();
     }
 
+    // Constellation stars (brighter anchor points)
     for (const s of cStars) {
       s.a += s.da;
-      if (s.a < 0.28 || s.a > 0.96) s.da *= -1;
+      if (s.a < 0.40 || s.a > 0.96) s.da *= -1;
       s.x += s.vx * sm * 0.11; s.y += s.vy * sm * 0.11;
       if (s.x < -20) s.x = W+19; else if (s.x > W+20) s.x = -19;
       if (s.y < -20) s.y = H+19; else if (s.y > H+20) s.y = -19;
-      const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r*3.8);
-      g.addColorStop(0, 'rgba(210,228,255,' + (s.a*0.50) + ')');
-      g.addColorStop(1, 'rgba(210,228,255,0)');
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.r*3.8, 0, Math.PI*2);
+      const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r*4.5);
+      g.addColorStop(0, 'rgba(200,230,255,' + (s.a*0.55) + ')');
+      g.addColorStop(0.5, 'rgba(140,200,255,' + (s.a*0.15) + ')');
+      g.addColorStop(1, 'rgba(140,200,255,0)');
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r*4.5, 0, Math.PI*2);
       ctx.fillStyle = g; ctx.fill();
       ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(240,248,255,' + s.a + ')'; ctx.fill();
+      ctx.fillStyle = 'rgba(230,245,255,' + s.a + ')'; ctx.fill();
     }
 
+    // Comet
     if (comet && comet.alive) {
       comet.x += comet.vx * sm;
       comet.y += comet.vy * sm;
       const sp = Math.hypot(comet.vx, comet.vy) || 0.001;
       const nx = comet.vx / sp, ny = comet.vy / sp;
       const tail = comet.tailLen;
+      // Wide outer glow trail
+      const outerGrad = ctx.createLinearGradient(comet.x, comet.y, comet.x - nx*tail*1.2, comet.y - ny*tail*1.2);
+      outerGrad.addColorStop(0, 'rgba(52,211,153,0.3)');
+      outerGrad.addColorStop(0.4, 'rgba(34,211,238,0.08)');
+      outerGrad.addColorStop(1, 'rgba(34,211,238,0)');
+      ctx.beginPath();
+      ctx.moveTo(comet.x + ny*6, comet.y - nx*6);
+      ctx.lineTo(comet.x - nx*tail*1.2, comet.y - ny*tail*1.2);
+      ctx.lineTo(comet.x - ny*6, comet.y + nx*6);
+      ctx.closePath();
+      ctx.fillStyle = outerGrad; ctx.fill();
+      // Core bright trail
       const grad = ctx.createLinearGradient(comet.x, comet.y, comet.x - nx*tail, comet.y - ny*tail);
-      grad.addColorStop(0, 'rgba(200,230,255,0.9)');
-      grad.addColorStop(0.15, 'rgba(52,211,153,0.5)');
-      grad.addColorStop(0.6, 'rgba(34,211,238,0.15)');
+      grad.addColorStop(0, 'rgba(220,245,255,0.95)');
+      grad.addColorStop(0.1, 'rgba(52,211,153,0.7)');
+      grad.addColorStop(0.4, 'rgba(34,211,238,0.25)');
       grad.addColorStop(1, 'rgba(34,211,238,0)');
       ctx.beginPath();
-      ctx.moveTo(comet.x + ny*1.5, comet.y - nx*1.5);
+      ctx.moveTo(comet.x + ny*2, comet.y - nx*2);
       ctx.lineTo(comet.x - nx*tail, comet.y - ny*tail);
-      ctx.lineTo(comet.x - ny*1.5, comet.y + nx*1.5);
+      ctx.lineTo(comet.x - ny*2, comet.y + nx*2);
       ctx.closePath();
-      ctx.fillStyle = grad;
-      ctx.fill();
-      const hg = ctx.createRadialGradient(comet.x, comet.y, 0, comet.x, comet.y, comet.r*4);
-      hg.addColorStop(0, 'rgba(220,240,255,0.9)');
-      hg.addColorStop(0.4, 'rgba(52,211,153,0.3)');
-      hg.addColorStop(1, 'rgba(52,211,153,0)');
-      ctx.beginPath(); ctx.arc(comet.x, comet.y, comet.r*4, 0, Math.PI*2);
+      ctx.fillStyle = grad; ctx.fill();
+      // Head glow
+      const hg = ctx.createRadialGradient(comet.x, comet.y, 0, comet.x, comet.y, comet.r*6);
+      hg.addColorStop(0, 'rgba(230,255,250,0.95)');
+      hg.addColorStop(0.3, 'rgba(52,211,153,0.4)');
+      hg.addColorStop(0.7, 'rgba(34,211,238,0.1)');
+      hg.addColorStop(1, 'rgba(34,211,238,0)');
+      ctx.beginPath(); ctx.arc(comet.x, comet.y, comet.r*6, 0, Math.PI*2);
       ctx.fillStyle = hg; ctx.fill();
+      // Bright core
       ctx.beginPath(); ctx.arc(comet.x, comet.y, comet.r, 0, Math.PI*2);
-      ctx.fillStyle = '#e8f4ff'; ctx.fill();
-      if (comet.x < -100 || comet.x > W+100 || comet.y < -100 || comet.y > H+100) {
+      ctx.fillStyle = '#eafaff'; ctx.fill();
+      if (comet.x < -200 || comet.x > W+200 || comet.y < -200 || comet.y > H+200) {
         comet.alive = false;
-        setTimeout(mkComet, 4000 + Math.random() * 10000);
+        setTimeout(mkComet, 3000 + Math.random() * 8000);
       }
     }
     requestAnimationFrame(draw);
